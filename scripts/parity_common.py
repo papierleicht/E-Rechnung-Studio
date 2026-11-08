@@ -14,7 +14,21 @@ import urllib.request
 
 root = Path(__file__).resolve().parents[1]
 DEFAULT_CACHE = Path.home() / ".cache/e-rechnung-studio-kosit"
-JAVA = ["java", "--enable-native-access=ALL-UNNAMED", "--enable-final-field-mutation=ALL-UNNAMED"]
+# Options that silence warnings of newer JDKs; each is kept only if the
+# installed java accepts it, so an older runtime still starts the validators.
+JAVA_OPTIONS = ["--enable-native-access=ALL-UNNAMED", "--enable-final-field-mutation=ALL-UNNAMED"]
+
+
+def java_command():
+    accepted = []
+    for option in JAVA_OPTIONS:
+        probe = subprocess.run(["java", option, "-version"], capture_output=True, text=True, check=False)
+        if probe.returncode == 0 and "Unrecognized option" not in probe.stderr:
+            accepted.append(option)
+    return ["java", *accepted]
+
+
+JAVA = java_command()
 
 
 def api(path):

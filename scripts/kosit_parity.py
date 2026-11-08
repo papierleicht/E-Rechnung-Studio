@@ -59,8 +59,16 @@ def kosit_messages(report):
 
 
 def run_kosit(jar, config, out, files):
-    subprocess.run([*JAVA, "-jar", str(jar), "-s", str(config / "scenarios.xml"), "-r", str(config), "-o", str(out), *map(str, files)],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    """Run KoSIT on files; returns its error output, shown when reports are missing."""
+    run = subprocess.run([*JAVA, "-jar", str(jar), "-s", str(config / "scenarios.xml"), "-r", str(config), "-o", str(out), *map(str, files)],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, check=False)
+    return f"exit {run.returncode}: " + "\n".join(run.stderr.strip().splitlines()[-15:])
+
+
+def missing_reports(failures, label, log):
+    """Show KoSIT's own error once when it wrote no report at all."""
+    if any(f.endswith("KoSIT produced no report") for f in failures):
+        print(f"KoSIT ({label}) {log}", file=sys.stderr)
 
 
 LOCAL_STAGE = "input"  # app-only safeguards (APP-*), not part of the KoSIT ruleset
@@ -138,7 +146,7 @@ def main():
         print("no xrechnung-*.xml fixtures with .json in", args.fixtures)
         return 2
     out = work / "out-fixtures"
-    run_kosit(jar, config, out, fixtures)
+    log = run_kosit(jar, config, out, fixtures)
     for source in fixtures:
         report = out / f"{source.stem}-report.xml"
         if not report.exists():
@@ -146,6 +154,7 @@ def main():
             continue
         accepted, reference = kosit_messages(report)
         failures += compare(source.name, json.loads(source.with_suffix(".json").read_text()), accepted, reference)
+    missing_reports(failures, "fixtures", log)
 
     # 3. official KoSIT testsuite instances
     corpus = sorted(p for folder in CORPUS for p in (suite / folder).rglob("*.xml"))
@@ -153,7 +162,7 @@ def main():
         print("no testsuite instances found in", suite)
         return 2
     out = work / "out-corpus"
-    run_kosit(jar, config, out, corpus)
+    log = run_kosit(jar, config, out, corpus)
     results = app_validate(cli, corpus)
     for source in corpus:
         report = out / f"{source.stem}-report.xml"
@@ -162,6 +171,7 @@ def main():
             continue
         accepted, reference = kosit_messages(report)
         failures += compare("testsuite " + source.name, results[source], accepted, reference)
+    missing_reports(failures, "testsuite", log)
 
     for line in failures:
         print(line)
