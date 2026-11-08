@@ -1,0 +1,16 @@
+.papierleicht-logo .vane-a,
+.papierleicht-logo .quill {
+  fill: var(--brand-sage);
+}
+.papierleicht-logo .vane-b {
+  fill: var(--brand-leaf);
+}
+:root[data-theme="dark"] .papierleicht-logo .vane-a {
+  fill: var(--dark-mint);
+}
+:root[data-theme="dark"] .papierleicht-logo .quill {
+  fill: var(--dark-mint);
+}
+:root[data-theme="dark"] .papierleicht-logo .vane-b {
+  fill: var(--brand-leaf);
+}

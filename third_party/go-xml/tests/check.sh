@@ -1,0 +1,661 @@
+#!/bin/sh
+# check.sh — everything that has to pass before a change is called done.
+#
+# Written because the useful checks were being reassembled from memory each
+# time, and the ones that got skipped were the ones that caught the most: a
+# schema-validity rule looks fine against the W3C suite and still breaks real
+# schemas, and a fix aimed at one suite can quietly cost ground in another.
+#
+#   tests/check.sh          # everything available
+#   tests/check.sh fast     # build, vet, unit tests, race — no external suites
+#
+# Suites and corpora are third-party and are not vendored. Point these at your
+# own checkouts, or let the defaults find them under testdata/:
+#
+#   GOXSLT_QT3=<dir>    github.com/w3c/qt3tests    (default testdata/qt3tests)
+#   GOXSLT_XSDTS=<dir>  github.com/w3c/xsdtests    (default testdata/xsdtests)
+#   GOXSLT_XSLTS=<dir>  github.com/w3c/xslt30-test (default testdata/xslt30-test)
+#   GOXSLT_RNG=<file>   spectest.xml from relaxng/jing-trang
+#                                                  (default testdata/relaxng/spectest.xml)
+#   GOXSLT_XSLTNG=<dir> docbook/xslTNG        (default testdata/xsltng)
+#   GOXSLT_XSPEC=<dir>  xspec/xspec           (default testdata/xspec)
+#   GOXSLT_UBL=<dir>    UBL 2.1, the directory holding maindoc/
+#   GOXSLT_CII=<dir>    UN/CEFACT CII or EN 16931 schemas
+#
+# A missing suite is reported and skipped; a suite that is present but produces
+# no result is a failure. A check that did not run must never look like a check
+# that succeeded — which is exactly what happened the first time this script
+# ran: a relative GOXSLT_QT3 resolved against ./qt3/ rather than the repository
+# root, the test skipped itself, and `go test` reported PASS.
+#
+# The last four of those are expected to be absent in CI, which fetches only
+# the four W3C suites. UBL and CII are licensed corpora that cannot be cloned
+# in a workflow at all; DocBook xslTNG and XSpec could be, and are not, because
+# each needs a build step of its own before it yields anything to transform.
+# They are measured locally instead, and their ratchet lines exist so that a
+# developer who does have them cannot lose ground silently. Four skips in a CI
+# log are therefore the normal reading, not a broken checkout — the failure
+# mode to look for is a corpus that is present and reports nothing.
+
+set -eu
+
+# Everything below is relative to the repository root, whatever the caller's
+# working directory is.
+cd "$(dirname "$0")/.."
+ROOT=$(pwd)
+
+GO="${GO:-go}"
+MODE="${1:-full}"
+
+# The suite paths are made absolute because the qt3 test runs with its own
+# package directory as the working directory.
+abspath() {
+	case "$1" in
+	/*) printf '%s\n' "$1" ;;
+	*)  printf '%s/%s\n' "$ROOT" "$1" ;;
+	esac
+}
+
+# ratchet compares a suite's passing count against the highest this repository
+# has recorded, and fails if it has gone down.
+#
+# The percentages elsewhere in this script are printed rather than asserted,
+# because a hard threshold turns every upstream suite update into a build
+# break. A ratchet does not: an update that adds cases moves the in-scope
+# count, and only the PASSING count going down is reported — which is a
+# regression however the suite changed underneath it.
+#
+# It exists because the build-and-test gate cannot see a silent revert. An
+# agent committing a stale copy of a shared file over an additive change
+# leaves a tree that compiles and a suite that still passes, because other
+# work is landing wins in parallel; the total looks plausible and nothing
+# flags it. That happened here, to commit 9843c44, and was found only by
+# accident. A number that may not go down is what catches it.
+#
+# Load sensitivity used to make this fire on unmodified trees, and the cause
+# was the harness rather than the engine. Three cases in the "catalog" set
+# parse every non-error stylesheet in the suite inside a single transform;
+# catalog-005b and catalog-007 are the two that came closest to the old 10s
+# per-case deadline. An idle machine finished them and a loaded one did not,
+# so the reported figure moved with whatever else was running on the box --
+# 8605 in CI under a parallel build, 8607 on a quiet laptop -- and the mark
+# had to be carried at the low end to stay usable.
+#
+# The per-case deadline is now 60s (GOXSLT_CASE_TIMEOUT overrides it), which
+# is far enough from the wall that both cases finish on a loaded runner. The
+# mark is therefore the real figure rather than the degraded one. If this
+# starts drifting again, re-measure before recording a new mark: a number that
+# moves between runs is measurement noise, and recording the high end of it
+# just moves the false failure to the next slow machine.
+#
+# Set GOXSLT_RATCHET=update to record a new high after a deliberate change,
+# or GOXSLT_RATCHET=off to skip the check entirely.
+RATCHET_FILE="$ROOT/tests/ratchet.txt"
+ratchet() {
+	_t=$1
+	_passed=$(printf '%s' "$2" | sed -n 's/.*in-scope: \([0-9]*\) passed.*/\1/p' | head -1)
+	[ -n "$_passed" ] || return 0
+	case "${GOXSLT_RATCHET:-on}" in
+	off) return 0 ;;
+	esac
+	_best=$(sed -n "s/^$_t \([0-9]*\)$/\1/p" "$RATCHET_FILE" 2>/dev/null | head -1)
+	if [ -n "$_best" ] && [ "$_passed" -lt "$_best" ]; then
+		fail "$_t: $_passed passing, down from $_best.
+    A passing count that went down is a regression even where the suite still
+    reports PASS. If this is deliberate, record it:
+        GOXSLT_RATCHET=update tests/check.sh"
+		return 0
+	fi
+	if [ "${GOXSLT_RATCHET:-on}" = update ] ||
+		{ [ -n "$_passed" ] && [ -z "$_best" ]; } ||
+		{ [ -n "$_best" ] && [ "$_passed" -gt "$_best" ]; }; then
+		touch "$RATCHET_FILE"
+		_tmp="$RATCHET_FILE.tmp"
+		grep -v "^$_t " "$RATCHET_FILE" > "$_tmp" 2>/dev/null || true
+		printf '%s %s\n' "$_t" "$_passed" >> "$_tmp"
+		sort -o "$RATCHET_FILE" "$_tmp"
+		rm -f "$_tmp"
+		printf -- '--- ratchet: %s high-water mark now %s\n' "$_t" "$_passed"
+	fi
+}
+
+# ratchetXSD is ratchet for the XSD driver, which reports "TOTAL agree N
+# disagree M" rather than the "in-scope: N passed" the Go suites log. The
+# number that may not go down is the agreement count.
+ratchetXSD() {
+	_t=$1
+	_agree=$(printf '%s' "$2" | sed -n 's/^TOTAL[^0-9]*\([0-9]*\).*/\1/p' | head -1)
+	[ -n "$_agree" ] || return 0
+	case "${GOXSLT_RATCHET:-on}" in
+	off) return 0 ;;
+	esac
+	_best=$(sed -n "s/^$_t \([0-9]*\)$/\1/p" "$RATCHET_FILE" 2>/dev/null | head -1)
+	if [ -n "$_best" ] && [ "$_agree" -lt "$_best" ]; then
+		fail "$_t: $_agree agreeing, down from $_best.
+    An agreement count that went down is a regression even where the suite
+    still reports totals. If this is deliberate, record it:
+        GOXSLT_RATCHET=update tests/check.sh"
+		return 0
+	fi
+	if [ "${GOXSLT_RATCHET:-on}" = update ] ||
+		{ [ -n "$_agree" ] && [ -z "$_best" ]; } ||
+		{ [ -n "$_best" ] && [ "$_agree" -gt "$_best" ]; }; then
+		touch "$RATCHET_FILE"
+		_tmp="$RATCHET_FILE.tmp"
+		grep -v "^$_t " "$RATCHET_FILE" > "$_tmp" 2>/dev/null || true
+		printf '%s %s\n' "$_t" "$_agree" >> "$_tmp"
+		sort -o "$RATCHET_FILE" "$_tmp"
+		rm -f "$_tmp"
+		printf -- '--- ratchet: %s high-water mark now %s\n' "$_t" "$_agree"
+	fi
+}
+
+# ratchetCount is ratchet for a driver that reports a bare number rather than
+# a suite summary line. The number that may not go down is passed directly.
+ratchetCount() {
+	_t=$1
+	_n=$2
+	[ -n "$_n" ] || return 0
+	case "${GOXSLT_RATCHET:-on}" in
+	off) return 0 ;;
+	esac
+	_best=$(sed -n "s/^$_t \([0-9]*\)$/\1/p" "$RATCHET_FILE" 2>/dev/null | head -1)
+	if [ -n "$_best" ] && [ "$_n" -lt "$_best" ]; then
+		fail "$_t: $_n transformed, down from $_best.
+    A count that went down is a regression. If this is deliberate, record it:
+        GOXSLT_RATCHET=update tests/check.sh"
+		return 0
+	fi
+	if [ "${GOXSLT_RATCHET:-on}" = update ] ||
+		{ [ -n "$_n" ] && [ -z "$_best" ]; } ||
+		{ [ -n "$_best" ] && [ "$_n" -gt "$_best" ]; }; then
+		touch "$RATCHET_FILE"
+		_tmp="$RATCHET_FILE.tmp"
+		grep -v "^$_t " "$RATCHET_FILE" > "$_tmp" 2>/dev/null || true
+		printf '%s %s\n' "$_t" "$_n" >> "$_tmp"
+		sort -o "$RATCHET_FILE" "$_tmp"
+		rm -f "$_tmp"
+		printf -- '--- ratchet: %s high-water mark now %s\n' "$_t" "$_n"
+	fi
+}
+
+# ratchetVendored is ratchetCount for the vendored schema corpus. It is a
+# separate function only because of its failure message: what a drop here
+# MEANS is specific, and the number is useless to whoever reads it in CI
+# unless the message says so.
+#
+# The count is schemas that still assemble. Nothing in this repository makes
+# a real schema stop loading except a schema-validity rule that has become
+# stricter than the spec -- which is the one defect the W3C suite structurally
+# cannot catch, because it scores agreement with its own labels and an
+# over-strict rule only shows up there if the suite happens to contain a valid
+# schema exercising it. So a drop here is not "a test broke"; it is the
+# specific news that a rule added upstream of it now rejects a schema that a
+# human being wrote and shipped.
+ratchetVendored() {
+	_n=$1
+	[ -n "$_n" ] || return 0
+	case "${GOXSLT_RATCHET:-on}" in
+	off) return 0 ;;
+	esac
+	_t=VendoredSchemas
+	_best=$(sed -n "s/^$_t \([0-9]*\)$/\1/p" "$RATCHET_FILE" 2>/dev/null | head -1)
+	if [ -n "$_best" ] && [ "$_n" -lt "$_best" ]; then
+		fail "$_t: $_n real schemas still load, down from $_best.
+    A SCHEMA-VALIDITY RULE HAS BECOME TOO STRICT. These are real schemas that
+    people wrote and shipped, and $((_best - _n)) of them loaded before your
+    change and do not now. That is over-strictness, and it is the one defect
+    the W3C suite cannot see: the suite scores agreement with its own labels,
+    so a rule stricter than the spec shows up there only if the suite happens
+    to contain a valid schema exercising it.
+    Run the corpus to see which, and read the first error of each:
+        go run ./tests/corpora vendored testdata/xslt30-test \\
+            testdata/qt3tests testdata/xspec
+    Compare like with like: the mark covers all three roots, so a run that
+    omits one reports a smaller count that is not a regression.
+    Fix the rule. Record a new mark ONLY if you have established that
+    rejecting those schemas is correct and the spec requires it:
+        GOXSLT_RATCHET=update tests/check.sh fast"
+		return 0
+	fi
+	if [ "${GOXSLT_RATCHET:-on}" = update ] ||
+		{ [ -n "$_n" ] && [ -z "$_best" ]; } ||
+		{ [ -n "$_best" ] && [ "$_n" -gt "$_best" ]; }; then
+		touch "$RATCHET_FILE"
+		_tmp="$RATCHET_FILE.tmp"
+		grep -v "^$_t " "$RATCHET_FILE" > "$_tmp" 2>/dev/null || true
+		printf '%s %s\n' "$_t" "$_n" >> "$_tmp"
+		sort -o "$RATCHET_FILE" "$_tmp"
+		rm -f "$_tmp"
+		printf -- '--- ratchet: %s high-water mark now %s\n' "$_t" "$_n"
+	fi
+}
+
+QT3=$(abspath "${GOXSLT_QT3:-testdata/qt3tests}")
+XSDTS=$(abspath "${GOXSLT_XSDTS:-testdata/xsdtests}")
+RNG=$(abspath "${GOXSLT_RNG:-testdata/relaxng/spectest.xml}")
+XSLTS=$(abspath "${GOXSLT_XSLTS:-testdata/xslt30-test}")
+UBL="${GOXSLT_UBL:-}"
+CII="${GOXSLT_CII:-}"
+XSLTNG=$(abspath "${GOXSLT_XSLTNG:-testdata/xsltng}")
+XSPEC=$(abspath "${GOXSLT_XSPEC:-testdata/xspec}")
+[ -n "$UBL" ] && UBL=$(abspath "$UBL")
+[ -n "$CII" ] && CII=$(abspath "$CII")
+
+failed=0
+skipped=""
+
+section() { printf '\n=== %s\n' "$1"; }
+fail()    { printf 'FAIL: %s\n' "$1"; failed=1; }
+skip()    { skipped="${skipped}  - $1
+"; }
+
+section "build"
+$GO build ./... || fail "build"
+
+section "vet"
+$GO vet ./... || fail "vet"
+
+# docfigure asserts that a number written in the documentation still equals the
+# number the command beside it produces.
+#
+# This is NOT a ratchet. A ratchet records a high-water mark and only a DROP is
+# a regression, which is right for a conformance score that moves with upstream
+# and with the engine. A documented count is different: a test count that fell
+# is exactly as stale as one that rose, because the claim is "this is how many
+# there are", not "at least this many". So the comparison is equality and the
+# marks live here rather than in tests/ratchet.txt, whose whole contract is
+# "may not decrease".
+#
+# It exists because the two mechanisms were once measured against each other on
+# this tree. Every conformance figure guarded by the ratchet was correct to the
+# case, eight for eight; the unit test count -- guarded by nothing but prose --
+# was stale by 59 in all four files that stated it. That gap is not diligence.
+# One of the numbers is re-derived by a script that fails the build when it
+# moves and the other is not, and reading does not close the difference: three
+# of those four stale copies were written and reviewed by people who were at
+# that moment actively hunting stale claims.
+#
+# THE COUNTING METHOD IS PART OF THE CLAIM. "How many tests" has several honest
+# answers -- `func Test` declarations, subtests, table rows -- and a reader who
+# re-derives it differently will report drift that is not there. Every figure
+# below therefore carries its exact command, the same command is quoted in the
+# documentation beside each number, and the failure message prints it. A figure
+# whose method is not written down is not guarded; it is merely asserted twice.
+#
+# It runs in fast mode as well: it costs a few greps, it needs no suite on
+# disk, and stale doc figures are the drift most likely to be introduced by a
+# change that is otherwise entirely green.
+#
+# The counting commands. Each excludes .claude/worktrees, which holds agent
+# checkouts of this same repository and would otherwise multiply every count.
+docfigure_tests() {
+	grep -rn "func Test" --include='*_test.go' . |
+		grep -vc '/\.claude/worktrees/'
+}
+docfigure_fuzz() {
+	grep -rn "func Fuzz" --include='*_test.go' . |
+		grep -vc '/\.claude/worktrees/'
+}
+docfigure_limits() {
+	grep -hc "func Test" ./*/limits_boundary_test.go |
+		awk '{n += $1} END {print n + 0}'
+}
+
+# docfigure name, expected, actual, files...
+docfigure() {
+	_what=$1 _want=$2 _got=$3
+	shift 3
+	[ "$_want" = "$_got" ] && return 0
+	fail "$_what: the documentation says $_want, the tree has $_got.
+    counted by: $(docfigure_cmd "$_what")
+    Update every one of these to $_got, and the same number in
+    tests/check.sh's docfigure section, in the same commit:
+$(for _f in "$@"; do printf '        %s\n' "$_f"; done)
+    There is deliberately no GOXSLT=update affordance here: the ratchet can
+    rewrite tests/ratchet.txt because nothing reads that file but the ratchet,
+    whereas these numbers sit inside English sentences that a script cannot
+    reword. Editing them by hand is the point -- it is the moment someone
+    checks the sentence around the number still says something true."
+}
+
+# The command text for a figure, printed by the failure above so that whoever
+# reads it in CI can re-derive the number without opening this script.
+docfigure_cmd() {
+	case $1 in
+	"unit test count")
+		printf '%s' "grep -rn 'func Test' --include='*_test.go' . | grep -vc '/\\.claude/worktrees/'" ;;
+	"fuzz target count")
+		printf '%s' "grep -rn 'func Fuzz' --include='*_test.go' . | grep -vc '/\\.claude/worktrees/'" ;;
+	"limit boundary test count")
+		printf '%s' "grep -hc 'func Test' ./*/limits_boundary_test.go | awk '{n += \$1} END {print n + 0}'" ;;
+	esac
+}
+
+section "documented figures"
+_docfig_before=$failed
+docfigure "unit test count" 1576 "$(docfigure_tests)" \
+	README.md:109 README.md:1228 docs/testing.md:23 docs/todo.md:20
+docfigure "fuzz target count" 8 "$(docfigure_fuzz)" \
+	README.md:1223 docs/testing.md:29
+docfigure "limit boundary test count" 13 "$(docfigure_limits)" \
+	docs/testing.md:24
+if [ "$failed" -eq "$_docfig_before" ]; then
+	printf 'tests %s, fuzz targets %s, limit boundary tests %s — as documented\n' \
+		"$(docfigure_tests)" "$(docfigure_fuzz)" "$(docfigure_limits)"
+fi
+
+# GOXSLT_NO_SUITES keeps the conformance suites out of these two steps. They
+# are the fast gate, and the suites get their own sections below; without it a
+# run that has testdata/ on disk does the whole conformance job twice, because
+# each suite harness falls back to ./testdata when its own variable is unset.
+#
+# Under -race that second run is not merely wasted: it is slow enough to pass
+# go test's 10m default and panic rather than report, which is what CI saw --
+# "panic: test timed out after 10m0s, running tests: TestXSLTSuite (1m53s)".
+# The two figures only reconcile if the deadline was spent by the 3.0 suite
+# before the 2.0 suite started, both of them running in the same binary.
+#
+# -timeout is therefore set explicitly here as well as in ci.yml, and
+# -count=1 because a cached result cannot show a regression.
+section "unit tests"
+GOXSLT_NO_SUITES=1 $GO test ./... -count=1 || fail "unit tests"
+
+section "race"
+GOXSLT_NO_SUITES=1 $GO test -race ./... -count=1 -timeout 25m || fail "race"
+
+# w3cschemas is a module of its own -- the schemas it bundles are W3C-licensed
+# and the core module is MIT -- so `go list ./...` at the root does not reach
+# it and none of the steps above cover it. It needs a step of its own or it is
+# in no gate at all, which is what it was in: nothing here and nothing in
+# ci.yml ran it.
+#
+# What this step measures is the module against the go-xml RELEASE its go.mod
+# names, not against this tree. That is deliberate: w3cschemas is published
+# separately, so the version it pins is the version its users get, and testing
+# it against an unreleased tree would measure something nobody can install. It
+# catches a broken w3cschemas; it does NOT catch an API break in this tree that
+# would affect it. Bumping the pin after a release is what closes that gap, and
+# is a release step rather than something to paper over with a workspace file.
+section "w3cschemas (separate module)"
+(cd w3cschemas && $GO build ./... && $GO vet ./... &&
+	$GO test ./... -count=1) || fail "w3cschemas"
+
+section "vendored real-world schemas"
+# The over-strictness guard that is always available.
+#
+# docs/known-gaps.md used to name UBL and CII as the ONLY guard against a
+# schema-validity rule stricter than the spec, and both are licensed corpora
+# that cannot be vendored. So on every checkout that does not already have
+# them -- CI included -- schema rules were landing with that guard skipped.
+# The skip was honest and the hole was real.
+#
+# These 230 schemas are real ones people wrote, they are already in the tree
+# as fixtures for the XSLT and XQuery suites, and until now nothing ever
+# asked whether they still LOAD. That is the same question UBL and CII ask,
+# on a smaller and less commercial sample. It does not replace them: these
+# are mostly test fixtures and documentation schemas, not the deep industry
+# vocabularies UBL and CII exercise, so the blocks below stay exactly as
+# they were.
+#
+# The number that may not go down is how many assemble. That makes this a
+# ratchet rather than an equality check, for the reason the ratchet comment
+# above gives: a schema that starts loading is progress, and only a schema
+# that STOPS loading is the regression this exists to catch. It uses
+# ratchetCount rather than ratchet or ratchetXSD because the driver reports
+# a bare count of its own rather than an "in-scope: N passed" suite summary
+# or the XSD driver's agreement line.
+#
+# Excluded schemas are printed with the count so the size of what is not
+# scored stays visible; see vendoredExclude in tests/corpora for why each is
+# not a standalone schema.
+# The roots are only those actually present. The corpus skips a root it
+# cannot find, which shrinks the DENOMINATOR silently -- and a ratchet reads
+# a smaller denominator as schemas that stopped loading. That is exactly what
+# happened: the mark was recorded on a tree holding XSpec, whose test/
+# directory contributes 7 schemas, and CI does not fetch XSpec. It reported
+# "178, down from 185: A SCHEMA-VALIDITY RULE HAS BECOME TOO STRICT" for 7
+# files it had never opened.
+#
+# So the ratchet is only meaningful over a fixed set of roots. Naming which
+# are missing keeps a count taken over fewer of them from being compared
+# against one taken over more.
+_vend_roots=""
+_vend_absent=""
+for _r in xslt30-test qt3tests xspec; do
+	if [ -d "$ROOT/testdata/$_r" ]; then
+		_vend_roots="$_vend_roots $ROOT/testdata/$_r"
+	else
+		_vend_absent="$_vend_absent $_r"
+	fi
+done
+_vend=$($GO run ./tests/corpora vendored $_vend_roots 2>&1 >/dev/null | tail -1)
+_vend_ok=$(printf '%s' "$_vend" | sed -n 's/^vendored schemas: \([0-9]*\) loaded.*/\1/p')
+if [ -z "$_vend_ok" ]; then
+	fail "vendored schemas: the corpus produced no result.
+    These schemas are vendored in testdata/, so unlike UBL and CII this
+    check has no legitimate skip. A corpus that is present and reports
+    nothing is the failure mode to look for."
+elif [ -n "$_vend_absent" ]; then
+	# A count over fewer roots is not comparable with the recorded mark, so
+	# it is reported and skipped rather than ratcheted. Skipped, not passed:
+	# the guard genuinely did not run over what it was calibrated on.
+	printf '%s\n' "$_vend"
+	skip "vendored schemas: not ratcheted --$_vend_absent absent from testdata/ (the mark covers all three roots)"
+else
+	printf '%s\n' "$_vend"
+	ratchetVendored "$_vend_ok"
+fi
+
+if [ "$MODE" = fast ]; then
+	printf '\n=== fast mode: external suites not run\n'
+	if [ "$failed" -eq 0 ]; then printf 'OK\n'; else printf 'FAILED\n'; fi
+	exit "$failed"
+fi
+
+section "W3C QT3 (XPath 2.0)"
+if [ -f "$QT3/catalog.xml" ]; then
+	# The percentage is the result, so it is printed rather than asserted: a
+	# hard threshold would turn every upstream suite update into a build
+	# break. What *is* asserted is that a summary appeared at all.
+	out=$(GOXSLT_QT3="$QT3" $GO test ./tests/qt3/ -count=1 -run TestQT3 -v 2>&1) || true
+	if printf '%s' "$out" | grep -q 'in-scope:'; then
+		printf '%s\n' "$out" | grep -E 'QT3:|in-scope:'
+		# Ratcheted like every other suite. This was the one Go suite whose
+		# passing count could fall without the script noticing -- the comment
+		# above explains why the PERCENTAGE is not asserted, which is a
+		# different thing from letting the count drop silently.
+		#
+		# TestQT3 logs one "in-scope:" line per language version, so the
+		# figure to ratchet is the LAST of them (the full 2.0 run), not the
+		# first. ratchet() takes head -1, so the line is selected here.
+		ratchet TestQT3 "$(printf '%s\n' "$out" | grep 'in-scope:' | tail -1)"
+	else
+		fail "QT3 ran but reported no summary — did it skip?"
+		printf '%s\n' "$out" | tail -5
+	fi
+else
+	skip "QT3 not at $QT3
+    git clone --depth 1 https://github.com/w3c/qt3tests.git $QT3"
+fi
+
+section "W3C QT3 (XQuery 3.1)"
+# The XQuery half of the same catalog. It is a separate test from TestQT3 --
+# the XPath figures are a regression check that must not move while XQuery is
+# worked on -- and it was previously not run here at all, which is why XQuery
+# had no row in docs/conformance-gaps.md.
+if [ -f "$QT3/catalog.xml" ]; then
+	out=$(GOXSLT_QT3="$QT3" $GO test ./tests/qt3/ -count=1 -run TestQT3XQuery -v 2>&1) || true
+	if printf '%s' "$out" | grep -q 'in-scope:'; then
+		printf '%s\n' "$out" | grep -E 'in-scope:'
+		ratchet TestQT3XQuery "$out"
+	else
+		fail "the XQuery suite ran but reported no summary — did it skip?"
+		printf '%s\n' "$out" | tail -5
+	fi
+else
+	skip "QT3 not at $QT3 (XQuery)"
+fi
+
+section "W3C xsdtests (XML Schema 1.0 and 1.1)"
+if [ -f "$XSDTS/suite.xml" ]; then
+	for flag in "" -11; do
+		if [ -z "$flag" ]; then printf -- '--- XSD 1.0\n'; else printf -- '--- XSD 1.1\n'; fi
+		out=$($GO run ./tests/xsdsuite "$XSDTS" $flag 2>&1) || true
+		if printf '%s' "$out" | grep -q '^TOTAL'; then
+			printf '%s\n' "$out" | grep -E '^(SCHEMA|INSTANCE|TOTAL)'
+			# The XSD driver reports agreement rather than a passing
+			# count, so it needs its own ratchet line; see ratchetXSD.
+			if [ -z "$flag" ]; then _n=XSD10; else _n=XSD11; fi
+			ratchetXSD "$_n" "$out"
+		else
+			fail "xsdtests produced no totals"
+			printf '%s\n' "$out" | tail -5
+		fi
+	done
+else
+	skip "xsdtests not at $XSDTS
+    git clone --depth 1 https://github.com/w3c/xsdtests.git $XSDTS"
+fi
+
+section "RELAX NG (James Clark's spectest)"
+if [ -f "$RNG" ]; then
+	out=$(GOXSLT_RNG="$RNG" $GO test ./relaxng/ -count=1 -run TestSpectest -v 2>&1) || true
+	if printf '%s' "$out" | grep -q 'spectest:'; then
+		printf '%s\n' "$out" | grep -E 'spectest:|failing'
+		# The spectest driver logs "N assertions, M passed" rather than the
+		# "in-scope: M passed" the Go suites use, so the passing count is
+		# extracted here and handed to ratchetCount.
+		_rng=$(printf '%s' "$out" | sed -n 's/.*spectest: [0-9]* assertions, \([0-9]*\) passed.*/\1/p' | head -1)
+		ratchetCount RelaxNGSpectest "$_rng"
+	else
+		fail "spectest ran but reported no summary"
+		printf '%s\n' "$out" | tail -5
+	fi
+else
+	skip "spectest.xml not at $RNG
+    git clone --depth 1 https://github.com/relaxng/jing-trang.git
+    cp jing-trang/mod/rng-validate/test/spectest.xml $RNG"
+fi
+
+# Both targets, always. The same catalog measures 2.0 and 3.0, and the question
+# a change has to answer is not "how much 3.0 works" but "how much 3.0 works
+# without costing 2.0" — which only two runs answer.
+section "W3C XSLT suite (XSLT 2.0 and 3.0)"
+if [ -f "$XSLTS/catalog.xml" ]; then
+	for t in TestXSLTSuite TestXSLT30Suite; do
+		if [ "$t" = TestXSLTSuite ]; then
+			printf -- '--- filtered to XSLT 2.0\n'
+		else
+			printf -- '--- filtered to XSLT 3.0\n'
+		fi
+		out=$(GOXSLT_XSLTS="$XSLTS" $GO test ./tests/xslts/ -count=1 -run "$t" -v 2>&1) || true
+		if printf '%s' "$out" | grep -q 'in-scope:'; then
+			printf '%s\n' "$out" | grep -E 'XSLT suite:|XSLT 3.0 suite:|in-scope:'
+			ratchet "$t" "$out"
+		else
+			fail "the XSLT suite ran but reported no summary — did it skip?"
+			printf '%s\n' "$out" | tail -5
+		fi
+	done
+else
+	skip "the XSLT suite is not at $XSLTS
+    git clone --depth 1 https://github.com/w3c/xslt30-test.git $XSLTS"
+fi
+
+section "production corpora"
+# The only guard against a schema-validity rule stricter than the spec. The
+# conformance suite cannot catch that — it scores agreement with W3C labels, so
+# an over-strict rule shows up only if the suite happens to contain a valid
+# schema exercising it. Real schemas do catch it.
+corpus() { # name, mode, dir
+	out=$($GO run ./tests/corpora "$2" "$3" 2>&1) || true
+	line=$(printf '%s' "$out" | tail -1)
+	printf '%-6s %s\n' "$1" "$line"
+	case "$line" in
+	*"0 failed") ;;
+	*) fail "$1: $line" ;;
+	esac
+}
+if [ -n "$UBL" ] && [ -d "$UBL/maindoc" ]; then
+	corpus UBL maindoc "$UBL"
+else
+	skip "UBL not set (expected in CI) — GOXSLT_UBL=<dir holding maindoc/>"
+fi
+if [ -n "$CII" ] && [ -d "$CII" ]; then
+	corpus CII walk "$CII"
+else
+	skip "CII not set (expected in CI) — GOXSLT_CII=<dir of .xsd files>"
+fi
+
+section "real-world stylesheets"
+# The W3C suites test the language a rule at a time; these test what a large
+# stylesheet does with it. Four defects survived both suites and were found
+# only here -- xsl:copy over a non-node context item, fn:key with a prefix
+# bound to different URIs per module, xsl:evaluate calling the stylesheet's own
+# functions, and a base URI spelled as a filesystem path rather than a URI.
+#
+# The number that may not go down is how many inputs transform without error.
+# Upstream can add or remove documents, so only a DROP is a regression.
+#
+# Only stderr decides the outcome: both stylesheets write progress comments to
+# stdout, and a comment is not a failure.
+stylesheetCorpus() { # name, stylesheet, glob, extra flags
+	_name=$1 _xsl=$2 _glob=$3 _flags=${4:-}
+	if [ ! -f "$_xsl" ]; then
+		skip "$_name not at $_xsl (expected in CI; it fetches only the W3C suites)"
+		return 0
+	fi
+	_ok=0 _bad=0
+	for _f in $_glob; do
+		[ -f "$_f" ] || continue
+		if _err=$("$BIN" -timeout 120s -xsl "$_xsl" $_flags -o /dev/null "$_f" \
+			2>&1 >/dev/null) && [ -z "$_err" ]; then
+			_ok=$((_ok + 1))
+		else
+			_bad=$((_bad + 1))
+		fi
+	done
+	if [ "$((_ok + _bad))" -eq 0 ]; then
+		skip "$_name matched no inputs"
+		return 0
+	fi
+	printf '%-8s %s transformed, %s failed\n' "$_name" "$_ok" "$_bad"
+	ratchetCount "$_name" "$_ok"
+}
+
+# One build, reused for every input: `go run` per document would dominate the
+# runtime of the whole script.
+BIN=$(mktemp -t goxml.XXXXXX) || BIN=""
+if [ -n "$BIN" ] && $GO build -o "$BIN" ./cmd/go-xml; then
+	# DocBook is run with the flags a real user of this corpus would pass, so
+	# the count measures the engine rather than a thin invocation. Two of its
+	# documents declare a DOCTYPE, and three build a temporary tree from a
+	# sequence containing an attribute -- correct to refuse by 5.8.1, which is
+	# why the relaxation is opt-in rather than the default. Measuring without
+	# these reported 544 where the engine could already do 549.
+	#
+	# -xinclude is there for the same reason: the corpus assembles documents
+	# from parts, so a run without it measures the engine against inputs no
+	# reader of this corpus would use. It was worth 28 documents when the
+	# flag landed, and leaving it off held the count at 549.
+	stylesheetCorpus DocBook \
+		"$XSLTNG/src/main/xslt/docbook.xsl" \
+		"$XSLTNG/src/test/resources/xml/*.xml" \
+		"-allow-dir $XSLTNG -allow-unparsed-text -allow-doctype -xinclude \
+		 -compat-drop-attributes-on-document"
+	stylesheetCorpus XSpec \
+		"$XSPEC/src/compiler/compile-xslt-tests.xsl" \
+		"$XSPEC/test/*.xspec" \
+		"-allow-dir $XSPEC -allow-unparsed-text"
+	rm -f "$BIN"
+else
+	skip "could not build ./cmd/go-xml for the stylesheet corpora"
+fi
+
+printf '\n'
+if [ -n "$skipped" ]; then
+	printf 'Checks skipped (not run, not passed):\n%s' "$skipped"
+fi
+if [ "$failed" -eq 0 ]; then printf 'OK\n'; else printf 'FAILED\n'; fi
+exit "$failed"

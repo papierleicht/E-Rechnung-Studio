@@ -1,0 +1,57 @@
+# Weekly, grouped dependency updates with titles the commit policy accepts.
+# A new version waits seven days before Dependabot proposes it, so a hijacked
+# release is usually withdrawn before it reaches a pull request; security
+# updates are not delayed.
+# chore(deps) and ci do not trigger a release; retitle a pull request to
+# deps(<scope>): … before the squash merge when the update ships in the app.
+# Wails is excluded: the Go module, @wailsio/runtime and the CLI pinned in
+# the Makefile are updated together, followed by regenerated bindings and
+# license catalog. TypeScript stays on 6 until svelte-check accepts 7 as a
+# peer dependency.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Berlin
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      frontend:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "@wailsio/runtime"
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Berlin
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      go:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: github.com/wailsapp/wails/v3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Berlin
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]

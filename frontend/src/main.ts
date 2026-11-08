@@ -1,0 +1,20 @@
+import { mount } from "svelte";
+import App from "./App.svelte";
+import { installGermanFormValidation } from "./lib/formValidation";
+import "./styles/app.css";
+import "./styles/features.css";
+import "./styles/tax.css";
+import "./styles/document.css";
+import "./styles/onboarding.css";
+import "./styles/shell.css";
+import "./styles/document-preview.css";
+import "./styles/controls.css";
+import "./styles/theme.css";
+import "./brand/logo.css";
+import "./styles/responsive.css";
+import "./styles/ui.css";
+import "./styles/windows.css";
+
+const removeFormValidation = installGermanFormValidation(document);
+if (import.meta.hot) import.meta.hot.dispose(removeFormValidation);
+mount(App, { target: document.getElementById("app")! });

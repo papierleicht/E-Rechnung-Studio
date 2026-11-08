@@ -1,0 +1,45 @@
+# Compiled test binaries, which `go test -c` leaves behind.
+*.test
+
+# Profiling output.
+*.out
+*.prof
+
+# Editor and OS noise.
+.DS_Store
+
+# Differential-test corpora. These are third-party material — production
+# stylesheets and rule sets, plus the Saxon output they are diffed against —
+# so they are not redistributed here. The tests that use them skip cleanly
+# when the directory is absent; see "Testing" in the README for how to point
+# the suite at your own corpus.
+# Both spellings on purpose. "/testdata/" matches a directory and nothing
+# else, so a *symlink* named testdata is not ignored by it — which is how a
+# worktree's symlink to the real corpora was once committed, and then written
+# over the real directory when that commit was reverted. "/testdata" matches
+# whatever the name refers to.
+/testdata
+/testdata/
+
+# Local tooling, not part of the library.
+#
+# .githooks holds the pre-commit hook that refuses a commit by anyone but the
+# repository owner. It is deliberately not distributed: core.hooksPath is a
+# local setting, a clone would not run it without being told to, and shipping
+# a hook that silently does nothing is worse than shipping none.
+/.githooks/
+
+# CLAUDE.md and .claude/ are working notes for an assistant, not documentation
+# of the library. Everything they say that a reader needs is in docs/.
+/CLAUDE.md
+/.claude/
+
+# Audit reports from external reviewers. Local working material: the
+# findings that survive review land in CHANGELOG.md and the docs, and the
+# reports themselves are not redistributed here.
+/docs/audits/
+
+# `go build ./tests/xsdsuite` and `go run` leave the driver binary at the repo
+# root, where it is 11 MB and has twice been staged by accident. The package is
+# a main, so it has no *.test name for the rule above to catch.
+/xsdsuite

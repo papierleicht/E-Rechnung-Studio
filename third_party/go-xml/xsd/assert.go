@@ -1,0 +1,825 @@
+package xsd
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/knroy/go-xml/xdm"
+	"github.com/knroy/go-xml/xpath"
+)
+
+// XSD 1.1 assertions and conditional type assignment.
+//
+// These are the two features that make XSD 1.1 unavailable to most
+// implementations: both evaluate XPath 2.0 expressions during validation.
+// <xs:assert test="..."> is a co-constraint on an element's own content —
+// "the end date must not precede the start date" — which XSD 1.0 cannot state
+// at all, and <xs:alternative> chooses a type from an XPath test on the
+// element's attributes.
+//
+// The XPath subset is restricted in one way that matters: the expression is
+// evaluated with the element being validated as the context item, and it may
+// not look outside that element's subtree. That confinement is what keeps
+// assertion evaluation local, so that validating a large document does not
+// become quadratic.
+
+// Assertion is an <xs:assert> (XSD 1.1 §3.13).
+type Assertion struct {
+	// Test is the compiled XPath 2.0 expression.
+	Test *xpath.Compiled
+	// Source is the expression as written, for diagnostics.
+	Source string
+	// XPathDefaultNamespace is the namespace unprefixed element names in
+	// the test resolve to.
+	XPathDefaultNamespace string
+}
+
+// TypeAlternative is an <xs:alternative> (XSD 1.1 §3.3).
+//
+// A declaration may carry several; the first whose test matches selects the
+// type. An alternative with no test is the default, and may appear only last.
+type TypeAlternative struct {
+	// Test is the compiled condition, or nil for the default alternative.
+	Test *xpath.Compiled
+	// Source is the condition as written.
+	Source string
+	// Type is the type to use when the test matches.
+	Type Type
+
+	// staticBaseURI locates the schema document the test was written in.
+	// fn:static-base-uri returns the base URI of the *expression*, which
+	// for a type alternative is the schema, not the instance the test is
+	// evaluated against — cta0024 asks for exactly that distinction, and
+	// cta0021 asks for the other half with fn:base-uri.
+	staticBaseURI string
+}
+
+// readAssert reads an <xs:assert> or <xs:assertion>.
+//
+// Both spellings exist: <xs:assert> inside a complex type, and <xs:assertion>
+// inside a simple type restriction, where it is a facet rather than a
+// component. They compile identically.
+func (p *parser) readAssert(el *xdm.Node) *Assertion {
+	test := el.AttrValue("test")
+	if test == "" {
+		p.errs = append(p.errs, errorAt(el, "src-assert",
+			"an assertion must have a test"))
+		return nil
+	}
+
+	// xpathDefaultNamespace may be set on the assertion, on an ancestor, or
+	// on <xs:schema> for the whole document, and takes three keywords
+	// besides a literal URI. Reading only the local attribute treated
+	// "##defaultNamespace" as a namespace URI of that spelling, so every
+	// unprefixed name in the test was resolved into a namespace no element
+	// is ever in.
+	def, _ := p.xpathDefaultNamespace(el)
+
+	compiled, err := xpath.CompileVersion(test,
+		assertResolver{el: el, defaultNS: def}, p.xpathVersion())
+	if err != nil {
+		p.errs = append(p.errs, errorAt(el, "src-assert",
+			"assertion test %q: %v", test, err))
+		return nil
+	}
+	return &Assertion{Test: compiled, Source: test, XPathDefaultNamespace: def}
+}
+
+// assertResolver resolves namespace prefixes in an assertion or alternative,
+// against the bindings in scope on the schema element that carries it.
+//
+// The default namespace is not the one in scope for elements in the schema
+// document — that would be the XML Schema namespace — but the one
+// xpathDefaultNamespace names, which defaults to none.
+type assertResolver struct {
+	el        *xdm.Node
+	defaultNS string
+}
+
+// ResolvePrefix implements xpath.NamespaceResolver.
+func (r assertResolver) ResolvePrefix(prefix string) (string, bool) {
+	if prefix == "" {
+		if r.defaultNS == "" {
+			return "", false
+		}
+		return r.defaultNS, true
+	}
+	return r.el.LookupPrefix(prefix)
+}
+
+// DefaultElementNamespace implements xpath.NamespaceResolver.
+func (r assertResolver) DefaultElementNamespace() string { return r.defaultNS }
+
+// DefaultFunctionNamespace implements xpath.NamespaceResolver.
+//
+// An assertion may call the fn: functions unprefixed, as every other XPath
+// context does.
+func (r assertResolver) DefaultFunctionNamespace() string {
+	return "http://www.w3.org/2005/xpath-functions"
+}
+
+// xpathVarRef finds the first variable reference in an XPath expression and
+// returns its name.
+//
+// This is a scan of the source rather than a walk of the compiled tree because
+// the question is asked before compiling and needs no more than the lexical
+// structure: a "$" begins a variable reference everywhere in the grammar except
+// inside a string literal or a comment, both of which this skips. A "$" that
+// starts no name — the expression is malformed — is left to the compiler, which
+// will report it far better than this could.
+func xpathVarRef(src string) (string, bool) {
+	depth := 0
+	for i := 0; i < len(src); i++ {
+		switch c := src[i]; {
+		case depth > 0:
+			// Inside a comment. They nest, so "(:" opens another and
+			// ":)" closes only the innermost.
+			if c == '(' && i+1 < len(src) && src[i+1] == ':' {
+				depth++
+				i++
+			} else if c == ':' && i+1 < len(src) && src[i+1] == ')' {
+				depth--
+				i++
+			}
+		case c == '(' && i+1 < len(src) && src[i+1] == ':':
+			depth++
+			i++
+		case c == '\'' || c == '"':
+			// A string literal, in which the delimiter is escaped by
+			// doubling it. Doubling is handled by simply not stopping:
+			// the closing quote of "" is immediately reopened by the
+			// next iteration, which lands on the second quote.
+			for i++; i < len(src) && src[i] != c; i++ {
+			}
+		case c == '$':
+			j := i + 1
+			for j < len(src) && (isNameChar(src[j]) || src[j] == ':') {
+				j++
+			}
+			if j > i+1 {
+				return src[i+1 : j], true
+			}
+		}
+	}
+	return "", false
+}
+
+// readAlternative reads an <xs:alternative>.
+func (p *parser) readAlternative(el *xdm.Node) *TypeAlternative {
+	alt := &TypeAlternative{Source: el.AttrValue("test")}
+	if p.doc != nil {
+		alt.staticBaseURI = p.doc.baseURI
+	}
+
+	if alt.Source != "" {
+		// §3.4.4.3 gives a type alternative's XPath an empty in-scope
+		// variables set: unlike a simple-type assertion, which binds
+		// $value, an alternative has nothing to refer to. Any variable
+		// reference in it is therefore a static error, and static
+		// errors in an alternative are errors of the schema.
+		//
+		// It has to be caught here rather than left to evaluation: a
+		// type alternative whose test raises is *skipped*, not failed
+		// (see selectAlternativeType), so an unbound $x would quietly
+		// make its branch unreachable instead of rejecting the schema.
+		// cta9002err pins it.
+		if v, ok := xpathVarRef(alt.Source); ok {
+			p.errs = append(p.errs, errorAt(el, "src-type-alternative",
+				"alternative test %q refers to the variable $%s; a type "+
+					"alternative has no variables in scope",
+				alt.Source, v))
+			return nil
+		}
+
+		// As for an assertion: the attribute may be inherited and takes
+		// keywords besides a URI.
+		def, _ := p.xpathDefaultNamespace(el)
+		compiled, err := xpath.CompileVersion(alt.Source,
+			assertResolver{el: el, defaultNS: def}, p.xpathVersion())
+		if err != nil {
+			p.errs = append(p.errs, errorAt(el, "src-type-alternative",
+				"alternative test %q: %v", alt.Source, err))
+			return nil
+		}
+		alt.Test = compiled
+	}
+
+	if ref := el.AttrValue("type"); ref != "" {
+		p.resolveTypeRef(el, ref, func(t Type) { alt.Type = t })
+	} else if inline := p.childElement(el, "simpleType", "complexType"); inline != nil {
+		if inline.Name.Local == "simpleType" {
+			alt.Type = p.readSimpleType(inline)
+		} else {
+			alt.Type = p.readComplexType(inline)
+		}
+	} else {
+		p.errs = append(p.errs, errorAt(el, "src-type-alternative",
+			"an alternative must name a type or contain one"))
+		return nil
+	}
+	return alt
+}
+
+// checkAssertions evaluates an element's assertions (cvc-assertion).
+//
+// The context item is the element itself, and — this is the part that keeps
+// evaluation local — the element is presented as the root of its own tree, so
+// an expression cannot navigate to an ancestor or a sibling. XSD 1.1 requires
+// exactly that confinement, and without it an assertion on a deeply nested
+// element could walk the whole document, making validation quadratic.
+func (v *validator) checkAssertions(el *xdm.Node, t *ComplexType) {
+	if len(t.Assertions) == 0 {
+		return
+	}
+	scoped := scopeForAssertion(el)
+	annotateForAssertion(scoped, t)
+
+	// $value is in scope in every assertion, not only those on a simple
+	// type (§3.13.4). On a complex type it is the element's simple content
+	// where there is one, and the empty sequence otherwise — which is what
+	// makes empty($value) the way a schema asserts "this element has element
+	// content, not a value". Leaving it unbound raises XPST0008 and turns a
+	// legitimate assertion into an evaluation failure.
+	value := v.assertionValue(el, t)
+
+	for _, a := range t.Assertions {
+		ctx := newAssertContext(scoped)
+		ctx.Vars = map[string]xdm.Sequence{"value": value}
+		// An error during evaluation is a false result, not a separate
+		// kind of outcome: XSD 1.1 says so, and the suite makes a
+		// category of it ("errors in XPath evaluation are treated as a
+		// false result"). The distinction matters because an assertion
+		// context has no document node, so a leading "/" raises
+		// XPDY0050 — and a schema writing count(//x) eq 0 is relying on
+		// that path selecting nothing.
+		//
+		// The error text is still reported, since a schema author
+		// reading "not satisfied" wants to know the reason was a type
+		// error rather than a value that failed the test.
+		ok, err := a.Test.EvalBool(ctx)
+		if err != nil {
+			v.fail(el, "cvc-assertion.3",
+				"assertion %q is not satisfied: %v", a.Source, err)
+			continue
+		}
+		if !ok {
+			v.fail(el, "cvc-assertion.3",
+				"assertion %q is not satisfied", a.Source)
+		}
+	}
+}
+
+// assertionValue returns the sequence bound to $value in a complex type's
+// assertions.
+//
+// A type with simple content has a value; one with element content or empty
+// content does not, and the empty sequence is what the spec binds there rather
+// than a zero-length string. The distinction is visible: empty($value) is true
+// for the second and false for a simple content whose value happens to be "".
+func (v *validator) assertionValue(el *xdm.Node, t *ComplexType) xdm.Sequence {
+	if t.Content != ContentSimple || t.SimpleContent == nil {
+		return nil
+	}
+	normalized, err := validateSimpleValue(el.StringValue(), t.SimpleContent)
+	if err != nil {
+		// The content is invalid and has already been reported; there
+		// is no typed value to bind, so the assertion sees nothing
+		// rather than a value the type does not admit.
+		return nil
+	}
+	return typedSequenceFor(normalized, t.SimpleContent)
+}
+
+// scopeForAssertion returns a copy of an element rooted in its own tree.
+//
+// The copy is what enforces the confinement: the original keeps its parent, so
+// evaluating against it directly would let "../x" or "/root" reach outside the
+// element being validated, which XSD 1.1 forbids. Copying also means an
+// assertion cannot mutate the document it is checking.
+func scopeForAssertion(el *xdm.Node) *xdm.Node {
+	tree := xdm.NewTree()
+	// The copy is rooted at the element, so namespace declarations made by
+	// an ancestor are out of scope in it. They still apply to the element
+	// in the real document, and a QName-valued attribute cannot be expanded
+	// without them, so the whole in-scope set is copied onto the root of
+	// the confined tree.
+	clone := deepCopyNode(el)
+	for prefix, uri := range inScopeNamespaces(el) {
+		if _, declared := clone.LookupPrefix(prefix); !declared {
+			clone.AddNamespace(prefix, uri)
+		}
+	}
+	tree.Root.AppendChild(clone)
+	tree.Finalize()
+
+	// The element is then detached from the document node it was finalised
+	// under. XSD 1.1 gives an assertion a context with *no* document node
+	// (§3.13.4.2), which is what makes "//" return the empty sequence
+	// there: it abbreviates a path from fn:root, and a parentless element
+	// is its own root with nothing above it for the leading "/" to select.
+	// The suite states the consequence directly — "'//' returns empty
+	// sequence" — and pairs it with an assertion that holds only if it does
+	// not.
+	//
+	// Detaching after finalising keeps the document order the tree assigned,
+	// which the clone still needs for any positional predicate.
+	clone.Parent = nil
+	tree.Root.Children = nil
+	return clone
+}
+
+// deepCopyNode copies a node and its subtree, detached from any parent.
+//
+// Comments and processing instructions are dropped. XSD 1.1 builds the tree an
+// assertion sees from the element's [children] with comments and PIs excluded
+// unless a processor offers an option to include them, and this one does not:
+// an assertion writing empty(.//comment()) is asking whether the schema-visible
+// content holds any, and the answer the spec defines is yes-by-default only for
+// a processor that has been told to expose them.
+func deepCopyNode(n *xdm.Node) *xdm.Node {
+	out := &xdm.Node{
+		Kind:    n.Kind,
+		Name:    n.Name,
+		Value:   n.Value,
+		BaseURI: n.BaseURI,
+	}
+	// The clone is what the assertion actually evaluates over, so it must
+	// answer every PSVI property as the validated node does.
+	//
+	// Three of the seven are inert here, and deliberately so rather than by
+	// oversight. IsNilled cannot be set on a node an assertion sees: the
+	// validator records it and returns immediately (see validate.go), so a
+	// nilled element never reaches the deferred checkAssertions at all.
+	// IsID and IsIDREFS have only fn:id and fn:idref as consumers, and both
+	// raise FODC0001 unless the tree root is a document node -- which this
+	// clone deliberately is not, since XSD 1.1 3.13.4.2 gives an assertion
+	// no document node. Copying them anyway is what makes the rule here
+	// "every property travels" rather than a list to re-audit whenever a
+	// property is added.
+	// Dropping any of
+	// them left the assertion looking at a node the validator had annotated
+	// and the clone had not. It matters most where a union's winning member is
+	// a LIST: the union's own name carries no item type, so without the member
+	// the typed value collapsed from a sequence of tokens to one string
+	// holding all of them.
+	out.CopyTypingFrom(n)
+	for _, a := range n.Attrs {
+		ac := &xdm.Node{Kind: a.Kind, Name: a.Name, Value: a.Value}
+		ac.CopyTypingFrom(a)
+		out.AddAttr(ac)
+	}
+	for _, ns := range n.Namespaces {
+		out.AddNamespace(ns.Name.Local, ns.Value)
+	}
+	for _, c := range n.Children {
+		if c.Kind == xdm.KindComment || c.Kind == xdm.KindPI {
+			continue
+		}
+		out.AppendChild(deepCopyNode(c))
+	}
+	return out
+}
+
+// scopeForAlternative returns the context element a type alternative's test is
+// evaluated against.
+//
+// This is deliberately not scopeForAssertion. An assertion runs after the
+// content has been validated and sees it: children, typed values, the lot. A
+// type alternative runs *before* the type is even chosen, so there is no
+// validated content for it to see, and XSD 1.1 gives it a much thinner context
+// — an element with the original's name, attributes and namespaces, and
+// nothing else. The suite states each consequence as a separate test:
+//
+//	cta0017  string() = '' and empty(..) and (. is root())
+//	         — no content, no parent, the element is its own root
+//	cta0022  . instance of element(*, xs:untyped)
+//	         — untyped, because nothing has been validated yet
+//	cta0021  ends-with(base-uri(.), 'cta0021.v01.xml')
+//	         — the base URI is the instance document's, so it is carried over
+//
+// Reusing the assertion scope gave the test the element's children and its
+// PSVI annotation, so string() returned the content and the untyped test
+// failed; every alternative then fell through to the xs:error default.
+func scopeForAlternative(el *xdm.Node) *xdm.Node {
+	tree := xdm.NewTree()
+	clone := &xdm.Node{
+		Kind: el.Kind,
+		Name: el.Name,
+		// The base URI is a property of the element, not of its
+		// content, and survives the copy: cta0021 asks for it.
+		BaseURI: el.BaseURI,
+		// TypeAnnotation is deliberately left zero. Conditional type
+		// assignment chooses the type; it cannot presuppose one.
+	}
+	for _, a := range el.Attrs {
+		// The attributes come across without their annotations for the
+		// same reason the element does.
+		clone.AddAttr(&xdm.Node{Kind: a.Kind, Name: a.Name, Value: a.Value})
+	}
+	// Namespace bindings an ancestor declared are still in scope for the
+	// element, and a QName-valued attribute cannot be expanded without
+	// them, so the whole in-scope set is copied onto the clone.
+	for prefix, uri := range inScopeNamespaces(el) {
+		if _, declared := clone.LookupPrefix(prefix); !declared {
+			clone.AddNamespace(prefix, uri)
+		}
+	}
+	tree.Root.AppendChild(clone)
+	tree.Finalize()
+
+	// Detached from the document node for the same reason an assertion's
+	// copy is: the element must be its own root, which is what makes
+	// (. is root()) hold and "//" select nothing.
+	clone.Parent = nil
+	tree.Root.Children = nil
+	return clone
+}
+
+// selectAlternativeType applies conditional type assignment (cvc-type-alt).
+//
+// The alternatives are tried in order and the first whose test holds selects
+// the type; one with no test is the default. The tests may look only at the
+// element's attributes and its name, not at its content — the spec confines
+// them so that the type can be chosen before the content is examined, which is
+// what makes the feature implementable at all.
+func (v *validator) selectAlternativeType(el *xdm.Node, decl *ElementDecl) Type {
+	if len(decl.Alternatives) == 0 {
+		return decl.Type
+	}
+	scoped := scopeForAlternative(el)
+
+	// An inheritable attribute from an ancestor is visible to the test, but
+	// only where the element does not carry one of the same name: the
+	// nearest declaration wins.
+	for _, a := range v.inherited {
+		if scoped.Attr(a.Name.URI, a.Name.Local) != nil {
+			continue
+		}
+		scoped.AddAttr(&xdm.Node{Kind: a.Kind, Name: a.Name, Value: a.Value})
+	}
+
+	for _, alt := range decl.Alternatives {
+		if alt.Test == nil {
+			// The default alternative, which matches unconditionally.
+			if alt.Type != nil {
+				return alt.Type
+			}
+			continue
+		}
+		ctx := newAssertContext(scoped)
+		ctx.StaticBaseURI = alt.staticBaseURI
+		ok, err := alt.Test.EvalBool(ctx)
+		if err != nil || !ok {
+			continue
+		}
+		if alt.Type != nil {
+			return alt.Type
+		}
+	}
+	return decl.Type
+}
+
+// annotateForAssertion labels the copy an assertion evaluates against with the
+// types the schema assigns.
+//
+// XSD 1.1 assertions run on the PSVI, so "@length eq count(entry)" compares an
+// integer with an integer. Without the annotations the attribute atomises as
+// xs:untypedAtomic, which promotes to a string against a numeric operand and
+// raises XPTY0004 — the assertion then fails to evaluate rather than being
+// true or false, which is a different and much less useful answer.
+//
+// The whole subtree is labelled, not just the immediate children. An assertion
+// reaches as far as any XPath does — "data(event/d) instance of xs:date*" is a
+// grandchild — and a descendant left untyped atomises as xs:untypedAtomic,
+// which makes the instance-of false and the comparison a type error. The type
+// of a descendant is reachable because each child's declaration names its type,
+// and that type carries its own content model.
+//
+// A recursive schema is safe here without a depth bound, because the walk is
+// driven by the instance rather than by the schema: it descends into a child
+// only where the document actually has one, so it runs out of nodes before it
+// runs out of declarations. A type whose content model reaches itself is
+// legal, but an instance of it is finite and acyclic, and how deep any
+// instance may be is already bounded by the parser
+// (xdm.ParseOptions.MaxDepth).
+//
+// This was a `depth > 32` bound, which conflated "cyclic" with "deep" the way
+// the schema-graph walks did. Nothing cyclic reaches it, so the bound only
+// truncated: past 32 the descendants were left unannotated, and an unannotated
+// node atomises as xs:untypedAtomic — exactly what the annotation exists to
+// prevent. Since an evaluation error is a false assertion result and not a
+// separate outcome, the truncation turned a satisfied assertion into a
+// violated one. "every $x in .//d satisfies $x gt xs:date('1900-01-01')" over
+// a recursive type held at nesting 32 and failed at 33, on documents that
+// differ only in how deep they are.
+func annotateForAssertion(el *xdm.Node, t *ComplexType) {
+	annotateSubtree(el, t, true)
+}
+
+// annotateSubtree labels el and its descendants. isRoot marks the assertion
+// root, which is the one element that keeps no type of its own.
+func annotateSubtree(el *xdm.Node, t *ComplexType, isRoot bool) {
+	if el == nil || t == nil {
+		return
+	}
+	for _, use := range t.AttributeUses {
+		if use.Decl == nil || use.Decl.Type == nil {
+			continue
+		}
+		a := el.Attr(use.Decl.Name.URI, use.Decl.Name.Local)
+		if a != nil && a.TypeAnnotation == "" {
+			a.SetTypeAnnotation(annotationName(use.Decl.Type))
+		}
+	}
+
+	if t.Content == ContentSimple && t.SimpleContent != nil {
+		// The assertion root keeps no type of its own. Its validity is
+		// what the assertion is deciding, so it has none yet — the
+		// suite states it directly: "nodes *other than* the assertion
+		// root are properly typed", and assert014 asserts
+		// not(data(.) instance of xs:date) on an element whose declared
+		// content is exactly xs:date.
+		//
+		// $value carries the typed value instead, which is how an
+		// assertion reaches it.
+		if !isRoot && el.TypeAnnotation == "" {
+			el.SetTypeAnnotation(annotationName(t.SimpleContent))
+		}
+		return
+	}
+	if t.Particle == nil {
+		return
+	}
+	byName := map[xdm.QName]*ElementDecl{}
+	collectElementDecls(t.Particle, byName, map[*Particle]bool{})
+	for _, c := range el.ChildElements() {
+		d, ok := byName[xdm.QName{URI: c.Name.URI, Local: c.Name.Local}]
+		if !ok || d.Type == nil {
+			continue
+		}
+		switch dt := d.Type.(type) {
+		case *SimpleType:
+			if c.TypeAnnotation == "" {
+				c.SetTypeAnnotation(annotationName(dt))
+			}
+		case *ComplexType:
+			annotateSubtree(c, dt, false)
+		}
+	}
+}
+
+// collectElementDecls gathers the element declarations a particle can match.
+//
+// A model group that reaches itself is legal to write, and the content-model
+// compiler refuses it, but this runs before that and would otherwise recurse
+// without end. What stops it is the visited set: a particle already on the
+// path is one whose declarations are being collected already, so re-entering
+// it can add nothing.
+//
+// This used to be a `depth > 32` bound, which conflated "cyclic" with "deep"
+// and was unsound in the accepting direction. The declarations feed
+// baseDeclaredType and so Element Declarations Consistent; truncating the walk
+// returned an empty map, which reads as "the base declares nothing here" and
+// skips the check. A base type nesting its declaration 32 groups deep — legal,
+// acyclic, and machine-generated schemas do reach it — had the suite's own
+// wild068 accepted rather than rejected. Cycle detection terminates on the
+// recursive case without capping the legal one.
+func collectElementDecls(p *Particle, out map[xdm.QName]*ElementDecl, seen map[*Particle]bool) {
+	if p == nil || seen[p] {
+		return
+	}
+	seen[p] = true
+	switch term := p.Term.(type) {
+	case *ElementDecl:
+		if _, have := out[term.Name]; !have {
+			out[term.Name] = term
+		}
+		for _, sub := range term.substitutable {
+			if _, have := out[sub.Name]; !have {
+				out[sub.Name] = sub
+			}
+		}
+	case *ModelGroup:
+		for _, child := range term.Particles {
+			collectElementDecls(child, out, seen)
+		}
+	}
+}
+
+// newAssertContext builds the evaluation context for an assertion.
+//
+// The clock is set because XSD 1.1 permits fn:current-date and its siblings in
+// an assertion, and this package has no transform to inherit one from. It is
+// read once per context so that two calls inside one assertion cannot disagree
+// with each other.
+func newAssertContext(item xdm.Item) *xpath.Context {
+	ctx := xpath.NewContext(item, xpath.Builtins())
+	ctx.Now = time.Now()
+	ctx.HasNow = true
+	// XSD 1.1 Structures fixes the XPath dynamic context an assertion or a
+	// type alternative is evaluated in: "available documents" and "available
+	// collections" are both empty, and the *default collection* is the empty
+	// sequence. That last clause is the one that matters here — an empty
+	// default collection is a value, not an absence, so fn:collection() with
+	// no argument returns () rather than raising FODC0002. Leaving the
+	// resolver nil made "empty(collection())" raise instead of being true,
+	// and a type alternative whose test raises is silently skipped, so
+	// cta0022 fell through to its declared union type.
+	ctx.Collections = emptyCollections{}
+	return ctx
+}
+
+// emptyCollections is the collection resolver an assertion sees: the default
+// collection is the empty sequence and every named collection is unknown.
+type emptyCollections struct{}
+
+func (emptyCollections) ResolveCollection(uri, base string) (xdm.Sequence, error) {
+	if uri == "" {
+		return nil, nil
+	}
+	return nil, fmt.Errorf("FODC0002: collection %q is not available", uri)
+}
+
+// checkSimpleAssertions evaluates the <xs:assertion> facets of a simple type.
+//
+// On a simple type an assertion is a facet rather than a component, and the
+// value under test is bound to $value — there is no element to be the context
+// item, so an expression has nothing else to refer to.
+func checkSimpleAssertions(steps []facetStep, normalized string, t *SimpleType) error {
+	for _, st := range steps {
+		for _, a := range st.facets.Assertions {
+			ctx := newAssertContext(nil)
+			ctx.Vars = map[string]xdm.Sequence{
+				"value": typedSequenceFor(normalized, t),
+			}
+			ok, err := a.Test.EvalBool(ctx)
+			if err != nil {
+				return facetError(st.typ, FacetKind(0),
+					"assertion %q could not be evaluated: %v", a.Source, err)
+			}
+			if !ok {
+				return facetError(st.typ, FacetKind(0),
+					"assertion %q is not satisfied", a.Source)
+			}
+		}
+	}
+	return nil
+}
+
+// typedValueFor builds the value bound to $value in a simple-type assertion.
+//
+// It carries the type the schema assigns, so that "$value gt 5" compares
+// numbers rather than raising on a string against an integer.
+func typedValueFor(normalized string, t *SimpleType) xdm.Item {
+	prim := ""
+	if p := primitiveOf(t); p != nil {
+		prim = p.Name.Local
+	}
+	n := &xdm.Node{Kind: xdm.KindText, Value: normalized, TypeAnnotation: prim}
+	return n.Atomize()
+}
+
+// typedSequenceFor builds the sequence bound to $value.
+//
+// A list type's value is a sequence with one item per list item, not one item
+// holding the whole literal. "every $x in data($value) satisfies $x mod 2 = 0"
+// over a list of integers depends on it: given the literal as a single item,
+// data() yields "2 4 6 8 10" and the arithmetic raises FORG0001 rather than
+// running over five numbers.
+func typedSequenceFor(normalized string, t *SimpleType) xdm.Sequence {
+	if item := listItemTypeOf(t); item != nil {
+		items := splitFields(normalized)
+		out := make(xdm.Sequence, 0, len(items))
+		for _, item := range items {
+			out = append(out, typedValueFor(item, listItemTypeOf(t)))
+		}
+		return out
+	}
+	return xdm.One(typedValueFor(normalized, t))
+}
+
+// annotationName returns the built-in name a type atomises as.
+//
+// An anonymous type has no name of its own, and using it leaves the node
+// untyped — so "even-number lt 500" against a restriction of xs:int compares a
+// string with an integer and raises XPTY0004, when the schema plainly gave the
+// element a numeric type. What decides atomisation is the primitive, and every
+// simple type has one whether or not it was given a name.
+//
+// A named built-in still returns its own name, since a restriction of xs:int
+// atomises as xs:int rather than as xs:decimal.
+// The name is QUALIFIED with its namespace, through xdm.AnnotationName, and
+// the namespace was the piece this function used to discard. Returning
+// st.Name.Local alone meant a schema type keyed under the same string as a
+// built-in with the same local part, and since the data model's derivation
+// table is package-level and process-global, the schema's meaning replaced the
+// built-in's for the rest of the process. xdm.AnnotationName leaves built-ins
+// bare, so only names that were genuinely ambiguous change spelling.
+func annotationName(t Type) string {
+	st, ok := t.(*SimpleType)
+	if !ok || st == nil {
+		return ""
+	}
+	if st.Name.Local != "" {
+		return xdm.AnnotationName(st.Name.URI, st.Name.Local)
+	}
+	// Walk to the nearest named ancestor: a restriction of xs:int atomises
+	// as xs:int, which the primitive alone (xs:decimal) would lose.
+	for cur := st; cur != nil; {
+		if cur.Name.Local != "" && cur.Name.URI == NSSchema {
+			return cur.Name.Local
+		}
+		base, isSimple := cur.Base.(*SimpleType)
+		if !isSimple || base == cur {
+			break
+		}
+		cur = base
+	}
+	if p := st.Primitive; p != nil {
+		return xdm.AnnotationName(p.Name.URI, p.Name.Local)
+	}
+	return ""
+}
+
+// listItemTypeOf returns the item type of a list, seeing through restrictions.
+//
+// A restriction of a list type is itself of the list variety but carries no
+// item type of its own: the item type is the one it inherits. Reading only the
+// type's own field left an assertion on such a restriction with $value bound to
+// the whole literal as one item, so count($value) was always 1.
+func listItemTypeOf(t *SimpleType) *SimpleType {
+	seen := map[*SimpleType]bool{}
+	for cur := t; cur != nil && !seen[cur]; {
+		seen[cur] = true
+		if cur.Variety != VarietyList {
+			return nil
+		}
+		if cur.ItemType != nil {
+			return cur.ItemType
+		}
+		base, ok := cur.Base.(*SimpleType)
+		if !ok || base == cur {
+			return nil
+		}
+		cur = base
+	}
+	return nil
+}
+
+// inScopeNamespaces gathers every prefix binding visible at a node.
+//
+// The walk is outward and the innermost declaration wins, which is how XML
+// scoping works: an inner xmlns:p rebinding p hides the outer one.
+func inScopeNamespaces(el *xdm.Node) map[string]string {
+	out := map[string]string{}
+	for cur := el; cur != nil; cur = cur.Parent {
+		if cur.Kind != xdm.KindElement {
+			continue
+		}
+		for _, ns := range cur.Namespaces {
+			if _, seen := out[ns.Name.Local]; !seen {
+				out[ns.Name.Local] = ns.Value
+			}
+		}
+	}
+	return out
+}
+
+// unionMemberTypesOf returns the member types of a union, seeing through
+// restrictions.
+//
+// A restriction of a union is itself of the union variety but carries no
+// member list of its own: the members are the ones it inherits, exactly as a
+// restriction of a list inherits its item type. Reading only the type's own
+// field left every such restriction looking like a union with no members, so
+// nothing was registered and the node atomised untyped.
+func unionMemberTypesOf(t *SimpleType) []*SimpleType {
+	seen := map[*SimpleType]bool{}
+	for cur := t; cur != nil && !seen[cur]; {
+		seen[cur] = true
+		if cur.Variety != VarietyUnion {
+			return nil
+		}
+		if len(cur.MemberTypes) > 0 {
+			return cur.MemberTypes
+		}
+		base, ok := cur.Base.(*SimpleType)
+		if !ok || base == cur {
+			return nil
+		}
+		cur = base
+	}
+	return nil
+}
+
+// xpathVersion is the version assertions and alternatives compile in.
+//
+// A method rather than a field read so that a parser with no schema yet --
+// which happens while errors are being collected from a document that failed
+// to assemble -- answers the default rather than panicking.
+func (p *parser) xpathVersion() xpath.Version {
+	if p.schema == nil {
+		return xpath.XPath20
+	}
+	return p.schema.xpathVersion
+}

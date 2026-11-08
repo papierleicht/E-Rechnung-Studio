@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=E-Rechnung-Studio
+Comment=Offline electronic invoicing for German businesses
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/e-rechnung-studio %u
+Terminal=false
+Type=Application
+Icon=e-rechnung-studio
+Categories=Utility;
+StartupWMClass=e-rechnung-studio
+
+ 

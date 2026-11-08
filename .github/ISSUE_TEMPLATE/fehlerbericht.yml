@@ -1,0 +1,56 @@
+name: Fehlerbericht
+description: Etwas funktioniert nicht wie beschrieben.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für den Bericht. Bitte keine echten Rechnungen, Kundendaten, IBANs,
+        Bankzugänge, Produktkennungen oder Schlüssel einfügen; Beispieldaten reichen.
+        Sicherheitslücken bitte nicht hier, sondern wie in SECURITY.md beschrieben melden.
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert?
+      description: Beobachtetes Verhalten und, falls vorhanden, die genaue Fehlermeldung.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachvollziehen
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Menü „Über“ in der App oder `version.txt` im Quellcode.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Betriebssystem
+      options:
+        - macOS
+        - Windows
+        - Linux (eigener Build)
+        - Live-Demo im Browser
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Weitere Angaben
+      description: Rechnungsformat (zum Beispiel XRechnung UBL), Beispieldatei ohne echte Daten, Bildschirmfoto, Protokollauszug.

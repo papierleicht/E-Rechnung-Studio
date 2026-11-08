@@ -1,0 +1,194 @@
+@import "../brand/colors.css";
+
+/* Status descendants inherit the same foreground and border as their panel. */
+.guidance-report {
+  --report-bg: var(--theme-warning-bg);
+  --report-text: var(--theme-warning-text);
+  --report-border: var(--theme-warning-border);
+  background: var(--report-bg);
+  color: var(--report-text);
+  border-color: var(--report-border);
+}
+.guidance-report.passed {
+  --report-bg: var(--theme-success-bg);
+  --report-text: var(--theme-success-text);
+  --report-border: var(--theme-success-border);
+}
+.guidance-report.failed {
+  --report-bg: var(--theme-error-bg);
+  --report-text: var(--theme-error-text);
+  --report-border: var(--theme-error-border);
+}
+.guidance-report.pending {
+  --report-bg: var(--theme-info-bg);
+  --report-text: var(--theme-info-text);
+  --report-border: var(--theme-info-border);
+}
+.guidance-report .text {
+  color: var(--report-text);
+  text-decoration: underline;
+}
+.toast.error {
+  color: var(--theme-error-text);
+}
+.issued-downloads .export-error {
+  color: var(--theme-error-text);
+}
+.issued-downloads .print-guidance {
+  background: var(--theme-info-bg);
+  color: var(--theme-info-text);
+}
+.export-result {
+  background: transparent;
+}
+button,
+select,
+textarea,
+input,
+dialog {
+  color: inherit;
+}
+input,
+select,
+textarea {
+  accent-color: var(--theme-accent);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--theme-placeholder);
+}
+dialog {
+  background: var(--theme-surface);
+}
+.dialog-close,
+.error-notice > button {
+  color: inherit;
+}
+.danger-text {
+  color: var(--theme-error-text);
+}
+.appearance-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 240px);
+  align-items: center;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+}
+.appearance-settings h2,
+.appearance-settings p {
+  margin: 0;
+}
+.appearance-settings p {
+  margin-top: 6px;
+  color: var(--theme-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.appearance-settings label {
+  display: grid;
+  gap: 7px;
+  color: var(--theme-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.appearance-settings select {
+  min-height: 36px;
+  background: var(--theme-input);
+  color: var(--theme-text);
+  border: 1px solid var(--theme-input-border);
+  border-radius: 7px;
+  padding: 6px 10px;
+}
+@media screen {
+  .window-toolbar {
+    position: fixed;
+    inset: 0 0 auto;
+    height: 52px;
+    padding: 0 20px;
+    margin: 0;
+    z-index: 30;
+    --wails-draggable: drag;
+    user-select: none;
+    background: var(--theme-canvas);
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .window-toolbar.native-mac {
+    padding-left: 90px;
+  }
+  /* The page head is the window's top row, so the page starts at the top edge. */
+  .app-shell .workspace {
+    padding-top: 0;
+  }
+  .app-shell .sidebar {
+    top: 0;
+  }
+  .setup-window-toolbar + .welcome-page {
+    padding-top: 84px;
+  }
+  .app-shell .workspace.invoice-workspace {
+    background: var(--theme-desk);
+  }
+  .app-shell .invoice-workspace .document-stage {
+    background: var(--theme-paper-mat);
+    border: 1px solid var(--theme-paper-mat-border);
+    box-shadow: none;
+  }
+  .invoice-settings-dialog::backdrop,
+  .position-dialog::backdrop,
+  .app-dialog::backdrop,
+  .modal-backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .primary,
+  .app-shell button.primary,
+  .modal button.primary {
+    color: var(--theme-on-primary);
+    background: var(--theme-primary);
+    box-shadow: none;
+  }
+  .primary:hover:not(:disabled),
+  .app-shell button.primary:hover:not(:disabled),
+  .modal button.primary:hover:not(:disabled) {
+    background: var(--theme-primary-hover);
+  }
+  .secondary:hover:not(:disabled) {
+    background: var(--theme-hover);
+  }
+  .pdf-sheet,
+  .wysiwyg-sheet {
+    color-scheme: light;
+  }
+  /* In dark mode the page and the muted surface share one colour: dialogs need an
+     edge, a footer on their own surface and a backdrop that actually dims. */
+  :root[data-theme="dark"] :is(.app-dialog, .invoice-settings-dialog, .position-dialog) {
+    border: 1px solid var(--theme-border);
+  }
+  :root[data-theme="dark"] :is(.app-dialog, .invoice-settings-dialog, .position-dialog)::backdrop,
+  :root[data-theme="dark"] .modal-backdrop {
+    background: color-mix(in srgb, black 60%, transparent);
+  }
+  :root[data-theme="dark"]
+    :is(.modal.form-dialog, .modal.page-settings, .modal.position-editor)
+    > footer {
+    background: var(--theme-surface);
+  }
+}
+@media print {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body,
+  .app-shell,
+  .app-shell .workspace,
+  .app-shell .workspace.invoice-workspace {
+    background: var(--paper-white) !important;
+  }
+}

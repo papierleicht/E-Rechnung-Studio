@@ -1,0 +1,212 @@
+/* Screen layout only: printed paper and PDF coordinates remain unchanged. */
+@media screen {
+  .shell {
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  }
+  .workspace > *,
+  .pdf-pages,
+  .pdf-sheet,
+  .invoice-pdf,
+  .form-grid > *,
+  .entity-card > *,
+  .table-list > button > * {
+    min-width: 0;
+  }
+  .pdf-pages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  }
+  .entity-card {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .topbar,
+  .actions,
+  .document-edit-help,
+  .export-folder-footer,
+  .position-editor-toolbar,
+  .settings-save,
+  .backup,
+  .modal footer {
+    flex-wrap: wrap;
+  }
+  .topbar > *,
+  .actions > *,
+  .modal header > div {
+    min-width: 0;
+  }
+  .workspace input,
+  .workspace select,
+  .modal input,
+  .modal select,
+  .modal textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .workspace pre,
+  .modal pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .dialog-description,
+  .export-folder-footer,
+  .customer-summary,
+  .settings-help,
+  .guidance-report {
+    overflow-wrap: anywhere;
+  }
+  .document-stage {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media screen and (max-width: 1050px) {
+  .app-shell .workspace {
+    padding-inline: 16px;
+  }
+  .topbar {
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .topbar .actions {
+    justify-content: flex-start;
+  }
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .invoice-rows .invoice-entry {
+    grid-template-columns: minmax(0, 1.5fr) 84px 90px minmax(100px, 1fr) 16px;
+    gap: 8px;
+    padding: 14px 12px;
+  }
+  .invoice-entry > *,
+  .table-list > button {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  /* Amounts and dates never break before the currency or inside a date. */
+  .invoice-entry > .invoice-entry-amount,
+  .invoice-entry > .invoice-entry-date {
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+  .table-list > button {
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  }
+  .customer-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .document-stage {
+    padding: 12px;
+  }
+}
+
+@media screen and (max-width: 1150px) {
+  /* Explicit areas keep labels, controls and actions in the same place in every card. */
+  .position-table-wrap {
+    padding: 12px 16px;
+    background: var(--theme-surface-muted);
+  }
+  .position-edit-table,
+  .position-edit-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .position-edit-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .position-edit-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas:
+      "number number number number number remove"
+      "description description description description description description"
+      "quantity quantity quantity unit unit unit"
+      "net net tax tax gross gross";
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--theme-border);
+    border-radius: 8px;
+    background: var(--theme-surface);
+  }
+  .position-edit-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+  .position-edit-table td {
+    display: block;
+    min-width: 0;
+    width: auto;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .position-edit-table td:first-child {
+    grid-area: number;
+    align-self: center;
+    padding: 0 !important;
+    font-weight: 600;
+  }
+  .position-edit-table td:first-child::before {
+    content: "Position ";
+    display: inline;
+    font-size: inherit;
+  }
+  .position-edit-table td:nth-child(2) {
+    grid-area: description;
+  }
+  .position-edit-table td:nth-child(3) {
+    grid-area: quantity;
+  }
+  .position-edit-table td:nth-child(4) {
+    grid-area: unit;
+  }
+  .position-edit-table td:nth-child(5) {
+    grid-area: net;
+  }
+  .position-edit-table td:nth-child(6) {
+    grid-area: tax;
+  }
+  .position-edit-table td:nth-child(7) {
+    grid-area: gross;
+  }
+  .position-edit-table td:last-child {
+    grid-area: remove;
+    justify-self: end;
+  }
+  .position-edit-table td::before {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--theme-muted);
+    margin-bottom: 5px;
+  }
+  .position-edit-table td:nth-child(2)::before {
+    content: "Bezeichnung";
+  }
+  .position-edit-table td:nth-child(3)::before {
+    content: "Menge";
+  }
+  .position-edit-table td:nth-child(4)::before {
+    content: "Einheit";
+  }
+  .position-edit-table td:nth-child(5)::before {
+    content: attr(data-label);
+  }
+  .position-edit-table td:nth-child(6)::before {
+    content: "Besteuerung / USt.";
+  }
+  .position-edit-table td:nth-child(7)::before {
+    content: "Preis brutto";
+  }
+  .position-edit-table .fixed-tax {
+    white-space: normal;
+  }
+}

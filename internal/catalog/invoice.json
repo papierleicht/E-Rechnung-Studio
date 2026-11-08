@@ -1,0 +1,128 @@
+{
+  "taxTreatments": [
+    {
+      "id": "standard",
+      "label": "Mit Umsatzsteuer",
+      "category": "S",
+      "reason": "",
+      "code": ""
+    },
+    {
+      "id": "small-business",
+      "label": "Kleinunternehmer § 19",
+      "category": "E",
+      "reason": "Umsatzsteuerbefreit nach § 19 UStG",
+      "code": ""
+    },
+    {
+      "id": "zero-rated",
+      "label": "Nullsteuersatz 0 %",
+      "category": "Z",
+      "reason": "",
+      "code": ""
+    },
+    {
+      "id": "reverse-charge",
+      "label": "Steuerschuld beim Empfänger",
+      "category": "AE",
+      "reason": "Steuerschuldnerschaft des Leistungsempfängers",
+      "code": "VATEX-EU-AE"
+    },
+    {
+      "id": "intra-community",
+      "label": "Lieferung innerhalb der EU",
+      "category": "K",
+      "reason": "Steuerfreie innergemeinschaftliche Lieferung",
+      "code": "VATEX-EU-IC"
+    },
+    {
+      "id": "export",
+      "label": "Ausfuhrlieferung",
+      "category": "G",
+      "reason": "Steuerfreie Ausfuhrlieferung",
+      "code": ""
+    },
+    {
+      "id": "exempt",
+      "label": "Sonstige Steuerbefreiung",
+      "category": "E",
+      "reason": "",
+      "code": ""
+    },
+    {
+      "id": "out-of-scope",
+      "label": "Nicht steuerbarer Umsatz",
+      "category": "O",
+      "reason": "Nicht im Anwendungsbereich der Umsatzsteuer",
+      "code": ""
+    },
+    {
+      "id": "margin-goods",
+      "label": "Differenzbesteuerung · Gebrauchtgegenstände",
+      "category": "E",
+      "reason": "Gebrauchtgegenstände/Sonderregelung",
+      "code": "VATEX-EU-F"
+    },
+    {
+      "id": "margin-art",
+      "label": "Differenzbesteuerung · Kunst",
+      "category": "E",
+      "reason": "Kunstgegenstände/Sonderregelung",
+      "code": "VATEX-EU-I"
+    },
+    {
+      "id": "margin-collectibles",
+      "label": "Differenzbesteuerung · Antiquitäten / Sammlungen",
+      "category": "E",
+      "reason": "Sammlungsstücke und Antiquitäten/Sonderregelung",
+      "code": "VATEX-EU-J"
+    }
+  ],
+  "formats": [
+    {
+      "id": "facturx-en16931",
+      "syntax": "cii",
+      "label": "ZUGFeRD / Factur-X · EN 16931",
+      "description": "Standard: PDF mit eingebetteten Rechnungsdaten. Auch für Kleinunternehmer geeignet.",
+      "specification": "urn:cen.eu:en16931:2017",
+      "conformance": "EN 16931",
+      "xrechnung": false
+    },
+    {
+      "id": "facturx-basic",
+      "syntax": "cii",
+      "label": "ZUGFeRD / Factur-X · BASIC",
+      "description": "PDF mit den grundlegenden Rechnungs- und Positionsdaten als XML. Beschreibungen bleiben als Positionsnotiz erhalten. Kontakte, Bankname und BIC stehen in der PDF; die IBAN auch in der XML. Für einfache Rechnungen, auch als Kleinunternehmer.",
+      "specification": "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic",
+      "conformance": "BASIC",
+      "xrechnung": false
+    },
+    {
+      "id": "facturx-extended",
+      "syntax": "cii",
+      "label": "ZUGFeRD / Factur-X · EXTENDED",
+      "description": "PDF mit eingebetteten Rechnungsdaten im erweiterten Profil. Wähle es, wenn dein Empfänger EXTENDED verlangt.",
+      "specification": "urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended",
+      "conformance": "EXTENDED",
+      "xrechnung": false
+    },
+    {
+      "id": "xrechnung-ubl",
+      "syntax": "ubl",
+      "label": "XRechnung 3.0 · UBL",
+      "description": "XML für Behörden und Empfänger, die XRechnung verlangen. Zusätzlich entsteht eine lesbare PDF mit eingebetteter XML. Für Rechnungsportale nimmst du die XML-Datei.",
+      "specification": "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
+      "conformance": "",
+      "xrechnung": true
+    },
+    {
+      "id": "xrechnung-cii",
+      "syntax": "cii",
+      "label": "XRechnung 3.0 · CII",
+      "description": "XRechnung in der alternativen CII-Syntax. Maßgeblich ist die Vorgabe deines Empfängers. Die XML-Datei wird zusätzlich in einer lesbaren PDF hinterlegt.",
+      "specification": "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
+      "conformance": "",
+      "xrechnung": true
+    }
+  ]
+}

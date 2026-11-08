@@ -1,0 +1,7 @@
+bindings/
+dist/
+node_modules/
+src/lib/bankDirectory.generated.ts
+
+# Generated from the shared papierleicht design system.
+src/brand/

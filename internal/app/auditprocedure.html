@@ -1,0 +1,123 @@
+<html><body>
+<h1>Verfahrensdokumentation</h1>
+<p><strong>{{.Company}}</strong>{{if .Address}}, {{.Address}}{{end}}{{if .TaxID}}, {{.TaxID}}{{end}}</p>
+<p>Version {{.Version}} vom {{.Date}}, erstellt mit E-Rechnung-Studio {{.Program}}.</p>
+<p>Dieses Dokument beschreibt, wie in diesem Betrieb Belege erfasst, verarbeitet, aufbewahrt und wiedergefunden werden. Es ist eine Vorlage aus den Angaben des Betriebs und dem Funktionsumfang des Programms. Die Verantwortung für die Ordnungsmäßigkeit liegt beim Betrieb. Weicht der tatsächliche Ablauf ab, ist das Dokument anzupassen, und bei jeder wesentlichen Änderung ist eine neue Version zu erstellen.</p>
+
+<h2>1. Allgemeine Beschreibung</h2>
+<h3>Zweck und Geltungsbereich</h3>
+<p>Die Dokumentation gilt für alle Rechnungen, Belege und Zahlungsinformationen, die mit E-Rechnung-Studio erstellt, empfangen oder erfasst werden. Sie gilt für die gesamte Aufbewahrungsfrist der betroffenen Unterlagen.</p>
+<h3>Verantwortlichkeit</h3>
+<p>Erfassung und Prüfung der Belege: {{.Profile.Responsible}}</p>
+{{if .Profile.Advisor}}<p>Steuerliche Beratung: {{.Profile.Advisor}}</p>{{end}}
+<h3>Eingesetzte Systeme</h3>
+<p>E-Rechnung-Studio ist eine Desktop-Anwendung. Alle Daten liegen in einer Datenbank auf dem Rechner des Betriebs.</p>
+{{if .Profile.Devices}}<p>Rechner: {{.Profile.Devices}}</p>{{end}}
+{{if .Profile.OtherSystems}}<p>Weitere Systeme mit steuerlich relevanten Daten: {{.Profile.OtherSystems}}</p>{{end}}
+<h3>Aufbewahrungsfristen</h3>
+<ul>
+<li>Bücher und Aufzeichnungen: zehn Jahre</li>
+<li>Buchungsbelege: acht Jahre</li>
+<li>Empfangene und abgesandte Handels- oder Geschäftsbriefe: sechs Jahre</li>
+</ul>
+<p>Die Frist beginnt mit dem Schluss des Kalenderjahres. Sie läuft nicht ab, solange die Unterlagen für noch offene Steuerfestsetzungen von Bedeutung sind.</p>
+
+<h2>2. Anwenderdokumentation</h2>
+<h3>Ausgangsrechnungen</h3>
+<ol>
+<li>Rechnungen entstehen als Entwurf. Entwürfe sind noch keine Belege und können frei geändert oder gelöscht werden.</li>
+<li>Beim Ausstellen vergibt das Programm die Rechnungsnummer und speichert die XML-Datei und das PDF endgültig. Danach ist keine Änderung mehr möglich.</li>
+<li>Der Versand erfolgt aus dem Programm heraus oder durch den Betrieb selbst, der ihn dann vermerken kann.</li>
+<li>Eine falsche Rechnung, die niemand erhalten hat, kann mit Angabe des Grundes gelöscht werden. Sie bleibt mit ihren Dateien im Protokoll gelöschter Rechnungen, und ihre Nummer wird nie wieder vergeben.</li>
+<li>Eine Rechnung, die den Betrieb verlassen hat, wird nur durch eine Gutschrift mit Bezug auf die ursprüngliche Rechnung korrigiert.</li>
+</ol>
+<h3>Eingangsrechnungen und Belege</h3>
+<ol>
+<li>Elektronische Rechnungen werden als Originaldatei importiert. Das Programm speichert die empfangenen Bytes unverändert und bestimmt ihre Prüfsumme.</li>
+<li>Jedes Eingangsdokument und jede erfasste Ausgabe erhält eine fortlaufende Belegnummer (B-Jahr-Nummer), die sich nicht mehr ändert.</li>
+<li>Andere Belege werden als Ausgabe mit Datum, Lieferant, Betrag, Steuersatz, Kategorie und, soweit vorhanden, der Belegnummer des Lieferanten erfasst. Die Datei wird angehängt. Bei fremder Währung werden Originalbetrag und Kurs festgehalten.</li>
+<li>Belege werden zeitnah erfasst, unbare Vorgänge spätestens innerhalb von zehn Tagen.</li>
+<li>Jede Änderung wird mit dem Inhalt davor und danach protokolliert. Eine ersetzte Datei bleibt gespeichert.</li>
+<li>Ein Beleg wird nicht gelöscht. Ein Fehler wird mit Angabe des Grundes storniert. Der Beleg bleibt sichtbar und zählt nicht mehr.</li>
+<li>Fehlimporte, also Dateien ohne jeden Bezug zum Betrieb, dürfen nach ausdrücklicher Bestätigung entfernt werden. Das Protokoll hält fest, was entfernt wurde.</li>
+</ol>
+<h3>Papierbelege</h3>
+<p>{{.PaperLabel}}</p>
+{{if .Scanning}}<p>Erfasst wird möglichst unmittelbar nach Eingang durch die oben genannte Person. Vor der weiteren Bearbeitung wird geprüft, ob das Bild vollständig und lesbar ist; farbige Vermerke müssen erkennbar bleiben. Ist das Bild mangelhaft, wird es neu erfasst. Die Bearbeitung erfolgt danach nur noch mit dem elektronischen Dokument.</p>{{end}}
+{{if .Destroying}}<p>Vernichtet wird erst nach dieser Prüfung. Unterlagen, die im Original aufzubewahren sind, sind davon ausgenommen.</p>{{end}}
+<h3>Zahlungen</h3>
+<p>Zahlungen werden Rechnungen und Belegen zugeordnet. Eine Zuordnung wird nicht geändert, sondern mit Grund aufgehoben und neu vorgenommen. Bankumsätze im Programm ersetzen nicht die Kontoauszüge der Bank.</p>
+{{if .Profile.Cash}}<h3>Bargeschäfte</h3>
+<p>Der Betrieb hat Bargeschäfte. Das Programm führt kein Kassenbuch und ist kein Kassensystem. Bareinnahmen und -ausgaben werden täglich in einem eigenen, dafür geeigneten Verfahren festgehalten, das hier zu ergänzen ist.</p>{{end}}
+<h3>Festschreibung</h3>
+<p>Ein Zeitraum wird festgeschrieben, sobald eine Steuermeldung als übermittelt vermerkt ist, und kann zusätzlich von Hand festgeschrieben werden. Danach lassen sich die bis dahin erfassten Belege des Zeitraums nicht mehr ändern, sondern nur noch stornieren; lediglich eine fehlende Datei kann ergänzt werden. Wird nach der Übermittlung etwas storniert oder nacherfasst, weist das Programm auf die Abweichung hin und die Meldung ist zu berichtigen.</p>
+
+<h2>3. Technische Systemdokumentation</h2>
+<h3>Unveränderbarkeit</h3>
+<ul>
+<li>Jede Änderung an steuerlich relevanten Daten wird in derselben Transaktion in das Änderungsprotokoll geschrieben: Zeitpunkt, Vorgang, Objekt, Inhalt davor und danach, Programmversion.</li>
+<li>Die Datenbank weist Änderungen und Löschungen am Protokoll, an Belegdateien, an Mahnungen und am Protokoll gelöschter Rechnungen zurück.</li>
+<li>Jeder Protokolleintrag enthält den Hash seines Vorgängers. Eine nachträgliche Änderung bricht diese Kette.</li>
+<li>Jeder Eintrag enthält außerdem den Hash des Objekts. Die Prüffunktion vergleicht so die Daten mit dem Protokoll und findet Abweichungen, auch solche außerhalb des Programms.</li>
+<li>Mit einem Abo lässt das Programm den Stand der Kette regelmäßig vom Server signieren. Der Server erhält dafür nur den Hash, keine Inhalte, und bewahrt die Nachweise zusätzlich auf. Ein nachträglich neu berechnetes Protokoll passt nicht mehr zu diesen Nachweisen.</li>
+</ul>
+<p>Stammdaten von Kunden und Artikeln werden nicht protokolliert. Jede Rechnung enthält die Angaben, die beim Ausstellen galten, und ändert sich mit den Stammdaten nicht.</p>
+<h3>Originaldateien</h3>
+<p>Dokumente werden im Eingangsformat gespeichert und nicht umgewandelt. Bei hybriden E-Rechnungen bleiben Bild und strukturierte Daten erhalten.</p>
+<h3>Datenbestand</h3>
+<p>Die folgenden Tabellen beschreiben den Datenbestand so, wie er für eine Prüfung ausgegeben wird.</p>
+<table><thead><tr><th>Tabelle</th><th>Inhalt und Felder</th></tr></thead><tbody>
+{{range .Tables}}<tr><td>{{.Name}}</td><td>{{.Description}}. Felder: {{.Columns}}</td></tr>
+{{end}}</tbody></table>
+<h3>Schnittstellen</h3>
+<ul>
+<li>E-Mail-Versand über das Konto des Betriebs, protokolliert im Versandprotokoll</li>
+<li>Bankabruf und Import von Kontoumsätzen</li>
+<li>DATEV-Übergabe an die Steuerberatung</li>
+<li>Import elektronischer Rechnungen</li>
+</ul>
+
+<h2>4. Betriebsdokumentation</h2>
+<h3>Datensicherung</h3>
+<p>{{if .Profile.BackupRoutine}}{{.Profile.BackupRoutine}}{{else}}Der Betrieb sichert seine Daten regelmäßig mit der Sicherungsfunktion des Programms.{{end}}</p>
+<p>Sicherungen ersetzen nicht die Aufbewahrung im Programm. Die Wiederherstellung wird mindestens einmal im Jahr geprüft. Jede Wiederherstellung wird im Änderungsprotokoll festgehalten, und alles, was sich dadurch ändert, wird einzeln aufgeführt.</p>
+<h3>Programmversionen</h3>
+<p>Das Programm notiert jede eingesetzte Version im Änderungsprotokoll.</p>
+<table><thead><tr><th>Version</th><th>Eingesetzt seit</th></tr></thead><tbody>
+{{range .Programs}}<tr><td>{{.Version}}</td><td>{{.Since}}</td></tr>
+{{end}}</tbody></table>
+<h3>Programmwechsel</h3>
+<p>Bei einem Wechsel oder einer Stilllegung bleiben die Daten für die gesamte Aufbewahrungsfrist lesbar und auswertbar. Vor einem Wechsel wird ein vollständiger Export aller Jahre erstellt und aufbewahrt.</p>
+
+<h2>5. Internes Kontrollsystem</h2>
+<table><thead><tr><th>Kontrolle</th><th>Durchführung</th></tr></thead><tbody>
+<tr><td>Eingabeprüfung</td><td>Das Programm prüft Pflichtangaben, Beträge und Datumsangaben bei jeder Erfassung.</td></tr>
+<tr><td>Rechnungsprüfung</td><td>Ausgehende Rechnungen werden vor dem Ausstellen technisch geprüft, eingehende beim Import.</td></tr>
+<tr><td>Nummernvergabe</td><td>Rechnungs- und Belegnummern werden vom Programm vergeben und sind eindeutig.</td></tr>
+<tr><td>Vollständigkeit</td><td>Monatlich prüft die verantwortliche Person, ob alle Belege erfasst sind und Bankumsätze zugeordnet wurden.</td></tr>
+<tr><td>Integrität</td><td>Mindestens einmal im Jahr wird die Protokollprüfung im Programm ausgeführt.</td></tr>
+<tr><td>Zugriffsschutz</td><td>Der Rechner ist mit Benutzerkonto und Passwort geschützt. Nur die genannten Personen haben Zugriff.</td></tr>
+</tbody></table>
+
+<h2>6. Datenzugriff der Finanzverwaltung</h2>
+<ul>
+<li>Unmittelbarer Zugriff (Z1): Das Programm bietet eine Nur-Lese-Ansicht für den Prüfungszeitraum am Rechner des Betriebs.</li>
+<li>Mittelbarer Zugriff (Z2): Die Daten lassen sich im Programm filtern und sortieren und als CSV-Datei ausgeben.</li>
+<li>Datenüberlassung (Z3): Der Prüfer-Export enthält alle Daten des Zeitraums als CSV-Dateien mit Beschreibung nach dem Beschreibungsstandard und alle Dokumente im Original. Die Übergabe erfolgt über den vom Prüfer genannten Weg.</li>
+</ul>
+
+<h2>7. Grenzen</h2>
+<ul>
+<li>Das Programm ist weder Kassensystem noch Kassenbuch.</li>
+<li>Es ersetzt nicht die Kontoauszüge der Bank.</li>
+<li>Bei Buchführungspflicht ist es ein Vorsystem. Die Buchführung erfolgt dann in einem Finanzbuchhaltungssystem, in das die Daten übergeben werden.</li>
+<li>Die Richtigkeit und Vollständigkeit der Eingaben liegt beim Betrieb.</li>
+<li>Selbst erstellte oder veränderte Programmversionen sind von dieser Beschreibung nicht erfasst.</li>
+</ul>
+
+<h2>8. Änderungsverlauf dieses Dokuments</h2>
+<table><thead><tr><th>Version</th><th>Datum</th><th>Programm</th></tr></thead><tbody>
+{{range .History}}<tr><td>{{.Version}}</td><td>{{.At}}</td><td>{{.Program}}</td></tr>
+{{end}}<tr><td>{{.Version}}</td><td>{{.Date}}</td><td>{{.Program}}</td></tr>
+</tbody></table>
+</body></html>
