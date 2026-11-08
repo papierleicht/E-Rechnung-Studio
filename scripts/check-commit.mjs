@@ -40,13 +40,16 @@ if (
           !/^[a-f0-9]{40}$/.test(event.after || "")
         )
           throw new Error("Missing valid push commit range.");
-        // A new branch has no predecessor. Include its root commit in the check.
+        // A new branch has no predecessor: include its root commit. After a
+        // force push the old head is gone from the history: check the new head.
         const range = /^0{40}$/.test(before)
-          ? event.after
-          : `${before}..${event.after}`;
+          ? [event.after]
+          : event.forced
+            ? ["-1", event.after]
+            : [`${before}..${event.after}`];
         const messages = execFileSync(
           "git",
-          ["log", "--format=%B%x00", range],
+          ["log", "--format=%B%x00", ...range],
           { encoding: "utf8" },
         )
           .split("\0")
