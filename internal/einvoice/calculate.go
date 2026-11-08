@@ -1,0 +1,213 @@
+// Copyright 2024 Patrick Gundlach, Berlin
+// SPDX-License-Identifier: BSD-3-Clause
+// Adapted from github.com/speedata/einvoice; see NOTICE.md.
+
+package einvoice
+
+import (
+	"github.com/shopspring/decimal"
+)
+
+// decimal100 is a pre-computed constant for 100 used in VAT percentage calculations.
+var decimal100 = decimal.NewFromInt(100)
+
+// roundHalfUp performs commercial rounding (round half up) to the specified number of decimal places.
+// This is required by EN 16931 for VAT calculations, as opposed to banker's rounding.
+// For example, 34700.0458 rounded to 2 places becomes 34700.05 (not 34700.04).
+func roundHalfUp(d decimal.Decimal, places int32) decimal.Decimal {
+	// Add 0.5 of the smallest unit and truncate
+	// For 2 decimal places, we add 0.005 and truncate
+	adjustment := decimal.New(5, -(places + 1))
+	if d.IsNegative() {
+		return d.Sub(adjustment).Truncate(places)
+	}
+	return d.Add(adjustment).Truncate(places)
+}
+
+// isDetailLine reports whether this invoice line is a detail line that
+// contributes to the document totals (BT-106) and the VAT breakdown. In an
+// EXTENDED sub invoice line hierarchy (Factur-X 1.09, chapter 7.6.2) the
+// aggregating lines carry a "Subtype of invoice line item" (BT-X-8,
+// ram:LineStatusReasonCode) of "GROUP" (subtotal containers, whose amount is the
+// sum of their children) or "INFORMATION" (informational breakdown of a parent
+// detail line). Per BR-FXEXT-CO-10 and BR-FXEXT-*-08 only lines whose subtype is
+// "DETAIL" or unspecified are summed; the same lines are exempt from the
+// per-line detail rules BR-22, BR-23, BR-26 and BR-CO-04.
+//
+// For invoices without sub invoice lines LineStatusReasonCode is empty, so every
+// line is a detail line and all callers behave exactly as before.
+func (line InvoiceLine) isDetailLine() bool {
+	return line.LineStatusReasonCode == "" || line.LineStatusReasonCode == "DETAIL"
+}
+
+// UpdateApplicableTradeTax removes the existing trade tax lines in the invoice
+// and re-creates new ones from the line items and document-level allowances/charges.
+// er is a map that contains exemption reasons for each category code.
+// According to BR-45 and category-specific rules (BR-S-8, BR-AE-8, BR-E-8, etc.),
+// the VAT category taxable amount must include:
+// - Sum of invoice line net amounts for that category
+// - Minus document level allowance amounts for that category
+// - Plus document level charge amounts for that category
+func (inv *Invoice) UpdateApplicableTradeTax(exemptReason map[string]string) {
+	var applicableTradeTaxes = make([]*TradeTax, 0, len(inv.TradeTaxes))
+
+	// Process invoice lines. Sub invoice line aggregation lines (GROUP /
+	// INFORMATION) are skipped so only detail lines contribute to the VAT
+	// breakdown (avoids double counting; EXTENDED).
+	for i := range inv.InvoiceLines {
+		if !inv.InvoiceLines[i].isDetailLine() {
+			continue
+		}
+		tradeTax := TradeTax{
+			CategoryCode: inv.InvoiceLines[i].TaxCategoryCode,
+			Percent:      inv.InvoiceLines[i].TaxRateApplicablePercent,
+			BasisAmount:  inv.InvoiceLines[i].Total,
+			TypeCode:     "VAT",
+		}
+		found := false
+
+		for _, att := range applicableTradeTaxes {
+			if att.CategoryCode == tradeTax.CategoryCode && att.Percent.Equal(tradeTax.Percent) {
+				att.BasisAmount = att.BasisAmount.Add(inv.InvoiceLines[i].Total)
+				found = true
+
+				break
+			}
+		}
+
+		if !found {
+			applicableTradeTaxes = append(applicableTradeTaxes, &tradeTax)
+		}
+	}
+
+	// Process document-level allowances and charges
+	for i := range inv.SpecifiedTradeAllowanceCharge {
+		found := false
+		for _, att := range applicableTradeTaxes {
+			if att.CategoryCode == inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxCategoryCode && att.Percent.Equal(inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxRateApplicablePercent) {
+				// Charges add to the basis, allowances subtract
+				if inv.SpecifiedTradeAllowanceCharge[i].ChargeIndicator {
+					att.BasisAmount = att.BasisAmount.Add(inv.SpecifiedTradeAllowanceCharge[i].ActualAmount)
+				} else {
+					att.BasisAmount = att.BasisAmount.Sub(inv.SpecifiedTradeAllowanceCharge[i].ActualAmount)
+				}
+				found = true
+				break
+			}
+		}
+
+		// If not found, create a new tax entry for this category
+		if !found {
+			basisAmount := inv.SpecifiedTradeAllowanceCharge[i].ActualAmount
+			if !inv.SpecifiedTradeAllowanceCharge[i].ChargeIndicator {
+				basisAmount = basisAmount.Neg()
+			}
+			tradeTax := &TradeTax{
+				CategoryCode: inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxCategoryCode,
+				Percent:      inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxRateApplicablePercent,
+				BasisAmount:  basisAmount,
+				TypeCode:     "VAT",
+			}
+			applicableTradeTaxes = append(applicableTradeTaxes, tradeTax)
+		}
+	}
+
+	inv.TradeTaxes = []TradeTax{}
+	for _, att := range applicableTradeTaxes {
+		// BR-DEC-19: VAT category taxable amount (BT-116) must have max 2 decimal places
+		att.BasisAmount = roundHalfUp(att.BasisAmount, 2)
+		att.CalculatedAmount = roundHalfUp(att.BasisAmount.Mul(att.Percent.Div(decimal100)), 2)
+		if att.Percent.IsZero() {
+			att.ExemptionReason = exemptReason[att.CategoryCode]
+		}
+
+		inv.TradeTaxes = append(inv.TradeTaxes, *att)
+	}
+}
+
+// updateAllowancesAndCharges recalculates the document-level allowance and charge totals
+// according to EN 16931 business rules.
+// This function implements the following business rules:
+// - BR-CO-11: AllowanceTotal (BT-107) = Sum of all document level allowance amounts (BT-92)
+// - BR-CO-12: ChargeTotal (BT-108) = Sum of all document level charge amounts (BT-99)
+func (inv *Invoice) updateAllowancesAndCharges() {
+	// Reset totals to zero to ensure idempotent behavior
+	inv.AllowanceTotal = decimal.Zero
+	inv.ChargeTotal = decimal.Zero
+
+	// BR-CO-11 and BR-CO-12: Calculate allowance and charge totals
+	for i := range inv.SpecifiedTradeAllowanceCharge {
+		if inv.SpecifiedTradeAllowanceCharge[i].ChargeIndicator {
+			inv.ChargeTotal = inv.ChargeTotal.Add(inv.SpecifiedTradeAllowanceCharge[i].ActualAmount)
+		} else {
+			inv.AllowanceTotal = inv.AllowanceTotal.Add(inv.SpecifiedTradeAllowanceCharge[i].ActualAmount)
+		}
+	}
+
+	// BR-DEC-10: AllowanceTotal (BT-107) must have max 2 decimal places
+	inv.AllowanceTotal = roundHalfUp(inv.AllowanceTotal, 2)
+	// BR-DEC-11: ChargeTotal (BT-108) must have max 2 decimal places
+	inv.ChargeTotal = roundHalfUp(inv.ChargeTotal, 2)
+}
+
+// UpdateTotals recalculates all monetary totals according to EN 16931 business rules.
+// This function implements the following business rules in calculation order:
+// - BR-CO-10: LineTotal (BT-106) = Sum of all invoice line net amounts (BT-131)
+// - BR-CO-11: AllowanceTotal (BT-107) = Sum of all document level allowance amounts (BT-92)
+// - BR-CO-12: ChargeTotal (BT-108) = Sum of all document level charge amounts (BT-99)
+// - BR-CO-13: TaxBasisTotal (BT-109) = LineTotal - AllowanceTotal + ChargeTotal
+// - BR-CO-15: GrandTotal (BT-112) = TaxBasisTotal + TaxTotal (BT-110)
+// - BR-CO-16: DuePayableAmount (BT-115) = GrandTotal - TotalPrepaid (BT-113) + RoundingAmount (BT-114)
+//
+// Profile handling: Only recalculate for EN 16931 profiles that support line items.
+// - Level 0 (unknown): Skip - may not follow EN 16931 calculation rules
+// - Level 1 (Minimum): Skip - no line items by design, totals provided directly
+// - Level 2 (BasicWL): Skip - no line items by design, totals provided directly
+// - Level 3+ (Basic, EN16931, Extended, etc.): Calculate - have line items
+func (inv *Invoice) UpdateTotals() {
+	// Only recalculate for profiles that explicitly support line-based calculations
+	// This ensures we don't modify totals for unknown or non-compliant invoices
+	profileLevel := inv.ProfileLevel()
+	if profileLevel < 3 {
+		return
+	}
+
+	// BR-CO-10: Calculate line total from invoice lines (BT-106).
+	// Sub invoice line aggregation lines (GROUP / INFORMATION) are skipped so only
+	// detail lines are summed to avoid double counting (EXTENDED).
+	inv.LineTotal = decimal.Zero
+	for i := range inv.InvoiceLines {
+		if !inv.InvoiceLines[i].isDetailLine() {
+			continue
+		}
+		inv.LineTotal = inv.LineTotal.Add(inv.InvoiceLines[i].Total)
+	}
+	// BR-DEC-09: LineTotal (BT-106) must have max 2 decimal places
+	inv.LineTotal = roundHalfUp(inv.LineTotal, 2)
+
+	// BR-CO-11 & BR-CO-12: Calculate allowance and charge totals from document-level items
+	inv.updateAllowancesAndCharges()
+
+	// Calculate tax total from trade taxes (BT-110)
+	inv.TaxTotal = decimal.Zero
+	for i := range inv.TradeTaxes {
+		inv.TaxTotal = inv.TaxTotal.Add(inv.TradeTaxes[i].CalculatedAmount)
+	}
+	// BR-DEC-13: TaxTotal (BT-110) must have max 2 decimal places
+	inv.TaxTotal = roundHalfUp(inv.TaxTotal, 2)
+
+	// BR-CO-13: TaxBasisTotal = LineTotal - AllowanceTotal + ChargeTotal
+	inv.TaxBasisTotal = inv.LineTotal.Sub(inv.AllowanceTotal).Add(inv.ChargeTotal)
+	// BR-DEC-12: TaxBasisTotal (BT-109) must have max 2 decimal places
+	inv.TaxBasisTotal = roundHalfUp(inv.TaxBasisTotal, 2)
+
+	// BR-CO-15: GrandTotal = TaxBasisTotal + TaxTotal
+	inv.GrandTotal = inv.TaxBasisTotal.Add(inv.TaxTotal)
+	// BR-DEC-14: GrandTotal (BT-112) must have max 2 decimal places
+	inv.GrandTotal = roundHalfUp(inv.GrandTotal, 2)
+
+	// BR-CO-16: DuePayableAmount = GrandTotal - TotalPrepaid + RoundingAmount
+	inv.DuePayableAmount = inv.GrandTotal.Sub(inv.TotalPrepaid).Add(inv.RoundingAmount)
+	// BR-DEC-18: DuePayableAmount (BT-115) must have max 2 decimal places
+	inv.DuePayableAmount = roundHalfUp(inv.DuePayableAmount, 2)
+}

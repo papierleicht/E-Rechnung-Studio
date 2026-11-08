@@ -1,0 +1,188 @@
+/* Windows motion is brief and direct. The invoice paper itself never moves or
+   scales, so its native HTML text remains sharp during preview updates. */
+:root[data-platform="windows"] {
+  --win-motion-fast: 90ms;
+  --win-motion-normal: 130ms;
+  --win-motion-layout: 160ms;
+  --win-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  :root[data-platform="windows"]
+    :is(button, summary, input, select, textarea):not(.document-input) {
+    transition:
+      background-color var(--win-motion-fast) ease-out,
+      border-color var(--win-motion-fast) ease-out,
+      color var(--win-motion-fast) ease-out,
+      box-shadow var(--win-motion-fast) ease-out,
+      opacity var(--win-motion-fast) ease-out,
+      transform var(--win-motion-fast) ease-out;
+  }
+
+  :root[data-platform="windows"]
+    :is(
+      button.primary,
+      button.secondary,
+      button.icon-button,
+      .sidebar-toggle,
+      .dialog-close
+    ):hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  :root[data-platform="windows"]
+    :is(
+      button.primary,
+      button.secondary,
+      button.icon-button,
+      .sidebar-toggle,
+      .dialog-close
+    ):active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 45ms;
+  }
+
+  :root[data-platform="windows"] .sidebar nav button {
+    transition:
+      background-color var(--win-motion-fast) ease-out,
+      color var(--win-motion-fast) ease-out,
+      transform var(--win-motion-normal) var(--win-motion-ease);
+  }
+
+  :root[data-platform="windows"] .sidebar nav button:hover:not(:disabled):not(.active) {
+    transform: translateX(2px);
+  }
+
+  :root[data-platform="windows"] .app-shell {
+    transition-duration: var(--win-motion-layout);
+    transition-timing-function: var(--win-motion-ease);
+  }
+
+  :root[data-platform="windows"] .app-shell .sidebar {
+    transition-duration: var(--win-motion-layout), 120ms, 0s;
+    transition-timing-function: var(--win-motion-ease), ease-out, linear;
+  }
+
+  :root[data-platform="windows"] .app-shell.sidebar-collapsed .sidebar {
+    transition-duration: var(--win-motion-layout), 100ms, 0s;
+    transition-delay: 0s, 0s, var(--win-motion-layout);
+  }
+
+  :root[data-platform="windows"]
+    :is(.entity-card, .invoice-entry, .table-list > button, .resume-invoice) {
+    transition:
+      background-color var(--win-motion-fast) ease-out,
+      border-color var(--win-motion-fast) ease-out,
+      box-shadow var(--win-motion-normal) ease-out,
+      transform var(--win-motion-normal) var(--win-motion-ease);
+  }
+
+  :root[data-platform="windows"] :is(.entity-card, .resume-invoice):hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  :root[data-platform="windows"] .invoice-entry > .app-icon {
+    transition: transform var(--win-motion-normal) var(--win-motion-ease);
+  }
+
+  :root[data-platform="windows"] .invoice-entry:hover:not(:disabled) > .app-icon {
+    transform: translateX(2px);
+  }
+
+  :root[data-platform="windows"]
+    .workspace
+    > :not(.window-toolbar, .document-stage, #invoice-editor-start) {
+    animation: win-content-enter var(--win-motion-normal) var(--win-motion-ease) both;
+  }
+
+  :root[data-platform="windows"] .workspace > .document-stage {
+    animation: win-fade-enter var(--win-motion-normal) ease-out both;
+  }
+
+  :root[data-platform="windows"] .settings-tabs button {
+    transition:
+      background-color var(--win-motion-fast) ease-out,
+      border-color var(--win-motion-fast) ease-out,
+      color var(--win-motion-fast) ease-out,
+      transform var(--win-motion-fast) var(--win-motion-ease);
+  }
+
+  :root[data-platform="windows"] .settings-tabs button:active {
+    transform: scale(0.98);
+  }
+
+  :root[data-platform="windows"] [role="tabpanel"]:not([hidden]) {
+    animation: win-tab-enter var(--win-motion-normal) var(--win-motion-ease) both;
+  }
+
+  :root[data-platform="windows"] dialog[open] {
+    animation: win-dialog-enter var(--win-motion-layout) var(--win-motion-ease) both;
+  }
+
+  :root[data-platform="windows"] dialog[open]::backdrop {
+    animation: win-backdrop-enter var(--win-motion-normal) ease-out both;
+  }
+
+  :root[data-platform="windows"] :is(.busy, .error-notice) {
+    animation: win-notice-enter var(--win-motion-normal) var(--win-motion-ease) both;
+  }
+
+  @keyframes win-content-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  @keyframes win-fade-enter {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes win-tab-enter {
+    from {
+      opacity: 0;
+      transform: translateX(3px);
+    }
+  }
+
+  @keyframes win-dialog-enter {
+    from {
+      opacity: 0;
+      transform: translateY(5px) scale(0.985);
+    }
+  }
+
+  @keyframes win-backdrop-enter {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes win-notice-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+  :root[data-platform="windows"] *,
+  :root[data-platform="windows"] *::before,
+  :root[data-platform="windows"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+@media print {
+  :root[data-platform="windows"] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

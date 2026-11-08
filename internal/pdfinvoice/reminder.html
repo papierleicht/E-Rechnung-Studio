@@ -1,0 +1,29 @@
+<html lang="de"><body>
+<footer class="pagefooter"><table><colgroup><col data-width="33*"/><col data-width="34*"/><col data-width="33*"/></colgroup><tr>
+<td>{{.Seller.Name}}<br/>{{.Seller.PostalAddress.Line1}}{{if .Seller.PostalAddress.Line2}}<br/>{{.Seller.PostalAddress.Line2}}{{end}}<br/>{{.Seller.PostalAddress.PostcodeCode}} {{.Seller.PostalAddress.City}}</td>
+<td>{{range $index, $payment := .PaymentMeans}}{{if and (lt $index 2) .PayeePartyCreditorFinancialAccountIBAN}}{{if .PayeePartyCreditorFinancialAccountName}}{{.PayeePartyCreditorFinancialAccountName}}<br/>{{end}}IBAN: {{iban .PayeePartyCreditorFinancialAccountIBAN}}{{if .PayeeSpecifiedCreditorFinancialInstitutionBIC}}<br/>BIC: {{.PayeeSpecifiedCreditorFinancialInstitutionBIC}}{{end}}<br/>{{end}}{{end}}</td>
+<td>{{range .Seller.DefinedTradeContact}}{{if .PersonName}}{{.PersonName}}<br/>{{end}}{{if .EMail}}{{.EMail}}<br/>{{end}}{{if .PhoneNumber}}{{.PhoneNumber}}<br/>{{end}}{{end}}{{if .Seller.VATaxRegistration}}USt-IdNr.: {{.Seller.VATaxRegistration}}{{end}}{{if .Seller.FCTaxRegistration}}<br/>Steuernummer: {{.Seller.FCTaxRegistration}}{{end}}</td>
+</tr></table></footer>
+<table class="invoice-head"><colgroup><col data-width="72*"/><col data-width="28*"/></colgroup><tr><td>
+<p class="eyebrow">{{eyebrow .Letter.Title}}</p>
+{{with sellerHeading .Seller.Name}}<h1{{if .Compact}} class="seller-compact"{{end}}>{{.Title}}</h1>{{if .Subtitle}}<p class="seller-subtitle">{{.Subtitle}}</p>{{end}}{{end}}<p class="sender">{{.Seller.PostalAddress.Line1}}{{if .Seller.PostalAddress.Line2}}<br/>{{.Seller.PostalAddress.Line2}}{{end}}<br/>{{.Seller.PostalAddress.PostcodeCode}} {{.Seller.PostalAddress.City}}{{if ne .Seller.PostalAddress.CountryID "DE"}} · {{.Seller.PostalAddress.CountryID}}{{end}}</p>
+</td><td class="identity">{{if .Logo}}<div class="invoice-logo"><p><img {{.Logo}}/></p></div><p>{{.InvoiceNumber}}</p>{{else}}{{.InvoiceNumber}}{{end}}</td></tr></table>
+<div class="recipient"><p class="return-address">{{.Seller.Name}} · {{.Seller.PostalAddress.Line1}} · {{.Seller.PostalAddress.PostcodeCode}} {{.Seller.PostalAddress.City}}</p>
+<p class="recipient-name">{{.Buyer.Name}}</p><p>{{range .Buyer.DefinedTradeContact}}{{if .PersonName}}{{.PersonName}}<br/>{{end}}{{end}}{{.Buyer.PostalAddress.Line1}}{{if .Buyer.PostalAddress.Line2}}<br/>{{.Buyer.PostalAddress.Line2}}{{end}}{{if .Buyer.PostalAddress.Line3}}<br/>{{.Buyer.PostalAddress.Line3}}{{end}}<br/>{{.Buyer.PostalAddress.PostcodeCode}} {{.Buyer.PostalAddress.City}}<br/>{{.Buyer.PostalAddress.CountryID}}</p>
+</div>
+<table class="invoice-meta"><colgroup><col data-width="57*"/><col data-width="24*"/><col data-width="19*"/></colgroup>
+<tr><td><h2>{{.Letter.Title}}</h2></td><td class="date-label">Datum</td><td class="date-value">{{date .Letter.Date}}</td></tr>
+<tr><td><p class="small">Bezug: Rechnung {{.InvoiceNumber}} vom {{date .InvoiceDate}}</p></td><td class="date-label">{{if .Letter.Installment}}Rate fällig seit{{else}}Fällig seit{{end}}</td><td class="date-value">{{date .Letter.DueSince}}</td></tr>
+{{if .BuyerReference}}<tr><td><p class="small">Kundenreferenz: {{.BuyerReference}}</p></td><td></td><td></td></tr>{{end}}
+<tr><td></td><td class="date-label">Zahlbar bis</td><td class="date-value">{{date .Letter.PaymentDue}}</td></tr>
+</table>
+<div class="letter"><p class="paragraph">{{.Letter.Text}}</p></div>
+<table class="document-bottom first-bottom"><colgroup><col data-width="57*"/><col data-width="24*"/><col data-width="19*"/></colgroup>
+<tr><td class="payment"><p class="caption">Zahlungshinweis</p><p class="paragraph">{{.PaymentHint}}</p></td>
+<td class="total-labels"><p class="total-entry">{{if .Letter.Installment}}Fällige Raten{{else}}Offener Betrag{{end}}</p>{{if .Letter.Fee.IsPositive}}<p class="total-entry">Mahngebühr</p>{{end}}{{if .Letter.Interest.IsPositive}}<p class="total-entry">Verzugszinsen</p>{{end}}<p class="total-entry grand">Zu zahlen</p></td>
+<td class="total-values"><p class="total-entry">{{money .Letter.Amount}} {{.Letter.Currency}}</p>{{if .Letter.Fee.IsPositive}}<p class="total-entry">{{money .Letter.Fee}} {{.Letter.Currency}}</p>{{end}}{{if .Letter.Interest.IsPositive}}<p class="total-entry">{{money .Letter.Interest}} {{.Letter.Currency}}</p>{{end}}<p class="total-entry grand">{{money .Letter.Total}} {{.Letter.Currency}}</p></td></tr>
+</table>
+{{if .Letter.Installment}}<p class="small">Der Betrag umfasst nur die bereits fälligen Raten aus der vereinbarten Ratenzahlung. Künftige Raten bleiben unverändert.</p>{{end}}
+{{if .Letter.Interest.IsPositive}}<p class="small">Verzugszinsen berechnet mit {{.Letter.InterestRate}} % p. a. für {{.Letter.DaysOverdue}} Tage auf den offenen Betrag.</p>{{end}}
+{{if .PaymentQR}}<table class="payment-qr"><colgroup><col data-width="25*"/><col data-width="75*"/></colgroup><tr><td><p style="margin:0"><img {{.PaymentQR}} style="width:38mm;height:38mm"/></p></td><td><p class="caption">SEPA-Überweisung per QR-Code</p><p class="small">Mit einer unterstützten Banking-App scannen und Zahlungsdaten vor der Freigabe prüfen.</p><p class="small">Empfänger: {{.Seller.Name}}<br/>IBAN: {{iban (index .PaymentMeans 0).PayeePartyCreditorFinancialAccountIBAN}}<br/>Betrag: {{money .Letter.Total}} EUR<br/>Verwendungszweck: {{.Reference}}</p></td></tr></table>{{end}}
+</body></html>

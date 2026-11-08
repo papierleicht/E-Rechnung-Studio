@@ -1,0 +1,59 @@
+name: Badges
+on:
+  # Refresh the download count in the README daily and after each release.
+  schedule:
+    - cron: "17 4 * * *"
+  release:
+    types: [published]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: badges
+  cancel-in-progress: false
+jobs:
+  downloads:
+    name: Download count
+    # Forks and development copies have no badge to update.
+    if: github.repository == 'papierleicht/E-Rechnung-Studio'
+    runs-on: ubuntu-latest
+    permissions:
+      # Writes the badges branch, which holds nothing but downloads.json.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+      - name: Count installer downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            > "$RUNNER_TEMP/releases.json"
+          node scripts/download-badge.mjs "$RUNNER_TEMP/releases.json" \
+            > "$RUNNER_TEMP/downloads.json"
+          cat "$RUNNER_TEMP/downloads.json"
+      - name: Publish to the badges branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/contents/downloads.json?ref=badges" \
+            -H "Accept: application/vnd.github.raw+json" 2>/dev/null || true)
+          if [ "$current" = "$(cat "$RUNNER_TEMP/downloads.json")" ]; then
+            echo "Download count unchanged."
+            exit 0
+          fi
+          # One commit without history: the branch only keeps the latest count.
+          dir="$RUNNER_TEMP/badges"
+          git init --quiet --initial-branch=badges "$dir"
+          cp "$RUNNER_TEMP/downloads.json" "$dir/downloads.json"
+          git -C "$dir" add downloads.json
+          git -C "$dir" -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "chore: update download count"
+          git -C "$dir" push --quiet --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:refs/heads/badges

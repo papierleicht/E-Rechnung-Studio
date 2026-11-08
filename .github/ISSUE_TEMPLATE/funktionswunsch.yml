@@ -1,0 +1,28 @@
+name: Funktionswunsch
+description: Eine neue Funktion oder Änderung vorschlagen.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Größere Änderungen (neue Funktionen, Datenformate, Steuerlogik) bitte hier
+        abstimmen, bevor du einen Pull Request beginnst; siehe README, Abschnitt „Mitwirken“.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll gelöst werden?
+      description: Aus Sicht eines Unternehmers, der die App nutzt.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Vorschlag
+      description: Wie könnte die Lösung in der App aussehen? Alternativen sind willkommen.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Rechtliche oder fachliche Grundlage
+      description: Bei Steuer- oder Formatthemen die Quelle (Paragraf, BMF-Schreiben, Spezifikation).

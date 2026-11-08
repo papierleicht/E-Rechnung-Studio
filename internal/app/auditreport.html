@@ -1,0 +1,27 @@
+<html><body>
+<h1>Nachweisbericht</h1>
+<p><strong>{{.Company}}</strong></p>
+<p>Prüfungszeitraum {{.From}} bis {{.To}}, erstellt am {{.Created}} mit E-Rechnung-Studio {{.Program}}.</p>
+
+<h2>Ergebnis</h2>
+<ul>
+<li>Änderungsprotokoll: {{if .LogOK}}Die Prüfung ergab keine Abweichung.{{else}}Die Prüfung meldet {{.Problems}} Abweichungen. Einzelheiten stehen im Programm unter Einstellungen, Prüfung.{{end}}</li>
+<li>Nachweise in diesem Zeitraum: {{.Count}}, vom {{.First}} bis zum {{.Last}}.</li>
+{{if .Compared}}<li>Abgleich mit der Liste des Anbieters am {{.Compared}}: {{.Matched}} stimmen überein, {{.Conflicts}} Abweichungen.</li>{{else}}<li>Ein Abgleich mit der Liste des Anbieters war bei der Erstellung nicht möglich.</li>{{end}}
+</ul>
+
+<h2>Was ein Nachweis ist</h2>
+<p>Jeder Eintrag im Änderungsprotokoll enthält den Hash seines Vorgängers. Einmal täglich, wenn sich etwas geändert hat, lässt das Programm den letzten Hash vom Anbieter signieren. Der Anbieter erhält dafür nur Hash, laufende Nummer und eine Gerätekennung, keine Inhalte, und bewahrt den Nachweis zusätzlich auf.</p>
+<p>Ein Nachweis zeigt, dass das Protokoll zum genannten Zeitpunkt diesen Stand hatte. Wird es später neu berechnet, passt es nicht mehr zu den Nachweisen.</p>
+
+<h2>Was ein Nachweis nicht zeigt</h2>
+<ul>
+<li>Er sagt nichts darüber aus, ob die Buchführung sachlich richtig oder ordnungsmäßig ist. Das hängt vom gesamten Vorgehen im Betrieb ab.</li>
+<li>Er umfasst nur Stände, die bestätigt wurden. Änderungen vor dem ersten Nachweis und in Zeiten ohne Nachweis deckt er nicht ab.</li>
+<li>Er ist kein amtliches Zertifikat und keine Pflichtangabe.</li>
+</ul>
+
+<h2>Selbst prüfen</h2>
+<p>Die Datei nachweise.csv enthält alle Nachweise dieses Zeitraums. Unter papierleicht.de/nachweis lassen sie sich im Browser prüfen, ohne dass Daten übertragen werden. Die Prüfung ist auch ohne diese Seite möglich: Nachweise sind mit Ed25519 signiert, der Weg steht in LIESMICH.txt.</p>
+<p>Öffentlicher Schlüssel: {{.Key}}</p>
+</body></html>

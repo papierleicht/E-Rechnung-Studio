@@ -1,0 +1,36 @@
+{
+  "name": "e-rechnung-studio-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vite build --minify false --mode development",
+    "build": "vite build --mode production",
+    "build:demo": "vite build --config vite.demo.config.ts",
+    "dev:demo": "vite --config vite.demo.config.ts",
+    "update:bank-directory": "node scripts/update-bank-directory.mjs --download",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "format": "prettier --write \"src/**/*.{svelte,ts,css,mjs}\"",
+    "format:check": "prettier --check \"src/**/*.{svelte,ts,css,mjs}\"",
+    "test": "node --experimental-strip-types --test src/lib/*.test.mjs"
+  },
+  "dependencies": {
+    "@lucide/svelte": "1.70.0",
+    "@wailsio/runtime": "3.1.0",
+    "pdfjs-dist": "6.5.438"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "prettier": "3.9.10",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "tslib": "^2.9.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.6"
+  },
+  "license": "MPL-2.0"
+}

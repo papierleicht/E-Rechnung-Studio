@@ -1,0 +1,518 @@
+package xsd
+
+import (
+	"fmt"
+
+	"github.com/knroy/go-xml/xdm"
+)
+
+// A contentModel is a compiled particle tree: the finite automaton that decides
+// whether a sequence of element children matches.
+//
+// The construction is Glushkov's — a position automaton, where each *occurrence*
+// of a term in the particle tree is its own state. Two properties make it the
+// right choice here rather than a Thompson NFA with epsilon transitions:
+//
+// First, the states are the positions, so a transition names the particle it
+// came from. Unique Particle Attribution asks whether the particle to validate
+// an item against can be determined without lookahead, and that question is only
+// answerable if the automaton remembers which particle each transition belongs
+// to. Labelling transitions by element name instead — the obvious shortcut —
+// discards exactly the information UPA is about, and determinising such an
+// automaton silently resolves the ambiguity the check exists to find.
+//
+// Second, a Glushkov automaton is deterministic precisely when the expression is
+// one-unambiguous, which is what UPA requires. So the UPA check is not a
+// separate analysis: it is the observation that two transitions out of one state
+// can match the same item.
+//
+// Occurrence bounds are *not* unrolled. Unrolling makes the automaton linear in
+// the numeric value of maxOccurs, which is exponential in the size of the schema
+// text — maxOccurs="100000000" is nine characters and a hundred million states.
+// Both Xerces and Saxon hit this (XERCESJ-1227 is still open) and both moved to
+// runtime counters. Counters are what this uses.
+type contentModel struct {
+	// maxPositions bounds len(positions) while this model is being built.
+	// It is per-model rather than global so that a Schema loaded with
+	// Options.MaxContentModelPositions compiles every model — at load and
+	// at validation alike — under the budget it was loaded with.
+	maxPositions int
+
+	// positions are the leaf terms, one per occurrence in the tree.
+	positions []*position
+
+	// first are the positions that may begin a match.
+	first []int
+	// follow[i] are the positions that may follow position i.
+	follow [][]int
+	// last are the positions at which a match may end.
+	last []int
+
+	// nullable records whether the model matches the empty sequence.
+	nullable bool
+
+	// counters are the repetition scopes, innermost last. A position
+	// inside a bounded repetition belongs to one, and the runtime tracks a
+	// count for each rather than duplicating states.
+	counters []*counter
+
+	// scopeFirst[c] and scopeLast[c] are the positions at which one
+	// repetition of counter c may begin and end. They are what tells a
+	// restart from a continuation, which cannot be read off the position
+	// numbering once a group reference makes it non-monotonic.
+	scopeFirst []map[int]bool
+	scopeLast  []map[int]bool
+
+	// scopeInner[c] are the follow edges that lie *inside* one repetition
+	// of counter c: every edge the compiler added while building c's
+	// subtree, before it added c's own loop-back edges.
+	//
+	// scopeFirst and scopeLast alone cannot tell a restart from a
+	// continuation once every member of a repeated group is optional. A
+	// <sequence maxOccurs="3"> of three optional particles has all three
+	// positions in both sets, so the plain forward step a -> any inside
+	// one iteration reads as a restart and charges the outer counter.
+	// The edge that carries a step forward through the sequence is a
+	// different edge from the one that wraps around, even though the two
+	// can join the same pair of positions, so the edges are what has to be
+	// recorded.
+	scopeInner []map[[2]int]bool
+
+	// edges is the append-only log of follow edges, so that build can tell
+	// which ones a subtree contributed: the ones added since it started.
+	edges [][2]int
+
+	// active is the set of model groups on the path currently being built,
+	// used to detect a group that reaches itself.
+	active map[*ModelGroup]bool
+}
+
+// A position is one occurrence of an element declaration or wildcard in a
+// content model.
+//
+// It is not the same thing as the particle: a particle with maxOccurs="3" is one
+// particle and one position, matched three times. But two references to the same
+// named group produce two positions, because erratum E1-29 makes them distinct
+// particles for UPA.
+type position struct {
+	// term is the element declaration or wildcard this position matches.
+	term Term
+	// particle is the particle the term came from, which UPA compares.
+	particle *Particle
+	// counters are the repetition scopes containing this position,
+	// outermost first.
+	counters []int
+}
+
+// A counter bounds how many times a repeated particle may match.
+type counter struct {
+	min, max int
+	// parent is the enclosing counter, or -1.
+	parent int
+	// emptiable records whether one repetition of this scope can match the
+	// empty sequence — that is, whether the scope's *body*, ignoring the
+	// scope's own occurrence bounds, is nullable.
+	//
+	// It is what lets the runtime credit an iteration that consumed
+	// nothing. A particle is satisfied by partitioning the content into
+	// between minOccurs and maxOccurs consecutive parts each matching the
+	// term, and nothing in that rule requires a part to be non-empty: when
+	// the term is emptiable an empty part is a legitimate one. Without
+	// this, a count could only ever advance on a transition between two
+	// matched positions, so a scope had no way to reach its minimum except
+	// by consuming an element per iteration — and
+	// <sequence 2..2> over <element c 0..2/> refused a single c while
+	// accepting both zero and two of them.
+	emptiable bool
+}
+
+// compileContentModel builds the automaton for a complex type's particle.
+//
+// limit bounds the number of positions; zero means
+// DefaultMaxContentModelPositions. Callers holding a Schema pass its retained
+// budget, so a model validates under the same limit its constraints were
+// checked under — see Schema.maxPositions.
+func compileContentModel(p *Particle, limit int) (*contentModel, error) {
+	if limit <= 0 {
+		limit = maxPositions
+	}
+	m := &contentModel{active: map[*ModelGroup]bool{}, maxPositions: limit}
+	if p == nil {
+		m.nullable = true
+		return m, nil
+	}
+	f, err := m.build(p, -1)
+	if err != nil {
+		return nil, err
+	}
+	m.first = f.first
+	m.last = f.last
+	m.nullable = f.nullable
+	m.bindSiblings()
+	// The log has served its purpose; scopeInner holds what the runtime
+	// needs, and a model is kept for the lifetime of the schema.
+	m.edges = nil
+	return m, nil
+}
+
+// bindSiblings resolves ##definedSibling against the finished model.
+//
+// The keyword means "a name some other particle in this content model
+// declares", so it cannot be answered while the tree is still being walked —
+// a wildcard may precede the declarations it must exclude. Binding it here,
+// once, also keeps it off the validation path: the alternative is re-walking
+// the particle tree for every element checked against the wildcard.
+//
+// Substitution group members count as declared names. A wildcard that admitted
+// a substitute while excluding its head would let the same element in through
+// the back door, which is not what the schema author wrote.
+func (m *contentModel) bindSiblings() {
+	var wildcards []*Wildcard
+	for _, pos := range m.positions {
+		if w, ok := pos.term.(*Wildcard); ok && w.DisallowDefinedSibling {
+			wildcards = append(wildcards, w)
+		}
+	}
+	if len(wildcards) == 0 {
+		return
+	}
+	names := map[xdm.QName]bool{}
+	for _, pos := range m.positions {
+		d, ok := pos.term.(*ElementDecl)
+		if !ok {
+			continue
+		}
+		names[d.Name] = true
+		for _, sub := range d.substitutable {
+			names[sub.Name] = true
+		}
+	}
+	for _, w := range wildcards {
+		// The map is shared: it is never written after this point, and
+		// the same wildcard component may appear in more than one
+		// model only when the models agree on its siblings.
+		w.siblingNames = names
+	}
+}
+
+// frag is the Glushkov data for one subtree: the positions that may start it,
+// the positions that may end it, and whether it matches nothing.
+type frag struct {
+	first    []int
+	last     []int
+	nullable bool
+}
+
+// maxPositions is the default bound on the automaton size, used when no
+// Schema-retained budget applies. Options.MaxContentModelPositions overrides
+// it per load; DefaultMaxContentModelPositions documents the measurements.
+//
+// It is a MEMORY bound. The original justification recorded here — that the
+// follow relation is quadratic in the number of positions — is no longer the
+// binding one: that cost is a property of DENSE models, and maxUPAStateWidth
+// (256) refuses those long before 8192 positions is reached. A dense sequence
+// of 1024 optional elements is refused by the width gate in 68ms, never
+// reaching this limit at all.
+//
+// What this bound still owns, and nothing else does, is the SPARSE model: wide,
+// cheap to scan, and enormous. A group DAG of n groups each referencing the
+// next twice is valid, acyclic, and a couple of kilobytes, yet expands to
+// 2^(n-1) positions at a flat ~400 bytes each — 3.4 GB at n=24. Time alone
+// makes that model look affordable (2.5s); memory is what makes it an attack.
+// "An unbounded model is a way to be handed an unbounded allocation" was the
+// right half of the original reasoning, and it is still exactly right.
+//
+// The gate is INCREMENTAL: it fires having already allocated in proportion to
+// the limit, so the limit is what a hostile schema can actually reserve. That
+// is why raising it is a grant of memory, not merely a relaxed refusal.
+//
+// The invariant on exceeding it: build returns an error, which means the
+// procedure DECLINED to decide — explicitly NOT "no violation was found".
+// Every caller must therefore take a conservative path. See
+// TestContentModelBudgetSoundness in budget_soundness_test.go, which enforces this
+// differentially by forcing the budget pathologically low.
+//
+// It is a var only so tests may lower it; it is never assigned in production.
+var maxPositions = DefaultMaxContentModelPositions
+
+// build walks a particle, adding positions and follow edges, and returns the
+// fragment data for it.
+func (m *contentModel) build(p *Particle, enclosing int) (frag, error) {
+	if p == nil {
+		return frag{nullable: true}, nil
+	}
+
+	// A repetition scope is introduced only where it is needed: a particle
+	// occurring exactly once needs no counter, and most do.
+	scope := enclosing
+	if p.MinOccurs != 1 || p.MaxOccurs != 1 {
+		m.counters = append(m.counters, &counter{
+			min: p.MinOccurs, max: p.MaxOccurs, parent: enclosing,
+		})
+		m.scopeFirst = append(m.scopeFirst, map[int]bool{})
+		m.scopeLast = append(m.scopeLast, map[int]bool{})
+		m.scopeInner = append(m.scopeInner, map[[2]int]bool{})
+		scope = len(m.counters) - 1
+	}
+	// Every edge added from here until the loop-back edges below lies
+	// within one repetition of scope.
+	mark := len(m.edges)
+
+	var inner frag
+	var err error
+	switch t := p.Term.(type) {
+	case *ElementDecl, *Wildcard:
+		if len(m.positions) >= m.maxPositions {
+			return frag{}, fmt.Errorf(
+				"content model has more than %d positions", m.maxPositions)
+		}
+		idx := len(m.positions)
+		m.positions = append(m.positions, &position{
+			term:     t,
+			particle: p,
+			counters: counterChain(m.counters, scope),
+		})
+		m.follow = append(m.follow, nil)
+		inner = frag{first: []int{idx}, last: []int{idx}}
+
+	case *ModelGroup:
+		// A model group may reach itself: <xs:group name="expr"> whose
+		// content references expr is how a schema describes a nested
+		// structure, and it is legal. The particle tree is then a cyclic
+		// graph, and Glushkov construction assumes a tree — following
+		// the cycle recurses until the stack is gone, which is what real
+		// schemas in the W3C suite actually do.
+		//
+		// A recursive content model is not a regular language, so no
+		// finite automaton describes it. Refusing is the honest answer;
+		// the alternative is to unroll to some arbitrary depth and
+		// accept or reject documents based on where the unrolling
+		// stopped.
+		if m.active[t] {
+			return frag{}, fmt.Errorf(
+				"content model is recursive: a model group reaches itself, " +
+					"which no finite automaton can describe")
+		}
+		m.active[t] = true
+		inner, err = m.buildGroup(t, scope)
+		delete(m.active, t)
+		if err != nil {
+			return frag{}, err
+		}
+
+	case nil:
+		// An unresolved reference; the parser has already reported it.
+		return frag{nullable: true}, nil
+
+	default:
+		return frag{}, fmt.Errorf("unexpected particle term %T", t)
+	}
+
+	// A repeatable particle may follow itself, which is what replaces
+	// unrolling: the cycle is in the automaton and the count is at runtime.
+	// The positions that begin and end one repetition are recorded so that
+	// the runtime can tell a restart from a continuation.
+	if scope != enclosing && scope >= 0 {
+		// inner.nullable here is the body's own nullability: this
+		// particle's minOccurs is not folded in until below, so an
+		// emptiable body is recorded without being confused with a
+		// scope that is merely optional.
+		m.counters[scope].emptiable = inner.nullable
+		for _, f := range inner.first {
+			m.scopeFirst[scope][f] = true
+		}
+		for _, l := range inner.last {
+			m.scopeLast[scope][l] = true
+		}
+		for _, e := range m.edges[mark:] {
+			m.scopeInner[scope][e] = true
+		}
+	}
+	if p.MaxOccurs == Unbounded || p.MaxOccurs > 1 {
+		for _, l := range inner.last {
+			m.addFollow(l, inner.first)
+		}
+	}
+	if p.MinOccurs == 0 {
+		inner.nullable = true
+	}
+	return inner, nil
+}
+
+// counterChain returns the counter indices containing a scope, outermost first.
+func counterChain(counters []*counter, scope int) []int {
+	if scope < 0 {
+		return nil
+	}
+	var out []int
+	for i := scope; i >= 0; i = counters[i].parent {
+		out = append(out, i)
+		if counters[i].parent < 0 {
+			break
+		}
+	}
+	// Reverse into outermost-first order, which is how the runtime resets
+	// them: entering an outer repetition resets the inner counts.
+	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+		out[i], out[j] = out[j], out[i]
+	}
+	return out
+}
+
+// buildGroup handles sequence, choice and all.
+func (m *contentModel) buildGroup(g *ModelGroup, scope int) (frag, error) {
+	switch g.Compositor {
+	case CompositorSequence:
+		return m.buildSequence(g, scope)
+	case CompositorChoice:
+		return m.buildChoice(g, scope)
+	case CompositorAll:
+		// An all group is not compiled to an automaton. XSD 1.0 confines
+		// it to the whole content model, unrepeated, containing only
+		// element particles with maxOccurs at most 1 (All Group
+		// Limited), and those restrictions are exactly what make a
+		// seen-set check sound. Compiling it to a Glushkov automaton
+		// would need every interleaving, which is factorial.
+		return m.buildAll(g, scope)
+	}
+	return frag{}, fmt.Errorf("unknown compositor %v", g.Compositor)
+}
+
+func (m *contentModel) buildSequence(g *ModelGroup, scope int) (frag, error) {
+	out := frag{nullable: true}
+	for _, p := range g.Particles {
+		f, err := m.build(p, scope)
+		if err != nil {
+			return frag{}, err
+		}
+		// Everything that could end the sequence so far may be followed
+		// by anything that starts this particle.
+		for _, l := range out.last {
+			m.addFollow(l, f.first)
+		}
+		if out.nullable {
+			out.first = append(out.first, f.first...)
+		}
+		if f.nullable {
+			out.last = append(out.last, f.last...)
+		} else {
+			out.last = append([]int(nil), f.last...)
+		}
+		out.nullable = out.nullable && f.nullable
+	}
+	return out, nil
+}
+
+func (m *contentModel) buildChoice(g *ModelGroup, scope int) (frag, error) {
+	var out frag
+	if len(g.Particles) == 0 {
+		// An empty choice matches nothing at all — not even the empty
+		// sequence. It is legal to write and makes the content model
+		// unsatisfiable, which is the author's business.
+		return frag{}, nil
+	}
+	for _, p := range g.Particles {
+		f, err := m.build(p, scope)
+		if err != nil {
+			return frag{}, err
+		}
+		out.first = append(out.first, f.first...)
+		out.last = append(out.last, f.last...)
+		out.nullable = out.nullable || f.nullable
+	}
+	return out, nil
+}
+
+// buildAll records an all group's particles as positions without follow edges.
+//
+// The absence of follow edges is what marks it: matchAll uses the positions
+// directly, and the automaton walk is never entered for a type whose content
+// model is an all group.
+func (m *contentModel) buildAll(g *ModelGroup, scope int) (frag, error) {
+	var out frag
+	out.nullable = true
+	// A group reference to an all group inside an all group contributes
+	// its members directly; see flattenAll.
+	for _, p := range flattenAll(g) {
+		if len(m.positions) >= m.maxPositions {
+			return frag{}, fmt.Errorf(
+				"content model has more than %d positions", m.maxPositions)
+		}
+		idx := len(m.positions)
+		m.positions = append(m.positions, &position{
+			term:     p.Term,
+			particle: p,
+			counters: counterChain(m.counters, scope),
+		})
+		m.follow = append(m.follow, nil)
+		out.first = append(out.first, idx)
+		out.last = append(out.last, idx)
+		if p.MinOccurs > 0 {
+			out.nullable = false
+		}
+	}
+	return out, nil
+}
+
+// addFollow records that every position in to may follow from.
+func (m *contentModel) addFollow(from int, to []int) {
+	existing := m.follow[from]
+	for _, t := range to {
+		dup := false
+		for _, e := range existing {
+			if e == t {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			existing = append(existing, t)
+		}
+		m.edges = append(m.edges, [2]int{from, t})
+	}
+	m.follow[from] = existing
+}
+
+// matches reports whether a position's term accepts an element name.
+//
+// defined answers ##defined for a wildcard term, and may be nil when no
+// wildcard in the model uses it.
+func (p *position) matches(name xdm.QName, defined func(xdm.QName) bool) bool {
+	switch t := p.term.(type) {
+	case *ElementDecl:
+		if t.Name == name {
+			return true
+		}
+		// A declaration is matched by every member of its substitution
+		// group, which is why the closure has to be computed before any
+		// document is validated.
+		for _, sub := range t.substitutable {
+			if sub.Name == name && !sub.Abstract {
+				return true
+			}
+		}
+		return false
+	case *Wildcard:
+		return t.AllowsName(name, defined)
+	}
+	return false
+}
+
+// resolveDecl returns the element declaration a position matches a name with,
+// which for a substitution group is the substituting declaration rather than
+// the head.
+func (p *position) resolveDecl(name xdm.QName) *ElementDecl {
+	t, ok := p.term.(*ElementDecl)
+	if !ok {
+		return nil
+	}
+	if t.Name == name {
+		return t
+	}
+	for _, sub := range t.substitutable {
+		if sub.Name == name {
+			return sub
+		}
+	}
+	return nil
+}

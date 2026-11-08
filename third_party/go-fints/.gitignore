@@ -1,0 +1,19 @@
+# Build artifacts
+/dist/
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Test and coverage output
+*.out
+coverage.*
+
+# Local scratch data and bank-response captures
+/tmp/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp

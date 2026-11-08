@@ -1,0 +1,471 @@
+/* Shared control tokens apply to forms, search and dialogs in both themes.
+   Document typography and navigation controls have their own deliberate roles. */
+:root {
+  --ui-page-width: 1120px;
+  --ui-section-gap: 24px;
+  --ui-card-padding: 20px;
+  --ui-control-height: 36px;
+  --ui-control-radius: 6px;
+  --ui-control-font-size: 13px;
+  --ui-label-font-size: 12px;
+  --ui-label-gap: 6px;
+  --ui-field-gap: 16px;
+  --ui-title-size: 27px;
+  --ui-section-title-size: 18px;
+  --ui-subsection-title-size: 14px;
+}
+
+/* Shared interaction layout. Keep these rules last: component-specific grids
+   must not turn checkboxes into centred, full-width text fields. */
+@media screen {
+  /* Titles always precede their context/description, including dialog headers. */
+  :is(.app-shell .topbar, .welcome-page .setup-form) h1 {
+    margin: 0;
+    font-family: inherit;
+    font-size: var(--ui-title-size);
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: -0.4px;
+  }
+  :is(.workspace, .modal, .welcome-page) h2:not(:where(.wysiwyg-sheet *, .pdf-sheet *)) {
+    font-family: inherit;
+    font-size: var(--ui-section-title-size);
+    font-weight: 650;
+    line-height: 1.35;
+    letter-spacing: normal;
+  }
+  :is(.workspace, .modal, .welcome-page) h3:not(:where(.wysiwyg-sheet *, .pdf-sheet *)) {
+    font-family: inherit;
+    font-size: var(--ui-subsection-title-size);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  :is(.topbar, .modal > header, .completion-heading) h2 {
+    margin: 0;
+  }
+  :is(.app-shell, .modal, .welcome-page) .heading-subtitle,
+  .topbar > div > p,
+  .page-intro,
+  .modal > header > div > p,
+  .completion-heading > div > p {
+    margin: 6px 0 0;
+    color: var(--theme-muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  /* Standalone fields need an actual layout for label/control gaps to apply. */
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    gap: var(--ui-label-gap);
+  }
+  .form-field-compact {
+    width: 100%;
+    max-width: 240px;
+  }
+  .form-field > :is(input, select, textarea) {
+    width: 100%;
+  }
+  .form-field > label {
+    margin: 0;
+  }
+  :is(.workspace, .modal, .welcome-page) .form-grid {
+    gap: var(--ui-field-gap);
+  }
+  /* Cards already provide bottom padding; do not add a second section margin. */
+  .adjustment-card > .form-grid:last-child {
+    margin-bottom: 0;
+  }
+  .adjustment-heading {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .settings .electronic-settings {
+    margin-bottom: var(--ui-field-gap);
+  }
+  /* These panels scroll independently of the viewport. Keep their content
+     width stable when results, validation messages, or expanded fields grow. */
+  :is(
+    .dialog-body,
+    .page-settings-body,
+    .catalog-results,
+    .position-table-wrap,
+    .editor,
+    .paper-wrap,
+    .invoice-advanced-menu,
+    .inspection .guidance-report,
+    .error-notice
+  ) {
+    scrollbar-gutter: stable;
+  }
+  .table-list > button:last-child,
+  .catalog-results > button:last-child {
+    border-bottom: 0;
+  }
+  .position-edit-table.per-position-tax th:nth-child(6) {
+    width: 190px;
+  }
+  .position-tax-cell .position-tax-select {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 6px;
+    text-overflow: ellipsis;
+  }
+  .position-tax-reason {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .position-tax-reason label {
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--theme-muted);
+  }
+  .settings h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    margin-bottom: 12px;
+  }
+  .settings h3 {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+  .workspace .form-grid label {
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  :is(.workspace, .modal) select:not([multiple]) {
+    height: 36px;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 13px;
+    border: 1px solid var(--theme-input-border);
+    border-radius: 6px;
+    background-color: var(--theme-input);
+    color: var(--theme-text);
+  }
+  :is(.workspace, .modal, .welcome-page) label:has(> input[type="checkbox"]) {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 10px;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--theme-text);
+    cursor: pointer;
+  }
+  :is(.workspace, .modal, .welcome-page) label:has(> input[type="checkbox"]:disabled) {
+    color: var(--theme-muted);
+    cursor: not-allowed;
+  }
+  :is(.workspace, .modal, .welcome-page) input:is([type="checkbox"], [type="radio"]) {
+    appearance: auto;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    max-width: 16px;
+    flex: 0 0 16px;
+    align-self: flex-start;
+    margin: 2px 0 0;
+    padding: 0;
+    accent-color: var(--theme-accent);
+    box-shadow: none;
+  }
+  :is(.app-dialog, .invoice-settings-dialog, .position-dialog) {
+    max-width: calc(100vw - 32px);
+    max-height: calc(100dvh - 32px);
+    border-radius: 10px;
+  }
+  :is(.modal.form-dialog, .modal.page-settings, .modal.position-editor) {
+    max-height: calc(100dvh - 48px);
+    border-radius: 10px;
+  }
+  :is(.modal.form-dialog, .modal.page-settings, .modal.position-editor) > header {
+    padding: 16px 20px;
+    margin: 0;
+    gap: 16px;
+    border-bottom: 1px solid var(--theme-border);
+    flex: 0 0 auto;
+    align-items: flex-start;
+  }
+  .modal > header h2 {
+    margin: 0;
+    font-family: inherit;
+    font-size: 18px;
+    line-height: 1.35;
+    color: var(--theme-text);
+  }
+  :is(.modal.form-dialog, .modal.page-settings, .modal.position-editor) > footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 14px 20px;
+    border-top: 1px solid var(--theme-border);
+    background: var(--theme-surface-muted);
+  }
+  .modal > footer > button {
+    min-height: 36px;
+    min-width: 96px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .modal > footer > .danger-text:first-child {
+    margin-right: auto;
+  }
+  .modal :is(.dialog-body, .page-settings-body) {
+    min-height: 0;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .modal .dialog-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  :is(.workspace, .modal) :is(button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--theme-focus);
+    outline-offset: 2px;
+  }
+  .modal .form-grid label {
+    text-transform: none;
+    letter-spacing: normal;
+    line-height: 1.5;
+  }
+  .modal :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+    min-height: 36px;
+  }
+  .modal select:disabled {
+    background: var(--theme-surface-muted);
+    color: var(--theme-muted);
+    cursor: not-allowed;
+  }
+  .document-stage > .form-help {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 0;
+    margin: 0;
+    text-align: left;
+  }
+}
+
+@media screen {
+  :is(.workspace, .modal, .welcome-page)
+    :is(input, select, textarea):not(.document-input):not(
+      :where(
+        [type="checkbox"],
+        [type="radio"],
+        [type="file"],
+        [type="hidden"],
+        [type="range"],
+        [type="color"]
+      )
+    ) {
+    min-width: 0;
+    min-height: var(--ui-control-height);
+    border: 1px solid var(--theme-input-border);
+    border-radius: var(--ui-control-radius);
+    background: var(--theme-input);
+    color: var(--theme-text);
+    color-scheme: var(--theme-scheme);
+    padding: 7px 10px;
+    font-family: inherit;
+    font-size: var(--ui-control-font-size);
+    font-weight: 400;
+    line-height: 20px;
+    letter-spacing: normal;
+    text-transform: none;
+    box-shadow: none;
+  }
+  :is(.workspace, .modal, .welcome-page)
+    :is(input, select):not(.document-input):not(
+      :where(
+        [type="checkbox"],
+        [type="radio"],
+        [type="file"],
+        [type="hidden"],
+        [type="range"],
+        [type="color"],
+        [multiple],
+        [size]
+      )
+    ) {
+    height: var(--ui-control-height);
+  }
+  :is(.workspace, .modal, .welcome-page) textarea:not(.document-input) {
+    min-height: 72px;
+    resize: vertical;
+  }
+  :is(.workspace, .modal, .welcome-page) .input-suffix input {
+    padding-right: 24px;
+  }
+  :is(.workspace, .modal, .welcome-page) :is(input, select, textarea):not(.document-input):focus {
+    border-color: var(--theme-focus);
+    box-shadow: none;
+    outline: 2px solid var(--theme-focus);
+    outline-offset: 2px;
+  }
+  :is(.workspace, .modal, .welcome-page)
+    :is(input, select, textarea):not(.document-input):disabled {
+    background: var(--theme-surface-muted);
+    color: var(--theme-muted);
+    cursor: not-allowed;
+  }
+  :is(.workspace, .modal, .welcome-page)
+    :is(
+      .form-grid label,
+      .company-tax-settings label,
+      .appearance-settings label,
+      .export-folder-settings label,
+      .position-tax-reason label,
+      .electronic-address label,
+      .license-search,
+      label
+    ):not(
+      :where(
+        .wysiwyg-sheet *,
+        .pdf-sheet *,
+        .tax-choice *,
+        :has(input[type="checkbox"]),
+        :has(input[type="radio"])
+      )
+    ) {
+    color: var(--theme-muted);
+    font-size: var(--ui-label-font-size);
+    font-weight: 600;
+    line-height: 1.5;
+    text-transform: none;
+    letter-spacing: normal;
+    gap: var(--ui-label-gap);
+  }
+  :is(.app-shell, .modal, .welcome-page) button:is(.primary, .secondary) {
+    min-height: var(--ui-control-height);
+    padding: 7px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--ui-control-radius);
+    font-size: var(--ui-control-font-size);
+    font-weight: 600;
+    line-height: 20px;
+    box-shadow: none;
+  }
+  .app-shell .issue-split > .issue-button {
+    border-radius: var(--ui-control-radius) 0 0 var(--ui-control-radius);
+  }
+  .app-shell .issue-split .issue-more-button {
+    border-radius: 0 var(--ui-control-radius) var(--ui-control-radius) 0;
+  }
+  .welcome-page :is(button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--theme-focus);
+    outline-offset: 2px;
+  }
+  :is(.workspace, .modal, .welcome-page) select.control-compact {
+    height: 32px;
+    min-height: 32px;
+    padding: 4px 8px;
+  }
+}
+
+/* Overview pages share a content edge; document stages retain their paper sizing. */
+@media screen {
+  /* The workspace spans to the window edge, where its scrollbar sits; the
+     padding centres the page. */
+  .app-shell .workspace:not(.invoice-workspace) {
+    padding-inline: max(var(--workspace-gutter, 24px), calc((100% - var(--ui-page-width)) / 2));
+  }
+  .app-shell .workspace:not(.invoice-workspace) > .topbar {
+    align-items: center;
+    gap: 16px;
+    margin-bottom: var(--ui-section-gap);
+  }
+  .app-shell .empty-state {
+    padding: var(--ui-section-gap);
+  }
+  .app-shell .empty-state p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .app-shell .empty-state > button {
+    margin-top: 16px;
+  }
+  .app-shell .settings {
+    max-width: none;
+  }
+  .settings .appearance-settings + .appearance-settings {
+    margin-top: var(--ui-section-gap);
+    padding-top: var(--ui-section-gap);
+    border-top: 1px solid var(--theme-border);
+  }
+  .settings .appearance-settings h2 {
+    margin: 0;
+  }
+  .settings .backup {
+    flex-wrap: wrap;
+  }
+  .settings .backup .actions {
+    gap: 8px;
+  }
+  .app-shell .entity-card {
+    padding: var(--ui-card-padding);
+    align-items: flex-start;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .app-shell .entity-card .avatar {
+    flex-shrink: 0;
+  }
+  .invoice-entry-amount,
+  .money {
+    font-variant-numeric: tabular-nums;
+  }
+}
+@media screen and (max-width: 1050px) {
+  .app-shell .workspace:not(.invoice-workspace) {
+    max-width: calc(var(--ui-page-width) + 32px);
+  }
+  .settings .appearance-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Imported identifiers and filenames can be long strings without word boundaries. */
+@media screen {
+  :is(.workspace, .modal, .welcome-page)
+    :is(h1, h2, h3, .heading-subtitle):not(:where(.wysiwyg-sheet *, .pdf-sheet *)) {
+    overflow-wrap: anywhere;
+  }
+  .modal > header > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

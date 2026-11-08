@@ -1,0 +1,757 @@
+package xpath
+
+import (
+	"fmt"
+	"math"
+	"math/big"
+	"strings"
+
+	"github.com/knroy/go-xml/xdm"
+)
+
+// registerNumericFuncs adds the numeric functions.
+func registerNumericFuncs(l *Library) {
+	l.registerFn("number", []int{0, 1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		var a *xdm.Atomic
+		if len(args) == 0 {
+			s, err := contextString(ctx)
+			if err != nil {
+				return nil, err
+			}
+			a = xdm.NewUntypedAtomic(s)
+		} else {
+			// Checked, because the argument's declared type is
+			// xs:anyAtomicType? and the function conversion rules atomize
+			// it (F&O 3.1 §4.4.1). Atomizing a function item raises
+			// FOTY0013 — it is not a leniency fn:number extends to, and
+			// the plain Atomize dropped the item and answered NaN.
+			// higher-order-functions-056 writes number(local:f#1).
+			atoms, err := xdm.AtomizeChecked(args[0])
+			if err != nil {
+				return nil, err
+			}
+			if len(atoms) == 0 {
+				return numSeq(math.NaN()), nil
+			}
+			if len(atoms) > 1 {
+				return nil, xdm.ErrType("number(): expected at most one item")
+			}
+			a = atoms[0].(*xdm.Atomic)
+		}
+		// fn:number is the one place a failed numeric conversion yields NaN
+		// instead of an error: it exists precisely to be lenient, unlike
+		// "cast as xs:double".
+		conv, err := CastAtomic(a, xdm.TypeDouble)
+		if err != nil {
+			return numSeq(math.NaN()), nil
+		}
+		return xdm.One(conv), nil
+	})
+
+	l.registerFn("abs", []int{1}, func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		a, err := argNumber(args, 0)
+		if err != nil || a == nil {
+			return xdm.Empty(), err
+		}
+		if a.Rat() != nil {
+			r := new(big.Rat).Abs(a.Rat())
+			if a.Type == xdm.TypeInteger {
+				return xdm.One(xdm.NewIntegerFromRat(r)), nil
+			}
+			return xdm.One(xdm.NewDecimal(r)), nil
+		}
+		return xdm.One(makeFloat(math.Abs(a.Float64()), a.Type)), nil
+	})
+
+	l.registerFn("ceiling", []int{1}, numericRounder(math.Ceil, func(r *big.Rat) *big.Rat {
+		q, rem := new(big.Int).QuoRem(r.Num(), r.Denom(), new(big.Int))
+		if rem.Sign() > 0 {
+			q.Add(q, big.NewInt(1))
+		}
+		return new(big.Rat).SetInt(q)
+	}))
+
+	l.registerFn("floor", []int{1}, numericRounder(math.Floor, func(r *big.Rat) *big.Rat {
+		q, rem := new(big.Int).QuoRem(r.Num(), r.Denom(), new(big.Int))
+		if rem.Sign() < 0 {
+			q.Sub(q, big.NewInt(1))
+		}
+		return new(big.Rat).SetInt(q)
+	}))
+
+	// fn:round takes one argument in XPath 2.0. The precision argument is a
+	// 3.0 addition, so the two-argument form is registered separately and
+	// marked: under 2.0 round(1, 2) must report that no such function exists
+	// rather than quietly returning 1.
+	l.registerFn("round", []int{1}, func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		return roundWithPrecision(args, false)
+	})
+	l.registerFnSince(XPath30, "round", []int{2}, func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		return roundWithPrecision(args, false)
+	})
+	l.registerFn("round-half-to-even", []int{1, 2}, func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		return roundWithPrecision(args, true)
+	})
+}
+
+// numericRounder builds ceiling/floor, which must stay exact for decimal and
+// integer input rather than round-tripping through float64.
+func numericRounder(ffn func(float64) float64, rfn func(*big.Rat) *big.Rat) func(*Context, []xdm.Sequence) (xdm.Sequence, error) {
+	return func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		a, err := argNumber(args, 0)
+		if err != nil || a == nil {
+			return xdm.Empty(), err
+		}
+		switch a.Type {
+		case xdm.TypeInteger:
+			return xdm.One(a), nil // already integral
+		case xdm.TypeDecimal:
+			return xdm.One(xdm.NewDecimal(rfn(a.Rat()))), nil
+		default:
+			return xdm.One(makeFloat(ffn(a.Float64()), a.Type)), nil
+		}
+	}
+}
+
+func roundWithPrecision(args []xdm.Sequence, halfToEven bool) (xdm.Sequence, error) {
+	a, err := argNumber(args, 0)
+	if err != nil || a == nil {
+		return xdm.Empty(), err
+	}
+	var requested int64
+	if len(args) > 1 {
+		p, err := argNumber(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		if p != nil {
+			// The precision is used as given, reduced by roundPlaces to an
+			// equivalent that is cheap to carry out. It reaches exactRound as
+			// an exponent of ten, so a value like 4294967296 would otherwise
+			// ask for a bignum with four billion digits; roundPlaces bounds it
+			// by the value being rounded instead of by a constant, which is
+			// what keeps rounding 10^-5000 to 5000 places returning the value
+			// rather than zero.
+			// $precision is declared xs:integer, which is unbounded, so it
+			// can exceed int64. Int64() alone WRAPS there -- big.Int.Int64 is
+			// undefined out of range, not saturating -- and the wrap is
+			// silent and lands anywhere: round(1.55, 2^64+1) took the
+			// precision to be 1 and answered 1.6 instead of 1.55, and
+			// round(1.55, -10^10) took it to be far negative and answered 0.
+			// Saturating is exact rather than merely safe: no xs:decimal has
+			// a scale or an integer-digit count anywhere near 2^63, so every
+			// precision past int64 is already on the far side of both of
+			// roundPlaces' bounds, and MaxInt64/MinInt64 land on that side too.
+			requested = saturateInt64(p)
+		}
+	}
+
+	switch a.Type {
+	case xdm.TypeInteger:
+		if requested >= 0 {
+			return xdm.One(a), nil
+		}
+		places, identity, zero := roundPlaces(a.Rat(), requested)
+		if identity {
+			return xdm.One(a), nil
+		}
+		if zero {
+			return xdm.One(xdm.NewInteger(0)), nil
+		}
+		return xdm.One(xdm.NewIntegerFromRat(exactRound(a.Rat(), places, halfToEven))), nil
+	case xdm.TypeDecimal:
+		places, identity, zero := roundPlaces(a.Rat(), requested)
+		if identity {
+			return xdm.One(a), nil
+		}
+		if zero {
+			return xdm.One(xdm.NewDecimal(new(big.Rat))), nil
+		}
+		return xdm.One(xdm.NewDecimal(exactRound(a.Rat(), places, halfToEven))), nil
+	}
+
+	f := a.Float64()
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return xdm.One(a), nil
+	}
+	// 4.4.4: "the argument is cast to xs:decimal using an implementation of
+	// xs:decimal that imposes no limits on the number of digits that can be
+	// represented. The function is applied to this xs:decimal value, and the
+	// resulting xs:decimal is cast back to xs:float or xs:double."
+	//
+	// That is not a licence to compute in floating point. Scaling by
+	// math.Pow(10, places) rounds twice, and the intermediate rounding can
+	// invent a tie the value does not have: -1.365e1 is exactly
+	// -13.650000000000000355..., so round(-1.365e1, 1) is -13.7, but the
+	// double -13.65*10 is exactly -136.5 and floor(-136.5+0.5) answers -136.
+	// big.Rat.SetFloat64 is the spec's unlimited xs:decimal, and exactRound is
+	// already the spec's rule over it -- the same code the xs:decimal branch
+	// above uses.
+	exact := new(big.Rat).SetFloat64(f)
+	if exact == nil {
+		return xdm.One(a), nil
+	}
+	places, identity, zero := roundPlaces(exact, requested)
+	var result float64
+	switch {
+	case identity:
+		result = f
+	case zero:
+		result = 0
+	default:
+		result, _ = exactRound(exact, places, halfToEven).Float64()
+	}
+	// Rounding a negative value to zero yields *negative* zero, which the
+	// arithmetic above loses: floor(-0.2 + 0.5) is floor(0.3), a positive
+	// zero. IEEE 754 keeps the two apart and so does the spec, and the sign
+	// survives serialisation — "-0" is a different string from "0".
+	if result == 0 && math.Signbit(f) {
+		result = math.Copysign(0, -1)
+	}
+	return xdm.One(makeFloat(result, a.Type)), nil
+}
+
+// registerNodeFuncs adds the node-property functions.
+func registerNodeFuncs(l *Library) {
+	l.registerFn("name", []int{0, 1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return strSeq(""), err
+		}
+		// fn:name returns the lexical QName, prefix included; fn:local-name
+		// does not. Document and text nodes have no name, giving "".
+		switch n.Kind {
+		case xdm.KindElement, xdm.KindAttribute, xdm.KindPI, xdm.KindNamespace:
+			return strSeq(n.Name.Lexical()), nil
+		}
+		return strSeq(""), nil
+	})
+
+	l.registerFn("local-name", []int{0, 1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return strSeq(""), err
+		}
+		return strSeq(n.Name.Local), nil
+	})
+
+	l.registerFn("namespace-uri", []int{0, 1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return xdm.One(xdm.NewAnyURI("")), err
+		}
+		return xdm.One(xdm.NewAnyURI(n.Name.URI)), nil
+	})
+
+	l.registerFn("root", []int{0, 1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return xdm.Empty(), err
+		}
+		return xdm.One(n.Root()), nil
+	})
+
+	l.registerFnAlsoZeroArity(XPath30, "node-name", []int{1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return xdm.Empty(), err
+		}
+		switch n.Kind {
+		case xdm.KindElement, xdm.KindAttribute, xdm.KindPI, xdm.KindNamespace:
+			return xdm.One(xdm.NewQNameValue(n.Name)), nil
+		}
+		return xdm.Empty(), nil
+	})
+
+	l.registerFnAlsoZeroArity(XPath30, "document-uri", []int{1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return xdm.Empty(), err
+		}
+		// Defined only for a document node, and empty for one that was not
+		// retrieved by URI. Returning "" instead would make a stylesheet
+		// believe it had a URI it can resolve against.
+		//
+		// The node itself has to be the document: walking to its root gave an
+		// element the URI of the document containing it, which is fn:base-uri's
+		// answer rather than this one.
+		// DocumentURI, not BaseURI. They are separate accessors in the XDM
+		// and the difference is exactly what this function is about: a
+		// temporary tree built by xsl:variable inherits the *stylesheet's*
+		// base URI, so reading BaseURI here reported a URI for a document
+		// that was never retrieved from one, and "doc(document-uri($d)) is
+		// $d" -- the identity F&O guarantees -- was false for it. Only a
+		// document actually loaded by URI has a document URI, which is what
+		// ParseOptions.DocumentURI records and what leaving it empty means.
+		if n.Kind != xdm.KindDocument || n.DocumentURI == "" {
+			return xdm.Empty(), nil
+		}
+		return xdm.One(xdm.NewAnyURI(n.DocumentURI)), nil
+	})
+
+	l.registerFn("base-uri", []int{0, 1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return xdm.Empty(), err
+		}
+		if n.Kind == xdm.KindNamespace {
+			// The data model defines no dm:base-uri for a namespace node, so
+			// the accessor returns the empty sequence rather than inheriting
+			// the element's. accessor-027/028 pin this: base-uri() over the
+			// namespace axis must yield nothing, not the document URI.
+			return xdm.Empty(), nil
+		}
+		// F&O 14.1.3: dm:base-uri is "an empty sequence" for a node with no
+		// base URI in force, and fn:base-uri returns the accessor's value
+		// unchanged. Answering xs:anyURI("") instead made a one-item sequence
+		// that empty() called non-empty and that string() rendered as "" — so
+		// base-uri(comment {"c"}) reported a base URI the node does not have.
+		// Comments, PIs, text and attributes constructed on their own have
+		// none at all, and that is the whole of what these cases check.
+		base := inheritedBaseURI(n)
+		if base == "" {
+			return xdm.Empty(), nil
+		}
+		return xdm.One(xdm.NewAnyURI(base)), nil
+	})
+
+	l.registerFn("lang", []int{1, 2}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		want, err := argString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		n, err := argNodeOrContext(ctx, args, 1)
+		if err != nil || n == nil {
+			return boolSeq(false), err
+		}
+		return boolSeq(langMatches(n, want)), nil
+	})
+
+	l.registerFnAlsoZeroArity(XPath30, "nilled", []int{1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		n, err := argNodeOrContext(ctx, args, 0)
+		if err != nil || n == nil {
+			return xdm.Empty(), err
+		}
+		if n.Kind != xdm.KindElement {
+			return xdm.Empty(), nil
+		}
+		// dm:nilled is a PSVI property: it is set by schema validation, not by
+		// the presence of xsi:nil in the source. An element that was never
+		// validated is not nilled however it is marked, because nothing has
+		// decided the marking means anything — xsi:nil on an element whose
+		// declaration is not nillable is an ERROR, not a nilled element, and
+		// only validation can tell the two apart.
+		//
+		// Reading the attribute alone therefore answered true for every
+		// untyped element carrying it. QT3's fn-nilled-5 pins this exactly:
+		// nilled(<shoe xsi:nil="true"/>) on a constructed, unvalidated element
+		// must be FALSE. So must every case in the XSLT suite's
+		// expression-0931, whose stated purpose is "nilled() in an untyped
+		// environment (always false)".
+		//
+		// A non-empty TypeAnnotation is the data model evidence available here
+		// that the element went through validation; an untyped tree leaves it
+		// empty on every node.
+		return boolSeq(nodeIsNilled(n)), nil
+	})
+}
+
+// inheritedBaseURI returns the base URI in force at a node.
+//
+// Only an element carrying xml:base has a base URI of its own; every other
+// node takes the one in force at its parent, exactly as fn:lang takes the
+// nearest xml:lang in scope. Reading the field alone returned empty for every
+// node the parser had not stamped, which is all of them in a tree built by a
+// stylesheet: a temporary tree records the base on its document node and
+// nowhere else.
+func inheritedBaseURI(n *xdm.Node) string {
+	for cur := n; cur != nil; cur = cur.Parent {
+		if cur.BaseURI != "" {
+			return cur.BaseURI
+		}
+	}
+	return ""
+}
+
+// langMatches implements fn:lang: the nearest xml:lang in scope must equal the
+// requested tag or have it as a prefix followed by "-".
+func langMatches(n *xdm.Node, want string) bool {
+	for cur := n; cur != nil; cur = cur.Parent {
+		a := cur.Attr(xdm.NSXML, "lang")
+		if a == nil {
+			continue
+		}
+		have := strings.ToLower(a.Value)
+		w := strings.ToLower(want)
+		return have == w || strings.HasPrefix(have, w+"-")
+	}
+	return false
+}
+
+// registerContextFuncs adds functions that read the dynamic context.
+func registerContextFuncs(l *Library) {
+	l.registerFn("implicit-timezone", []int{0}, func(ctx *Context, _ []xdm.Sequence) (xdm.Sequence, error) {
+		d := &xdm.Duration{
+			Negative: ctx.ImplicitTimezone < 0,
+			Seconds:  new(big.Rat).SetInt64(int64(abs(ctx.ImplicitTimezone)) * 60),
+		}
+		return xdm.One(xdm.NewDuration(d, xdm.TypeDayTimeDuration)), nil
+	})
+
+	l.registerFn("static-base-uri", []int{0}, func(ctx *Context, _ []xdm.Sequence) (xdm.Sequence, error) {
+		// The base URI of the *expression*, not of the context node. The two
+		// differ whenever a stylesheet is applied to a document from
+		// somewhere else, which is the ordinary case; falling back to the
+		// node's is better than answering nothing when no static base URI has
+		// been supplied.
+		if ctx.StaticBaseURI != "" {
+			return xdm.One(xdm.NewAnyURI(ctx.StaticBaseURI)), nil
+		}
+		if n, ok := ctx.Item.(*xdm.Node); ok && n.BaseURI != "" {
+			return xdm.One(xdm.NewAnyURI(n.BaseURI)), nil
+		}
+		return xdm.Empty(), nil
+	})
+
+	l.registerFn("doc", []int{1}, fnDoc)
+	l.registerFn("doc-available", []int{1}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		// "Available" means a document came back. Deriving the answer from
+		// whether fnDoc errored was not the same thing once fn:doc(()) became
+		// a legal empty result rather than a type error.
+		// A type error in the argument is still an error: fn:doc-available
+		// answers whether the *document* is available, not whether the call
+		// was well formed. Only a retrieval failure becomes false.
+		if len(args) > 0 && len(args[0]) > 0 {
+			if _, err := argStringRequired(args, 0); err != nil {
+				return nil, err
+			}
+		}
+		seq, err := fnDoc(ctx, args)
+		return boolSeq(err == nil && len(seq) > 0), nil
+	})
+
+	// fn:error raises the error its QName argument names, so a stylesheet can
+	// signal a specific spec condition rather than a generic failure. The
+	// QName was previously ignored and every call reported FOER0000, which
+	// made "fn:error(QName(..., 'err:FORG0009'))" indistinguishable from any
+	// other error() call.
+	l.registerFn("error", []int{0, 1, 2, 3}, func(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		code := "FOER0000"
+		// The full QName is kept alongside the local name because XSLT 3.0's
+		// $err:code is an xs:QName: xsl:catch compares it with one the
+		// stylesheet built itself, and a code reduced to its local name would
+		// never be equal to a QName in a namespace of the caller's choosing.
+		var codeQName *xdm.QName
+		// error(()) is XPTY0004 up to 3.0 and FOER0000 from 3.1. The
+		// parameter is xs:QName? either way, so the empty sequence is always
+		// in its type; what changed is whether the one-argument form insists
+		// that the argument actually identify an error. The suite pins both
+		// halves with K-ErrorFunc-4, scoped "XQ10 XP20 XQ30 XP30", and
+		// K-ErrorFunc-4a, scoped "XQ31+ XP31+", over the same expression.
+		if len(args) == 1 && len(args[0]) == 0 && !ctx.Version.atLeast31() {
+			return nil, xdm.ErrType(
+				"fn:error: the single-argument form requires an error code")
+		}
+		if len(args) > 0 && len(args[0]) > 0 {
+			// The first parameter is xs:QName?, so anything else is a type
+			// error. Ignoring a non-QName silently turned
+			// error('Wrong Argument Type') — which passes a string where a
+			// code belongs — into the generic FOER0000 rather than XPTY0004.
+			// xs:QName? is a singleton, so error((QName1, QName2)) is
+			// XPTY0004 rather than a call raising the first of them.
+			a, err := argAtomicOptional(args, 0, "fn:error")
+			if err != nil {
+				return nil, err
+			}
+			if a == nil || a.Type != xdm.TypeQName {
+				return nil, xdm.ErrType(
+					"fn:error: the first argument is xs:QName?, got %s",
+					args[0][0].TypeName())
+			}
+			if q := a.QName(); q != nil && q.Local != "" {
+				code = q.Local
+				codeQName = q
+			}
+		}
+		msg := "error() called"
+		if len(args) > 1 {
+			if s, err := argString(args, 1); err == nil && s != "" {
+				msg = s
+			}
+		}
+		e := &xdm.Error{Code: code, Message: msg, CodeName: codeQName,
+			Raised: true}
+		if len(args) > 2 {
+			e.Value = args[2]
+		}
+		return nil, e
+	})
+
+	// The label became optional in 3.1, so the one-argument form is the same
+	// body at a version-gated arity. It is needed for more than tidiness:
+	// fn-sort-23 wraps its input in a bare fn:trace, and without this the
+	// case failed on the unknown function rather than on anything it was
+	// written to test.
+	l.registerFn("trace", []int{2}, func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		// The value passes through unchanged; the label is ignored rather
+		// than written to stderr, since a library should not print.
+		return args[0], nil
+	})
+	l.registerFnSince(XPath31, "trace", []int{1}, func(_ *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+		return args[0], nil
+	})
+}
+
+// fnDoc loads a document.
+//
+// It fails closed: with no resolver configured, every URI is refused rather
+// than being fetched. A stylesheet that can open arbitrary URIs is a
+// file-disclosure and SSRF vector, and validation stylesheets legitimately
+// need only the code lists shipped beside them.
+func fnDoc(ctx *Context, args []xdm.Sequence) (xdm.Sequence, error) {
+	// The argument is declared xs:string?, so an empty sequence is not an
+	// error: fn:doc(()) is the empty sequence, and fn:doc-available(()) is
+	// false.
+	if len(args) > 0 && len(args[0]) == 0 {
+		return xdm.Empty(), nil
+	}
+	// The parameter is xs:string?, so a non-string is a type error rather
+	// than a URI to stringify: fn:doc-available(xs:integer(2)) is XPTY0004,
+	// not false.
+	uri, err := argStringRequired(args, 0)
+	if err != nil {
+		return nil, err
+	}
+	// An unusable URI is FODC0005 and is reported before access is attempted:
+	// ":/" is not a URI at all, so whether a resolver is configured does not
+	// come into it.
+	if err := validAnyURI(uri); err != nil || strings.HasPrefix(strings.TrimSpace(uri), ":") {
+		return nil, fmt.Errorf("FODC0005: %q is not a valid URI", uri)
+	}
+	if ctx.Docs == nil {
+		return nil, fmt.Errorf("FODC0002: document access is disabled (no resolver configured): %q", uri)
+	}
+	// The context item's base URI, falling back to the expression's own.
+	// Without the fallback a relative reference has nothing to resolve
+	// against when there is no context node — which is the case in a
+	// stylesheet started from a named template — and it silently resolves
+	// against the process's working directory instead.
+	base := ctx.StaticBaseURI
+	if base == "" {
+		if n, ok := ctx.Item.(*xdm.Node); ok {
+			base = n.BaseURI
+		}
+	}
+	// An empty URI reference denotes the document containing the expression
+	// itself, not the document the context node came from. XSLT 2.0 section
+	// 16.1 keeps XSLT 1.0's rule for it, and it is the ordinary way a
+	// stylesheet reads its own literal data elements. Resolving it against
+	// the context node's base would load the source document instead, which
+	// is a different document that happens to be at hand.
+	if strings.TrimSpace(uri) == "" && ctx.StaticBaseURI != "" {
+		base = ctx.StaticBaseURI
+	}
+	tree, err := resolveDocument(ctx, uri, base)
+	if err != nil {
+		return nil, fmt.Errorf("FODC0002: cannot retrieve %q: %w", uri, err)
+	}
+	return xdm.One(tree.Root), nil
+}
+
+// roundPlaces bounds the precision argument of fn:round and
+// fn:round-half-to-even by the value being rounded, rather than by a constant.
+//
+// The precision reaches exactRound as an exponent of ten, so a value like
+// 4294967296 would ask for a bignum with four billion digits and the process
+// would stop responding. A fixed ceiling avoids that but answers a different
+// question: rounding 10^-5000 to 5000 places must return the value unchanged,
+// and a clamp to 4096 returned zero. The bound has to come from the value, not
+// from a number chosen in advance.
+//
+// Two facts make that exact. Rounding to more places than a value's own scale
+// is the identity, so any precision at or above the scale can be answered by
+// returning the value without building a scale factor at all. Rounding to
+// fewer places than -(digits before the point) discards every digit, so any
+// precision at or below that is answered by zero (or by the sole surviving
+// digit position) without a scale factor either. Between those two bounds the
+// precision is genuinely meaningful, and it is bounded by the value's own
+// size — a value with n significant digits can be given at most n meaningful
+// places, so the bignum exactRound builds is proportional to the input the
+// caller already supplied.
+//
+// The remaining case is a non-terminating rational, which has no finite scale.
+// It only arises from the xs:double branch, where the value came from a float
+// and carries at most 1074 fractional bits, so ratScale's terminating answer
+// covers every value that reaches here; a non-terminating one is bounded by
+// roundGuard.
+//
+// roundGuard applies to that case and no other, and that restriction is the
+// whole of its correctness. It once also clamped a terminating value's
+// precision, on both sides, and that was the +-4096 defect relocated rather
+// than removed: round-half-to-even(1 div 2^(roundGuard+3), roundGuard+1)
+// was answered at precision roundGuard, a different number, and
+// round-half-to-even(3e(roundGuard+10), -(roundGuard+5)) returned zero where
+// the true answer is the value unchanged. Both were silent -- no error, just
+// a wrong number.
+//
+// The property that now holds, and that TestRoundGuardReductionPreservesValue
+// enforces over generated xs:decimal and xs:integer values with scales and
+// magnitudes on both sides of the guard: whenever roundPlaces reduces a
+// requested precision p to p' without reporting identity or zero,
+// round(x, p) == round(x, p'). For a terminating value it never reduces at
+// all, because the value's own scale (positive precision) or integer-digit
+// count (negative precision) already bounds the request to something
+// proportional to the input the caller supplied. Only for a non-terminating
+// rational is a constant a resource limit in the strict sense: changing it
+// changes how long a hopeless request takes to refuse, never an answer.
+//
+// # Policy for the non-terminating case
+//
+// When a non-terminating rational is asked for more places than roundGuard,
+// this code REDUCES the precision rather than raising an error. That is
+// deliberate, and it is sound, because of the guard's contract:
+//
+//	A non-terminating rational has no finite decimal expansion, so for every
+//	precision p it is strictly between the two adjacent multiples of 10^-p --
+//	it can never sit exactly on one, and never on the halfway point between
+//	them. Rounding is therefore decided by a strict inequality that no
+//	additional digit can flip, and a tie is unreachable. Answering at
+//	precision g instead of p > g is a genuinely different number, but it is
+//	the correctly rounded value at g, produced without a tie-break the value
+//	does not have.
+//
+// So the reduction is not a wrong answer to the question asked, it is a
+// correct answer to a less precise question -- a declared implementation
+// precision limit, XQuery 3.1 4.4.4's "implementation of xs:decimal that
+// imposes no limits" being unachievable for a value with no finite expansion.
+// An error (xdm.ErrResourceLimit, which xpath uses for a refusal to compute)
+// would be the alternative policy, and it was rejected for one reason: this
+// branch is UNREACHABLE from the fn:round and fn:round-half-to-even callers.
+// Both the xs:integer and xs:decimal branches hold terminating values by
+// construction, and the xs:double branch builds its value with
+// big.Rat.SetFloat64, which yields a dyadic rational -- also terminating. A
+// resource error no caller can provoke would be untestable dead policy;
+// a documented precision limit is the honest description of a reachable-only-
+// -by-future-callers fallback. TestRoundGuardNonTerminating* pin the contract
+// above so a future caller that does reach here inherits a proven property
+// rather than an assertion.
+//
+// roundGuard is a var, not a const, only so those tests can inject a small
+// value and observe the branch; it is never assigned outside _test.go. This
+// matches how xsd/budget_soundness_test.go exercises maxPositions,
+// branchLimit, subsumeMaxStates and subsumeMaxProduct.
+var roundGuard int64 = 1 << 20
+
+// saturateInt64 reads an xs:integer precision without wrapping.
+//
+// Atomic.Int64 goes through big.Int.Int64, whose result is undefined when the
+// value does not fit, so a precision of 2^64+1 comes back as 1 and a precision
+// of 10^1000 comes back as whatever its low 64 bits happen to be. Clamping to
+// the int64 bounds keeps the sign, which is the only thing roundPlaces needs
+// from a precision this large.
+func saturateInt64(a *xdm.Atomic) int64 {
+	if a.FitsInt64() {
+		return a.Int64()
+	}
+	if r := a.Rat(); r != nil && r.Sign() < 0 {
+		return math.MinInt64
+	}
+	return math.MaxInt64
+}
+
+// ratScale returns the number of fractional digits r needs to be written
+// exactly, and whether it terminates at all. A big.Rat is kept in lowest
+// terms, so a terminating value has denominator 2^a*5^b and needs max(a,b)
+// digits. The 5s are stripped by repeated squaring so the cost is logarithmic
+// in b rather than one division per power.
+func ratScale(r *big.Rat) (int, bool) {
+	d := new(big.Int).Set(r.Denom())
+	a := int(d.TrailingZeroBits())
+	d.Rsh(d, uint(a))
+
+	pows := []*big.Int{big.NewInt(5)}
+	for {
+		next := new(big.Int).Mul(pows[len(pows)-1], pows[len(pows)-1])
+		if next.BitLen() > d.BitLen() {
+			break
+		}
+		pows = append(pows, next)
+	}
+	b := 0
+	rem := new(big.Int)
+	for i := len(pows) - 1; i >= 0; i-- {
+		for {
+			q, m := new(big.Int).QuoRem(d, pows[i], rem)
+			if m.Sign() != 0 {
+				break
+			}
+			d = q
+			b += 1 << uint(i)
+		}
+	}
+	if d.CmpAbs(big.NewInt(1)) != 0 {
+		return 0, false
+	}
+	if b > a {
+		return b, true
+	}
+	return a, true
+}
+
+// roundPlaces reduces places to an equivalent value that exactRound can carry
+// out cheaply, or reports that the answer is already determined.
+//
+// identity is true when rounding cannot change r, and zero is true when every
+// significant digit is discarded. Otherwise the returned precision is
+// equivalent to the requested one and bounded by r's own size.
+func roundPlaces(r *big.Rat, places int64) (p int, identity, zero bool) {
+	if r.Sign() == 0 {
+		return 0, true, false
+	}
+	if places >= 0 {
+		if scale, ok := ratScale(r); ok {
+			if places >= int64(scale) {
+				// At or above the value's own scale there is nothing to
+				// discard.
+				return 0, true, false
+			}
+			// Below the scale the request is meaningful, and it is already
+			// bounded by the scale -- which is the size of the value the
+			// caller supplied. No constant ceiling belongs here: clamping a
+			// meaningful precision answers a different question. Rounding
+			// 1/2^(roundGuard+3) to roundGuard+1 places is not the same value
+			// as rounding it to roundGuard places.
+			return int(places), false, false
+		}
+		// Only a non-terminating rational has no scale to bound it, and only
+		// there is a constant a resource limit rather than an answer.
+		if places > roundGuard {
+			return int(roundGuard), false, false
+		}
+		return int(places), false, false
+	}
+	// Negative precision zeroes digits before the point. Once it passes the
+	// number of integer digits, every digit is gone and the result is zero —
+	// except at exactly that boundary, where a carry can still round up, so
+	// only strictly beyond it is unconditionally zero.
+	intDigits := int64(len(new(big.Int).Abs(new(big.Int).Quo(r.Num(), r.Denom())).String()))
+	if new(big.Int).Abs(new(big.Int).Quo(r.Num(), r.Denom())).Sign() == 0 {
+		intDigits = 0
+	}
+	// Compared as places < -(intDigits+1) rather than -places > intDigits+1,
+	// because negating places overflows for math.MinInt64 -- and MinInt64 is
+	// reachable, since saturateInt64 produces it for any precision below the
+	// int64 range. The overflowed comparison was false, so round(1234.5, -2^63)
+	// fell through and was answered at precision 0, giving 1235 for a request
+	// whose true answer is 0.
+	if places < -(intDigits + 1) {
+		return 0, false, true
+	}
+	// Past this point -places <= intDigits+1, so the precision is already
+	// bounded by the number of digits the caller's own value has. A constant
+	// ceiling here would not be a resource limit, it would be a wrong answer:
+	// round(3e(roundGuard+10), -(roundGuard+5)) discards only zeros and must
+	// return the value unchanged, and returning zero because the request
+	// exceeds a constant is the same defect the fixed +-4096 clamp had.
+	return int(places), false, false
+}

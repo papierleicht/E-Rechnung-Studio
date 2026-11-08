@@ -1,0 +1,221 @@
+.welcome-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+.table-list > button,
+.entity-card {
+  color: var(--theme-text);
+}
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--theme-text);
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+.welcome-brand > span {
+  display: grid;
+  place-items: center;
+  background: var(--theme-primary);
+  color: var(--theme-on-primary);
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  font:
+    700 18px Georgia,
+    serif;
+}
+.welcome-page h1 {
+  margin: 8px 0 12px;
+  max-width: 700px;
+  font:
+    700 34px/1.2 Georgia,
+    serif;
+  color: var(--theme-text);
+}
+.welcome-page > header > p:last-child {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--theme-muted);
+  margin: 0;
+}
+.setup-progress {
+  display: flex;
+  padding: 0;
+  margin: 24px 0;
+  list-style: none;
+  gap: 16px;
+  color: var(--theme-muted);
+  font-size: 13px;
+}
+.setup-progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.setup-progress b {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--theme-surface-muted);
+}
+.setup-progress [aria-current] {
+  color: var(--theme-text);
+  font-weight: 700;
+}
+.setup-progress [aria-current] b {
+  background: var(--theme-primary);
+  color: var(--theme-on-primary);
+}
+.setup-form {
+  background: var(--theme-surface-muted);
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 3px 14px var(--theme-shadow);
+}
+.setup-form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.setup-form legend {
+  color: var(--theme-text);
+  font:
+    700 20px Georgia,
+    serif;
+  margin-bottom: 20px;
+}
+.setup-form fieldset + fieldset {
+  margin-top: 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--theme-border);
+}
+.setup-form .form-grid label {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.setup-form input {
+  min-height: 40px;
+}
+.form-grid .full-width {
+  grid-column: 1 / -1;
+}
+.tax-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tax-choice label {
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid var(--theme-border);
+  border-radius: 9px;
+  cursor: pointer;
+  background: var(--theme-surface);
+}
+.tax-choice label:has(input:checked) {
+  border-color: var(--theme-focus);
+  background: var(--theme-selected);
+}
+.tax-choice input {
+  min-height: 0;
+  margin: 3px 0 0;
+  accent-color: var(--theme-accent);
+}
+.tax-choice strong {
+  display: block;
+  font-size: 13px;
+  color: var(--theme-text);
+}
+.tax-choice small {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--theme-muted);
+  margin-top: 5px;
+}
+.form-help {
+  color: var(--theme-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 14px 0;
+}
+.optional-setup {
+  border-top: 1px solid var(--theme-border);
+  margin-top: 8px;
+  padding-top: 16px;
+}
+.optional-setup > h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--theme-text);
+  font-weight: 600;
+}
+.optional-setup .form-grid {
+  margin-top: 20px;
+}
+.setup-form > footer {
+  border-top: 1px solid var(--theme-border);
+  padding-top: 20px;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.setup-form > footer > span {
+  color: var(--theme-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  max-width: 235px;
+}
+.restore-link {
+  margin: 22px 0 0;
+  font-size: 12px;
+  color: var(--theme-muted);
+  text-align: center;
+}
+.remember-customer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--theme-text);
+}
+.remember-customer input {
+  min-height: 0;
+  accent-color: var(--theme-accent);
+}
+.invoice-steps {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: var(--document-width);
+  margin: 0 auto 16px;
+  color: var(--theme-text);
+  font-size: 13px;
+}
+.invoice-steps button {
+  border: 1px solid var(--theme-border);
+  border-radius: 20px;
+  background: var(--theme-surface-muted);
+  padding: 8px 12px;
+  color: var(--theme-text);
+}
+.invoice-steps span {
+  font-weight: 700;
+}
+.setup-form button:focus-visible {
+  outline: 2px solid var(--theme-focus);
+  outline-offset: 3px;
+}

@@ -1,0 +1,151 @@
+/* Finanzen & Steuern: task list, task steps and the values for ELSTER. */
+/* Framed like the panels under "Konto & Finanzen". */
+.tax-card {
+  padding: var(--ui-card-padding);
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-surface);
+  min-width: 0;
+}
+.tax-card h2 {
+  margin: 0 0 4px;
+  font-size: var(--ui-section-title-size);
+}
+.tax-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.tax-card p {
+  margin: 0 0 8px;
+}
+.tax-muted {
+  color: var(--theme-muted);
+}
+.tax-result {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  margin: 4px 0 0;
+  border-radius: 8px;
+  background: var(--theme-surface-muted);
+}
+.tax-result strong {
+  font-size: 22px;
+}
+.tax-result small,
+.tax-result span {
+  color: var(--theme-muted);
+}
+.tax-issues {
+  overflow-wrap: anywhere;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--theme-warning-bg);
+  color: var(--theme-warning-text);
+}
+.tax-issues ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.tax-ok {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--theme-surface-muted);
+}
+.tax-fields {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tax-fields th,
+.tax-fields td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--theme-border);
+  text-align: left;
+  vertical-align: top;
+}
+.tax-fields th {
+  font-size: 13px;
+  color: var(--theme-muted);
+  font-weight: 600;
+}
+.tax-fields .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tax-fields tr.info td {
+  font-weight: 600;
+  background: var(--theme-surface-muted);
+}
+.tax-fields details summary {
+  font-size: 13px;
+}
+/* Entries name customers, suppliers and files: long words must wrap. */
+.tax-entries,
+.tax-fields small {
+  overflow-wrap: anywhere;
+}
+.tax-entries {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 14px;
+  color: var(--theme-muted);
+}
+.tax-copy {
+  white-space: nowrap;
+}
+.tax-steps {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.tax-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.tax-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* One task in three steps: complete? result, transfer. */
+.tax-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--theme-border);
+}
+.tax-step > .tax-step-no {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--theme-surface-muted);
+  font-weight: 700;
+  font-size: 13px;
+}
+.tax-step > div {
+  min-width: 0;
+}
+.tax-step h3 {
+  margin: 2px 0 10px;
+}
+.tax-hidden-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+@media (max-width: 760px) {
+  .tax-fields th:first-child,
+  .tax-fields td:first-child {
+    display: none;
+  }
+}

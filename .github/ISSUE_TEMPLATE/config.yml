@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Sicherheitslücke melden
+    url: https://github.com/papierleicht/E-Rechnung-Studio/blob/main/SECURITY.md
+    about: Vertraulich per E-Mail oder über „Report a vulnerability“, nicht als öffentliches Issue.
+  - name: Geschäftsanfragen
+    url: https://github.com/papierleicht/E-Rechnung-Studio/blob/main/README.md#gesch%C3%A4ftsanfragen
+    about: Per E-Mail an kontakt@papierleicht.de, nicht als Issue.

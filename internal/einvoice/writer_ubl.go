@@ -1,0 +1,778 @@
+// Copyright 2024 Patrick Gundlach, Berlin
+// SPDX-License-Identifier: BSD-3-Clause
+// Adapted from github.com/speedata/einvoice; see NOTICE.md.
+
+package einvoice
+
+import (
+	"encoding/base64"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+
+	"github.com/beevik/etree"
+)
+
+// writeUBL writes an invoice in UBL 2.1 format (Invoice or CreditNote).
+// The document type is determined by the InvoiceTypeCode.
+func writeUBL(inv *Invoice, writer io.Writer) error {
+	doc := etree.NewDocument()
+
+	// Determine if this is a CreditNote (type code 381) or Invoice
+	isCreditNote := inv.InvoiceTypeCode == 381
+
+	var root *etree.Element
+	var rootNS string
+	var prefix string
+
+	if isCreditNote {
+		root = doc.CreateElement("CreditNote")
+		rootNS = nsUBLCreditNote
+		prefix = "cn:"
+	} else {
+		root = doc.CreateElement("Invoice")
+		rootNS = nsUBLInvoice
+		prefix = "inv:"
+	}
+
+	// Set up namespaces
+	root.CreateAttr("xmlns", rootNS)
+	root.CreateAttr("xmlns:cac", nsUBLCAC)
+	root.CreateAttr("xmlns:cbc", nsUBLCBC)
+
+	// Write the document structure
+	writeUBLHeader(inv, root, prefix)
+	writeUBLParties(inv, root, prefix)
+	writeUBLAllowanceCharge(inv, root, prefix)
+	writeUBLPaymentMeans(inv, root, prefix)
+	writeUBLPaymentTerms(inv, root, prefix)
+	writeUBLTaxTotal(inv, root, prefix)
+	writeUBLMonetarySummation(inv, root, prefix)
+	writeUBLLines(inv, root, prefix)
+
+	doc.Indent(2)
+	if _, err := doc.WriteTo(writer); err != nil {
+		return fmt.Errorf("write UBL: failed to write to the writer: %w", err)
+	}
+
+	return nil
+}
+
+// addTimeUBL formats a time in ISO 8601 format (YYYY-MM-DD) for UBL
+func addTimeUBL(parent *etree.Element, elementName string, date time.Time) {
+	if !date.IsZero() {
+		parent.CreateElement(elementName).SetText(date.Format("2006-01-02"))
+	}
+}
+
+// writeUBLHeader writes the document header elements (BT-1 to BT-24, BG-1, BG-3, BG-14, BG-24)
+func writeUBLHeader(inv *Invoice, root *etree.Element, prefix string) {
+	// BT-24: Specification identifier
+	if inv.GuidelineSpecifiedDocumentContextParameter != "" {
+		root.CreateElement("cbc:CustomizationID").SetText(inv.GuidelineSpecifiedDocumentContextParameter)
+	}
+
+	// BT-23: Business process type
+	if inv.BPSpecifiedDocumentContextParameter != "" {
+		root.CreateElement("cbc:ProfileID").SetText(inv.BPSpecifiedDocumentContextParameter)
+	}
+
+	// BT-1: Invoice number
+	root.CreateElement("cbc:ID").SetText(inv.InvoiceNumber)
+
+	// BT-2: Invoice issue date
+	addTimeUBL(root, "cbc:IssueDate", inv.InvoiceDate)
+
+	// BT-3: Invoice type code (or CreditNoteTypeCode for credit notes)
+	if inv.InvoiceTypeCode != 0 {
+		typeCodeElementName := "cbc:InvoiceTypeCode"
+		if prefix == "cn:" {
+			typeCodeElementName = "cbc:CreditNoteTypeCode"
+		}
+		root.CreateElement(typeCodeElementName).SetText(inv.InvoiceTypeCode.String())
+	}
+
+	// BG-1: Process notes
+	for _, note := range inv.Notes {
+		root.CreateElement("cbc:Note").SetText(note.Text)
+	}
+
+	// BT-5: Invoice currency code
+	root.CreateElement("cbc:DocumentCurrencyCode").SetText(inv.InvoiceCurrencyCode)
+
+	// BT-6: Tax currency code (optional)
+	if inv.TaxCurrencyCode != "" {
+		root.CreateElement("cbc:TaxCurrencyCode").SetText(inv.TaxCurrencyCode)
+	}
+
+	// BT-10: Buyer reference (optional)
+	if inv.BuyerReference != "" {
+		root.CreateElement("cbc:BuyerReference").SetText(inv.BuyerReference)
+	}
+
+	// BT-19: Accounting cost
+	if inv.ReceivableSpecifiedTradeAccountingAccount != "" {
+		root.CreateElement("cbc:AccountingCost").SetText(inv.ReceivableSpecifiedTradeAccountingAccount)
+	}
+
+	// BG-14: Invoice period (document level)
+	if !inv.BillingSpecifiedPeriodStart.IsZero() || !inv.BillingSpecifiedPeriodEnd.IsZero() {
+		period := root.CreateElement("cac:InvoicePeriod")
+		addTimeUBL(period, "cbc:StartDate", inv.BillingSpecifiedPeriodStart)
+		addTimeUBL(period, "cbc:EndDate", inv.BillingSpecifiedPeriodEnd)
+	}
+
+	// BT-13: Purchase order reference
+	if inv.BuyerOrderReferencedDocument != "" {
+		orderRef := root.CreateElement("cac:OrderReference")
+		orderRef.CreateElement("cbc:ID").SetText(inv.BuyerOrderReferencedDocument)
+
+		// BT-14: Sales order reference
+		if inv.SellerOrderReferencedDocument != "" {
+			orderRef.CreateElement("cbc:SalesOrderID").SetText(inv.SellerOrderReferencedDocument)
+		}
+	}
+
+	// BG-3: Preceding invoice references
+	for i := range inv.InvoiceReferencedDocument {
+		billingRef := root.CreateElement("cac:BillingReference")
+		invDocRef := billingRef.CreateElement("cac:InvoiceDocumentReference")
+		invDocRef.CreateElement("cbc:ID").SetText(inv.InvoiceReferencedDocument[i].ID)
+		addTimeUBL(invDocRef, "cbc:IssueDate", inv.InvoiceReferencedDocument[i].Date)
+	}
+
+	// BT-16: Despatch advice reference
+	if inv.DespatchAdviceReferencedDocument != "" {
+		despatchRef := root.CreateElement("cac:DespatchDocumentReference")
+		despatchRef.CreateElement("cbc:ID").SetText(inv.DespatchAdviceReferencedDocument)
+	}
+
+	// BT-15: Receiving advice reference
+	if inv.ReceivingAdviceReferencedDocument != "" {
+		receiptRef := root.CreateElement("cac:ReceiptDocumentReference")
+		receiptRef.CreateElement("cbc:ID").SetText(inv.ReceivingAdviceReferencedDocument)
+	}
+
+	// BT-12: Contract reference
+	if inv.ContractReferencedDocument != "" {
+		contractRef := root.CreateElement("cac:ContractDocumentReference")
+		contractRef.CreateElement("cbc:ID").SetText(inv.ContractReferencedDocument)
+	}
+
+	// BT-11: Project reference
+	if inv.SpecifiedProcuringProjectID != "" {
+		projectRef := root.CreateElement("cac:ProjectReference")
+		projectRef.CreateElement("cbc:ID").SetText(inv.SpecifiedProcuringProjectID)
+	}
+
+	// BG-24: Additional supporting documents
+	for i := range inv.AdditionalReferencedDocument {
+		addDocRef := root.CreateElement("cac:AdditionalDocumentReference")
+		addDocRef.CreateElement("cbc:ID").SetText(inv.AdditionalReferencedDocument[i].IssuerAssignedID)
+
+		if inv.AdditionalReferencedDocument[i].TypeCode != "" {
+			addDocRef.CreateElement("cbc:DocumentTypeCode").SetText(inv.AdditionalReferencedDocument[i].TypeCode)
+		}
+
+		if inv.AdditionalReferencedDocument[i].Name != "" {
+			addDocRef.CreateElement("cbc:DocumentDescription").SetText(inv.AdditionalReferencedDocument[i].Name)
+		}
+
+		if inv.AdditionalReferencedDocument[i].URIID != "" {
+			attachment := addDocRef.CreateElement("cac:Attachment")
+			externalRef := attachment.CreateElement("cac:ExternalReference")
+			externalRef.CreateElement("cbc:URI").SetText(inv.AdditionalReferencedDocument[i].URIID)
+		}
+
+		// BT-125: Handle embedded binary objects (only write if data exists - PEPPOL-EN16931-R008)
+		if len(inv.AdditionalReferencedDocument[i].AttachmentBinaryObject) > 0 {
+			attachment := addDocRef.CreateElement("cac:Attachment")
+			embeddedDoc := attachment.CreateElement("cbc:EmbeddedDocumentBinaryObject")
+
+			if inv.AdditionalReferencedDocument[i].AttachmentMimeCode != "" {
+				embeddedDoc.CreateAttr("mimeCode", inv.AdditionalReferencedDocument[i].AttachmentMimeCode)
+			}
+			if inv.AdditionalReferencedDocument[i].AttachmentFilename != "" {
+				embeddedDoc.CreateAttr("filename", inv.AdditionalReferencedDocument[i].AttachmentFilename)
+			}
+			embeddedDoc.SetText(base64.StdEncoding.EncodeToString(inv.AdditionalReferencedDocument[i].AttachmentBinaryObject))
+		}
+	}
+
+	// BT-72: Actual delivery date (in Delivery element, handled in writeUBLParties)
+}
+
+// writeUBLParties writes all party elements (BG-4, BG-7, BG-10, BG-11, BG-13)
+func writeUBLParties(inv *Invoice, root *etree.Element, prefix string) {
+	// BG-4: Seller (AccountingSupplierParty)
+	supplierParty := root.CreateElement("cac:AccountingSupplierParty")
+	writeUBLParty(supplierParty.CreateElement("cac:Party"), &inv.Seller, true)
+
+	// BG-7: Buyer (AccountingCustomerParty)
+	customerParty := root.CreateElement("cac:AccountingCustomerParty")
+	writeUBLParty(customerParty.CreateElement("cac:Party"), &inv.Buyer, false)
+
+	// BG-10: Payee (optional)
+	if inv.PayeeTradeParty != nil {
+		payeeParty := root.CreateElement("cac:PayeeParty")
+		writeUBLParty(payeeParty, inv.PayeeTradeParty, false)
+	}
+
+	// BG-11: Seller tax representative (optional)
+	if inv.SellerTaxRepresentativeTradeParty != nil {
+		taxRepParty := root.CreateElement("cac:TaxRepresentativeParty")
+		writeUBLParty(taxRepParty, inv.SellerTaxRepresentativeTradeParty, false)
+	}
+
+	// BG-13: Delivery information
+	if inv.ShipTo != nil || !inv.OccurrenceDateTime.IsZero() {
+		delivery := root.CreateElement("cac:Delivery")
+
+		// BT-72: Actual delivery date
+		addTimeUBL(delivery, "cbc:ActualDeliveryDate", inv.OccurrenceDateTime)
+
+		// Delivery location/party
+		if inv.ShipTo != nil {
+			deliveryParty := delivery.CreateElement("cac:DeliveryParty")
+			writeUBLParty(deliveryParty, inv.ShipTo, false)
+		}
+	}
+}
+
+// writeUBLParty writes a single party (reusable for Seller, Buyer, Payee, etc.)
+func writeUBLParty(parent *etree.Element, party *Party, isSeller bool) {
+	// Electronic address (BT-34, BT-49)
+	// Write element only with a value; a bare scheme yields an empty element (PEPPOL-EN16931-R008)
+	if party.URIUniversalCommunication != "" {
+		endpoint := parent.CreateElement("cbc:EndpointID")
+		if party.URIUniversalCommunicationScheme != "" {
+			endpoint.CreateAttr("schemeID", party.URIUniversalCommunicationScheme)
+		}
+		endpoint.SetText(party.URIUniversalCommunication)
+	}
+
+	// Party identification
+	for _, id := range party.ID {
+		partyID := parent.CreateElement("cac:PartyIdentification")
+		partyID.CreateElement("cbc:ID").SetText(id)
+	}
+
+	for _, gid := range party.GlobalID {
+		partyID := parent.CreateElement("cac:PartyIdentification")
+		idElt := partyID.CreateElement("cbc:ID")
+		idElt.CreateAttr("schemeID", gid.Scheme)
+		idElt.SetText(gid.ID)
+	}
+
+	// Party name
+	if party.Name != "" {
+		partyName := parent.CreateElement("cac:PartyName")
+		partyName.CreateElement("cbc:Name").SetText(party.Name)
+	}
+
+	// Postal address
+	if party.PostalAddress != nil {
+		addr := parent.CreateElement("cac:PostalAddress")
+
+		if party.PostalAddress.Line1 != "" {
+			addr.CreateElement("cbc:StreetName").SetText(party.PostalAddress.Line1)
+		}
+		if party.PostalAddress.Line2 != "" {
+			addr.CreateElement("cbc:AdditionalStreetName").SetText(party.PostalAddress.Line2)
+		}
+		if party.PostalAddress.Line3 != "" {
+			addrLine := addr.CreateElement("cac:AddressLine")
+			addrLine.CreateElement("cbc:Line").SetText(party.PostalAddress.Line3)
+		}
+		if party.PostalAddress.City != "" {
+			addr.CreateElement("cbc:CityName").SetText(party.PostalAddress.City)
+		}
+		if party.PostalAddress.PostcodeCode != "" {
+			addr.CreateElement("cbc:PostalZone").SetText(party.PostalAddress.PostcodeCode)
+		}
+		if party.PostalAddress.CountrySubDivisionName != "" {
+			addr.CreateElement("cbc:CountrySubentity").SetText(party.PostalAddress.CountrySubDivisionName)
+		}
+		if party.PostalAddress.CountryID != "" {
+			country := addr.CreateElement("cac:Country")
+			country.CreateElement("cbc:IdentificationCode").SetText(party.PostalAddress.CountryID)
+		}
+	}
+
+	// Tax registration (before legal organization per standard UBL order)
+	if party.VATaxRegistration != "" {
+		taxScheme := parent.CreateElement("cac:PartyTaxScheme")
+		taxScheme.CreateElement("cbc:CompanyID").SetText(party.VATaxRegistration)
+		taxScheme.CreateElement("cac:TaxScheme").CreateElement("cbc:ID").SetText("VAT")
+	}
+
+	if party.FCTaxRegistration != "" {
+		taxScheme := parent.CreateElement("cac:PartyTaxScheme")
+		taxScheme.CreateElement("cbc:CompanyID").SetText(party.FCTaxRegistration)
+		taxScheme.CreateElement("cac:TaxScheme").CreateElement("cbc:ID").SetText("FC")
+	}
+
+	// Legal organization
+	if party.SpecifiedLegalOrganization != nil {
+		legalEntity := parent.CreateElement("cac:PartyLegalEntity")
+		// BT-27: Seller legal registration name (TradingBusinessName)
+		if party.SpecifiedLegalOrganization.TradingBusinessName != "" {
+			legalEntity.CreateElement("cbc:RegistrationName").SetText(party.SpecifiedLegalOrganization.TradingBusinessName)
+		}
+
+		if party.SpecifiedLegalOrganization.ID != "" {
+			companyID := legalEntity.CreateElement("cbc:CompanyID")
+			if party.SpecifiedLegalOrganization.Scheme != "" {
+				companyID.CreateAttr("schemeID", party.SpecifiedLegalOrganization.Scheme)
+			}
+			companyID.SetText(party.SpecifiedLegalOrganization.ID)
+		}
+	}
+
+	// Contact information
+	for i := range party.DefinedTradeContact {
+		contactElt := parent.CreateElement("cac:Contact")
+
+		if party.DefinedTradeContact[i].PersonName != "" {
+			contactElt.CreateElement("cbc:Name").SetText(party.DefinedTradeContact[i].PersonName)
+		}
+		if party.DefinedTradeContact[i].DepartmentName != "" {
+			contactElt.CreateElement("cbc:Department").SetText(party.DefinedTradeContact[i].DepartmentName)
+		}
+		if party.DefinedTradeContact[i].PhoneNumber != "" {
+			contactElt.CreateElement("cbc:Telephone").SetText(party.DefinedTradeContact[i].PhoneNumber)
+		}
+		if party.DefinedTradeContact[i].EMail != "" {
+			contactElt.CreateElement("cbc:ElectronicMail").SetText(party.DefinedTradeContact[i].EMail)
+		}
+	}
+}
+
+// writeUBLAllowanceCharge writes document-level allowances and charges (BG-20, BG-21)
+func writeUBLAllowanceCharge(inv *Invoice, root *etree.Element, prefix string) {
+	for i := range inv.SpecifiedTradeAllowanceCharge {
+		acElt := root.CreateElement("cac:AllowanceCharge")
+		acElt.CreateElement("cbc:ChargeIndicator").SetText(strconv.FormatBool(inv.SpecifiedTradeAllowanceCharge[i].ChargeIndicator))
+
+		if inv.SpecifiedTradeAllowanceCharge[i].ReasonCode != "" {
+			acElt.CreateElement("cbc:AllowanceChargeReasonCode").SetText(inv.SpecifiedTradeAllowanceCharge[i].ReasonCode)
+		}
+
+		if inv.SpecifiedTradeAllowanceCharge[i].Reason != "" {
+			acElt.CreateElement("cbc:AllowanceChargeReason").SetText(inv.SpecifiedTradeAllowanceCharge[i].Reason)
+		}
+
+		if !inv.SpecifiedTradeAllowanceCharge[i].CalculationPercent.IsZero() {
+			acElt.CreateElement("cbc:MultiplierFactorNumeric").SetText(formatPercent(inv.SpecifiedTradeAllowanceCharge[i].CalculationPercent))
+		}
+
+		// BT-92/BT-99: Allowance/Charge amount with currency
+		amt := acElt.CreateElement("cbc:Amount")
+		amt.CreateAttr("currencyID", inv.InvoiceCurrencyCode)
+		amt.SetText(inv.SpecifiedTradeAllowanceCharge[i].ActualAmount.StringFixed(2))
+
+		// BT-93/BT-100: Allowance/Charge base amount with currency
+		if !inv.SpecifiedTradeAllowanceCharge[i].BasisAmount.IsZero() {
+			baseAmt := acElt.CreateElement("cbc:BaseAmount")
+			baseAmt.CreateAttr("currencyID", inv.InvoiceCurrencyCode)
+			baseAmt.SetText(inv.SpecifiedTradeAllowanceCharge[i].BasisAmount.StringFixed(2))
+		}
+
+		// Tax category
+		if inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxCategoryCode != "" {
+			taxCat := acElt.CreateElement("cac:TaxCategory")
+			taxCat.CreateElement("cbc:ID").SetText(inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxCategoryCode)
+			taxCat.CreateElement("cbc:Percent").SetText(formatPercent(inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxRateApplicablePercent))
+			taxCat.CreateElement("cac:TaxScheme").CreateElement("cbc:ID").SetText(inv.SpecifiedTradeAllowanceCharge[i].CategoryTradeTaxType)
+		}
+	}
+}
+
+// writeUBLTaxTotal writes the tax breakdown (BG-23)
+func writeUBLTaxTotal(inv *Invoice, root *etree.Element, prefix string) {
+	taxTotal := root.CreateElement("cac:TaxTotal")
+
+	// BT-110: Total tax amount in document currency
+	taxAmount := taxTotal.CreateElement("cbc:TaxAmount")
+	currency := inv.TaxTotalCurrency
+	if currency == "" {
+		currency = inv.InvoiceCurrencyCode
+	}
+	taxAmount.CreateAttr("currencyID", currency)
+	taxAmount.SetText(inv.TaxTotal.StringFixed(2))
+
+	// BG-23: VAT breakdown (TaxSubtotal elements)
+	for i := range inv.TradeTaxes {
+		subtotal := taxTotal.CreateElement("cac:TaxSubtotal")
+
+		// Taxable amount
+		taxableAmt := subtotal.CreateElement("cbc:TaxableAmount")
+		taxableAmt.CreateAttr("currencyID", currency)
+		taxableAmt.SetText(inv.TradeTaxes[i].BasisAmount.StringFixed(2))
+
+		// Tax amount
+		taxAmt := subtotal.CreateElement("cbc:TaxAmount")
+		taxAmt.CreateAttr("currencyID", currency)
+		taxAmt.SetText(inv.TradeTaxes[i].CalculatedAmount.StringFixed(2))
+
+		// Tax category
+		taxCat := subtotal.CreateElement("cac:TaxCategory")
+		taxCat.CreateElement("cbc:ID").SetText(inv.TradeTaxes[i].CategoryCode)
+		taxCat.CreateElement("cbc:Percent").SetText(formatPercent(inv.TradeTaxes[i].Percent))
+
+		if inv.TradeTaxes[i].ExemptionReason != "" {
+			taxCat.CreateElement("cbc:TaxExemptionReason").SetText(inv.TradeTaxes[i].ExemptionReason)
+		}
+
+		if inv.TradeTaxes[i].ExemptionReasonCode != "" {
+			taxCat.CreateElement("cbc:TaxExemptionReasonCode").SetText(inv.TradeTaxes[i].ExemptionReasonCode)
+		}
+
+		taxScheme := taxCat.CreateElement("cac:TaxScheme")
+		taxScheme.CreateElement("cbc:ID").SetText(inv.TradeTaxes[i].TypeCode)
+	}
+
+	// BT-111: Tax total in accounting currency (if different)
+	if inv.TaxCurrencyCode != "" && inv.TaxCurrencyCode != inv.InvoiceCurrencyCode {
+		taxTotalVAT := root.CreateElement("cac:TaxTotal")
+		taxAmountVAT := taxTotalVAT.CreateElement("cbc:TaxAmount")
+		taxAmountVAT.CreateAttr("currencyID", inv.TaxCurrencyCode)
+		taxAmountVAT.SetText(inv.TaxTotalAccounting.StringFixed(2))
+	}
+}
+
+// writeUBLMonetarySummation writes the monetary totals (BT-106 to BT-115)
+func writeUBLMonetarySummation(inv *Invoice, root *etree.Element, prefix string) {
+	lmt := root.CreateElement("cac:LegalMonetaryTotal")
+	currency := inv.InvoiceCurrencyCode
+
+	// BT-106: Sum of Invoice line net amount
+	lineExt := lmt.CreateElement("cbc:LineExtensionAmount")
+	lineExt.CreateAttr("currencyID", currency)
+	lineExt.SetText(inv.LineTotal.StringFixed(2))
+
+	// BT-107: Sum of allowances on document level
+	if !inv.AllowanceTotal.IsZero() {
+		allowTotal := lmt.CreateElement("cbc:AllowanceTotalAmount")
+		allowTotal.CreateAttr("currencyID", currency)
+		allowTotal.SetText(inv.AllowanceTotal.StringFixed(2))
+	}
+
+	// BT-108: Sum of charges on document level
+	if !inv.ChargeTotal.IsZero() {
+		chargeTotal := lmt.CreateElement("cbc:ChargeTotalAmount")
+		chargeTotal.CreateAttr("currencyID", currency)
+		chargeTotal.SetText(inv.ChargeTotal.StringFixed(2))
+	}
+
+	// BT-109: Invoice total amount without VAT
+	taxExcl := lmt.CreateElement("cbc:TaxExclusiveAmount")
+	taxExcl.CreateAttr("currencyID", currency)
+	taxExcl.SetText(inv.TaxBasisTotal.StringFixed(2))
+
+	// BT-112: Invoice total amount with VAT
+	taxIncl := lmt.CreateElement("cbc:TaxInclusiveAmount")
+	taxIncl.CreateAttr("currencyID", currency)
+	taxIncl.SetText(inv.GrandTotal.StringFixed(2))
+
+	// BT-113: Paid amount
+	if !inv.TotalPrepaid.IsZero() {
+		prepaid := lmt.CreateElement("cbc:PrepaidAmount")
+		prepaid.CreateAttr("currencyID", currency)
+		prepaid.SetText(inv.TotalPrepaid.StringFixed(2))
+	}
+
+	// BT-114: Rounding amount
+	if !inv.RoundingAmount.IsZero() {
+		rounding := lmt.CreateElement("cbc:PayableRoundingAmount")
+		rounding.CreateAttr("currencyID", currency)
+		rounding.SetText(inv.RoundingAmount.StringFixed(2))
+	}
+
+	// BT-115: Amount due for payment
+	payable := lmt.CreateElement("cbc:PayableAmount")
+	payable.CreateAttr("currencyID", currency)
+	payable.SetText(inv.DuePayableAmount.StringFixed(2))
+}
+
+// writeUBLPaymentMeans writes payment means elements (BG-16, BG-17, BG-18, BG-19)
+func writeUBLPaymentMeans(inv *Invoice, root *etree.Element, prefix string) {
+	for i := range inv.PaymentMeans {
+		pmElt := root.CreateElement("cac:PaymentMeans")
+
+		// BT-81: Payment means type code
+		pmElt.CreateElement("cbc:PaymentMeansCode").SetText(strconv.Itoa(inv.PaymentMeans[i].TypeCode))
+
+		// BT-82: Payment means text
+		if inv.PaymentMeans[i].Information != "" {
+			pmElt.CreateElement("cbc:InstructionNote").SetText(inv.PaymentMeans[i].Information)
+		}
+
+		// BT-83: Remittance information
+		if inv.PaymentReference != "" {
+			pmElt.CreateElement("cbc:PaymentID").SetText(inv.PaymentReference)
+		}
+
+		// BG-18: Payment card information
+		if inv.PaymentMeans[i].ApplicableTradeSettlementFinancialCardID != "" {
+			cardAccount := pmElt.CreateElement("cac:CardAccount")
+			cardAccount.CreateElement("cbc:PrimaryAccountNumberID").SetText(inv.PaymentMeans[i].ApplicableTradeSettlementFinancialCardID)
+
+			if inv.PaymentMeans[i].ApplicableTradeSettlementFinancialCardCardholderName != "" {
+				cardAccount.CreateElement("cbc:HolderName").SetText(inv.PaymentMeans[i].ApplicableTradeSettlementFinancialCardCardholderName)
+			}
+		}
+
+		// BG-19: Direct debit
+		if inv.PaymentMeans[i].PayerPartyDebtorFinancialAccountIBAN != "" {
+			mandate := pmElt.CreateElement("cac:PaymentMandate")
+			payerAccount := mandate.CreateElement("cac:PayerFinancialAccount")
+			payerAccount.CreateElement("cbc:ID").SetText(inv.PaymentMeans[i].PayerPartyDebtorFinancialAccountIBAN)
+		}
+
+		// BG-17: Credit transfer (IBAN/BIC)
+		if inv.PaymentMeans[i].PayeePartyCreditorFinancialAccountIBAN != "" {
+			payeeAccount := pmElt.CreateElement("cac:PayeeFinancialAccount")
+			payeeAccount.CreateElement("cbc:ID").SetText(inv.PaymentMeans[i].PayeePartyCreditorFinancialAccountIBAN)
+
+			if inv.PaymentMeans[i].PayeePartyCreditorFinancialAccountName != "" {
+				payeeAccount.CreateElement("cbc:Name").SetText(inv.PaymentMeans[i].PayeePartyCreditorFinancialAccountName)
+			}
+
+			if inv.PaymentMeans[i].PayeeSpecifiedCreditorFinancialInstitutionBIC != "" {
+				branch := payeeAccount.CreateElement("cac:FinancialInstitutionBranch")
+				branch.CreateElement("cbc:ID").SetText(inv.PaymentMeans[i].PayeeSpecifiedCreditorFinancialInstitutionBIC)
+			}
+		}
+	}
+}
+
+// writeUBLPaymentTerms writes payment terms (BT-20, BT-9, BT-89)
+func writeUBLPaymentTerms(inv *Invoice, root *etree.Element, prefix string) {
+	for i := range inv.SpecifiedTradePaymentTerms {
+		ptElt := root.CreateElement("cac:PaymentTerms")
+
+		// BT-20: Payment terms
+		if inv.SpecifiedTradePaymentTerms[i].Description != "" {
+			ptElt.CreateElement("cbc:Note").SetText(inv.SpecifiedTradePaymentTerms[i].Description)
+		}
+
+		// BT-9: Payment due date
+		addTimeUBL(ptElt, "cbc:PaymentDueDate", inv.SpecifiedTradePaymentTerms[i].DueDate)
+
+		// BT-89: Direct debit mandate identifier
+		if inv.SpecifiedTradePaymentTerms[i].DirectDebitMandateID != "" {
+			ptElt.CreateElement("cbc:PaymentMeansID").SetText(inv.SpecifiedTradePaymentTerms[i].DirectDebitMandateID)
+		}
+	}
+}
+
+// writeUBLLines writes all invoice line items (BG-25)
+func writeUBLLines(inv *Invoice, root *etree.Element, prefix string) {
+	// Determine line element and quantity element names based on document type
+	lineElementName := "cac:InvoiceLine"
+	quantityElementName := "cbc:InvoicedQuantity"
+	if prefix == "cn:" {
+		lineElementName = "cac:CreditNoteLine"
+		quantityElementName = "cbc:CreditedQuantity"
+	}
+
+	for i := range inv.InvoiceLines {
+		lineElt := root.CreateElement(lineElementName)
+
+		// BT-126: Invoice line identifier
+		lineElt.CreateElement("cbc:ID").SetText(inv.InvoiceLines[i].LineID)
+
+		// BT-127: Invoice line note
+		if inv.InvoiceLines[i].Note != "" {
+			lineElt.CreateElement("cbc:Note").SetText(inv.InvoiceLines[i].Note)
+		}
+
+		// BT-129: Invoiced quantity (or Credited quantity for credit notes)
+		qty := lineElt.CreateElement(quantityElementName)
+		qty.CreateAttr("unitCode", inv.InvoiceLines[i].BilledQuantityUnit)
+		qty.SetText(inv.InvoiceLines[i].BilledQuantity.StringFixed(4))
+
+		// BT-131: Invoice line net amount
+		lineExtAmt := lineElt.CreateElement("cbc:LineExtensionAmount")
+		lineExtAmt.CreateAttr("currencyID", inv.InvoiceCurrencyCode)
+		lineExtAmt.SetText(inv.InvoiceLines[i].Total.StringFixed(2))
+
+		// BT-133: Invoice line Buyer accounting reference
+		if inv.InvoiceLines[i].ReceivableSpecifiedTradeAccountingAccount != "" {
+			lineElt.CreateElement("cbc:AccountingCost").SetText(inv.InvoiceLines[i].ReceivableSpecifiedTradeAccountingAccount)
+		}
+
+		// BG-26: Invoice line period
+		if !inv.InvoiceLines[i].BillingSpecifiedPeriodStart.IsZero() || !inv.InvoiceLines[i].BillingSpecifiedPeriodEnd.IsZero() {
+			period := lineElt.CreateElement("cac:InvoicePeriod")
+			addTimeUBL(period, "cbc:StartDate", inv.InvoiceLines[i].BillingSpecifiedPeriodStart)
+			addTimeUBL(period, "cbc:EndDate", inv.InvoiceLines[i].BillingSpecifiedPeriodEnd)
+		}
+
+		// BT-132: Referenced purchase order line
+		if inv.InvoiceLines[i].BuyerOrderReferencedDocument != "" {
+			orderLineRef := lineElt.CreateElement("cac:OrderLineReference")
+			orderLineRef.CreateElement("cbc:LineID").SetText(inv.InvoiceLines[i].BuyerOrderReferencedDocument)
+		}
+
+		// BT-128: Invoice line object identifier
+		if inv.InvoiceLines[i].AdditionalReferencedDocumentID != "" {
+			docRef := lineElt.CreateElement("cac:DocumentReference")
+			docRef.CreateElement("cbc:ID").SetText(inv.InvoiceLines[i].AdditionalReferencedDocumentID)
+
+			if inv.InvoiceLines[i].AdditionalReferencedDocumentTypeCode != "" {
+				docRef.CreateElement("cbc:DocumentTypeCode").SetText(inv.InvoiceLines[i].AdditionalReferencedDocumentTypeCode)
+			}
+		}
+
+		// BG-27: Line level allowances (BT-136 - must be rounded to 2 decimals)
+		// BG-28: Line level charges (BT-141 - must be rounded to 2 decimals)
+		for j := range inv.InvoiceLines[i].InvoiceLineAllowances {
+			writeUBLLineAllowanceCharge(lineElt, &inv.InvoiceLines[i].InvoiceLineAllowances[j], false, true, inv.InvoiceCurrencyCode)
+		}
+		for j := range inv.InvoiceLines[i].InvoiceLineCharges {
+			writeUBLLineAllowanceCharge(lineElt, &inv.InvoiceLines[i].InvoiceLineCharges[j], true, true, inv.InvoiceCurrencyCode)
+		}
+
+		// Item information
+		writeUBLLineItem(lineElt, &inv.InvoiceLines[i])
+
+		// Price information
+		writeUBLLinePrice(lineElt, &inv.InvoiceLines[i], inv.InvoiceCurrencyCode)
+	}
+}
+
+// writeUBLLineAllowanceCharge writes a line-level allowance or charge
+// roundAmount: true for BT-136/BT-141 (line allowances/charges), false for BT-147 (item price discounts)
+func writeUBLLineAllowanceCharge(parent *etree.Element, ac *AllowanceCharge, isCharge bool, roundAmount bool, currency string) {
+	acElt := parent.CreateElement("cac:AllowanceCharge")
+	acElt.CreateElement("cbc:ChargeIndicator").SetText(strconv.FormatBool(isCharge))
+
+	if ac.ReasonCode != "" {
+		acElt.CreateElement("cbc:AllowanceChargeReasonCode").SetText(ac.ReasonCode)
+	}
+
+	if ac.Reason != "" {
+		acElt.CreateElement("cbc:AllowanceChargeReason").SetText(ac.Reason)
+	}
+
+	if !ac.CalculationPercent.IsZero() {
+		acElt.CreateElement("cbc:MultiplierFactorNumeric").SetText(formatPercent(ac.CalculationPercent))
+	}
+
+	// BT-136/BT-141/BT-147: Amount with currency
+	amt := acElt.CreateElement("cbc:Amount")
+	amt.CreateAttr("currencyID", currency)
+	// BT-136/BT-141 (line allowances/charges) must be 2 decimals (BR-DEC-24, BR-DEC-27)
+	// BT-147 (item price discount) has no decimal restriction per EN 16931
+	if roundAmount {
+		amt.SetText(ac.ActualAmount.StringFixed(2))
+	} else {
+		amt.SetText(ac.ActualAmount.String())
+	}
+
+	// BT-148 discount base (for price allowances): Base amount with currency
+	if !ac.BasisAmount.IsZero() {
+		baseAmt := acElt.CreateElement("cbc:BaseAmount")
+		baseAmt.CreateAttr("currencyID", currency)
+		baseAmt.SetText(ac.BasisAmount.StringFixed(2))
+	}
+}
+
+// writeUBLLineItem writes item-specific information within a line
+func writeUBLLineItem(parent *etree.Element, line *InvoiceLine) {
+	item := parent.CreateElement("cac:Item")
+
+	// BT-154: Item description (before name per UBL ordering)
+	if line.Description != "" {
+		item.CreateElement("cbc:Description").SetText(line.Description)
+	}
+
+	// BT-153: Item name
+	item.CreateElement("cbc:Name").SetText(line.ItemName)
+
+	// BT-155: Item Seller's identifier
+	if line.ArticleNumber != "" {
+		sellersID := item.CreateElement("cac:SellersItemIdentification")
+		sellersID.CreateElement("cbc:ID").SetText(line.ArticleNumber)
+	}
+
+	// BT-156: Item Buyer's identifier
+	if line.ArticleNumberBuyer != "" {
+		buyersID := item.CreateElement("cac:BuyersItemIdentification")
+		buyersID.CreateElement("cbc:ID").SetText(line.ArticleNumberBuyer)
+	}
+
+	// BT-157: Item standard identifier
+	if line.GlobalID != "" {
+		standardID := item.CreateElement("cac:StandardItemIdentification")
+		idElt := standardID.CreateElement("cbc:ID")
+		if line.GlobalIDType != "" {
+			idElt.CreateAttr("schemeID", line.GlobalIDType)
+		}
+		idElt.SetText(line.GlobalID)
+	}
+
+	// BT-159: Item country of origin
+	if line.OriginTradeCountry != "" {
+		originCountry := item.CreateElement("cac:OriginCountry")
+		originCountry.CreateElement("cbc:IdentificationCode").SetText(line.OriginTradeCountry)
+	}
+
+	// BT-158: Item classification identifier
+	for j := range line.ProductClassification {
+		commodityClass := item.CreateElement("cac:CommodityClassification")
+		classCode := commodityClass.CreateElement("cbc:ItemClassificationCode")
+		if line.ProductClassification[j].ListID != "" {
+			classCode.CreateAttr("listID", line.ProductClassification[j].ListID)
+		}
+		if line.ProductClassification[j].ListVersionID != "" {
+			classCode.CreateAttr("listVersionID", line.ProductClassification[j].ListVersionID)
+		}
+		classCode.SetText(line.ProductClassification[j].ClassCode)
+	}
+
+	// Tax information (before additional properties per UBL ordering)
+	taxCat := item.CreateElement("cac:ClassifiedTaxCategory")
+	taxCat.CreateElement("cbc:ID").SetText(line.TaxCategoryCode)
+	if line.TaxCategoryCode != "O" {
+		taxCat.CreateElement("cbc:Percent").SetText(formatPercent(line.TaxRateApplicablePercent))
+	}
+	taxCat.CreateElement("cac:TaxScheme").CreateElement("cbc:ID").SetText(line.TaxTypeCode)
+
+	// BG-32: Item attributes
+	for j := range line.Characteristics {
+		prop := item.CreateElement("cac:AdditionalItemProperty")
+		prop.CreateElement("cbc:Name").SetText(line.Characteristics[j].Description)
+		prop.CreateElement("cbc:Value").SetText(line.Characteristics[j].Value)
+	}
+}
+
+// writeUBLLinePrice writes price information within a line
+func writeUBLLinePrice(parent *etree.Element, line *InvoiceLine, currency string) {
+	price := parent.CreateElement("cac:Price")
+
+	// BT-146: Item net price (no decimal restriction per EN 16931)
+	priceAmt := price.CreateElement("cbc:PriceAmount")
+	priceAmt.CreateAttr("currencyID", currency)
+	priceAmt.SetText(line.NetPrice.String())
+
+	// BT-149: Item price base quantity with unit code
+	if !line.BasisQuantity.IsZero() {
+		baseQty := price.CreateElement("cbc:BaseQuantity")
+		// Only add unitCode if BasisQuantityUnit was explicitly set
+		// Don't fallback to BilledQuantityUnit to preserve round-trip accuracy
+		if line.BasisQuantityUnit != "" {
+			baseQty.CreateAttr("unitCode", line.BasisQuantityUnit)
+		}
+		// BT-149: Item price base quantity (no decimal restriction per EN 16931)
+		baseQty.SetText(line.BasisQuantity.String())
+	}
+
+	// BT-147: Item price allowances/discounts (no decimal restriction per EN 16931)
+	for j := range line.AppliedTradeAllowanceCharge {
+		writeUBLLineAllowanceCharge(price, &line.AppliedTradeAllowanceCharge[j], line.AppliedTradeAllowanceCharge[j].ChargeIndicator, false, currency)
+	}
+}

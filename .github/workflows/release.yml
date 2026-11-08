@@ -1,0 +1,266 @@
+name: Release
+on:
+  # Explicit release preparation; publishing the completed draft remains manual.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Tag of an existing draft release to package, for example v1.0.0.
+          Leave empty to let Release Please prepare the next version.
+        required: false
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  official-validators:
+    name: Official validator parity (KoSIT, Mustang)
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          check-latest: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm --prefix frontend run build
+      - name: Export XRechnung fixtures
+        env:
+          E_RECHNUNG_STUDIO_FORMAT_TEST_OUTPUT: ${{ runner.temp }}/format-qa
+        run: go test ./internal/app -run 'TestSupportedFormats|TestProfileSpecificFailures' -count=1
+      - name: Compare with the latest KoSIT validator, configuration and testsuite
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          java -version
+          python3 scripts/kosit_parity.py "$RUNNER_TEMP/format-qa"
+      - name: Compare with the latest Mustang (ZUGFeRD/Factur-X) validator
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/zugferd_parity.py "$RUNNER_TEMP/format-qa"
+  release:
+    needs: [verify, official-validators]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      created: ${{ steps.release.outputs.release_created || steps.existing.outputs.created }}
+      tag: ${{ steps.release.outputs.tag_name || steps.existing.outputs.tag }}
+    steps:
+      - name: Check release credentials
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo 'Configure the repository secret RELEASE_PLEASE_TOKEN: a token limited to this repository with contents, pull-requests and issues write access, so release PRs can trigger the required CI checks.' >&2
+            exit 1
+          fi
+      - name: Package the draft release of an existing tag
+        id: existing
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          TAGGED=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq '.sha')
+          if [ "$TAGGED" != "$GITHUB_SHA" ]; then
+            echo "Tag $RELEASE_TAG points to $TAGGED, but this run verified $GITHUB_SHA. Start the workflow on the tagged revision." >&2
+            exit 1
+          fi
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')" = true
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - name: Only release the verified main revision
+        id: current
+        if: inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          CURRENT_MAIN=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [ "$CURRENT_MAIN" = "$GITHUB_SHA" ]; then
+            echo 'verified=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        if: inputs.tag == '' && steps.current.outputs.verified == 'true'
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  package:
+    needs: release
+    if: needs.release.outputs.created == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+          - os: macos-14
+            platform: darwin
+            arch: amd64
+          - os: windows-2022
+            platform: windows
+            arch: amd64
+          - os: windows-2022
+            platform: windows
+            arch: arm64
+          - os: ubuntu-24.04
+            platform: linux
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.release.outputs.tag }}
+      - name: Install GTK 4 and WebKitGTK 6.0 development packages
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev libx11-dev librsvg2-dev
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          check-latest: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: node scripts/check-version.mjs
+      - name: Install matching Wails CLI
+        run: |
+          WAILS_CLI_VERSION=$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@$WAILS_CLI_VERSION"
+      - name: Build macOS app
+        if: matrix.platform == 'darwin'
+        run: wails3 task darwin:package ARCH=${{ matrix.arch }}
+      - name: Sign and notarize macOS app
+        if: matrix.platform == 'darwin'
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          build/darwin/sign-and-notarize.sh bin/e-rechnung-studio.app
+          mkdir -p release-assets
+          ditto -c -k --sequesterRsrc --keepParent bin/e-rechnung-studio.app release-assets/e-rechnung-studio-darwin-${{ matrix.arch }}.zip
+      - name: Build Windows app
+        if: matrix.platform == 'windows'
+        # Only the executable: the updater replaces the running program with the
+        # single top-level entry of the archive and rejects archives with more.
+        # The license texts ship as third-party-licenses.zip and in the app.
+        run: |
+          wails3 task windows:build ARCH=${{ matrix.arch }}
+          mkdir -p release-assets
+          python -m zipfile -c release-assets/e-rechnung-studio-windows-${{ matrix.arch }}.zip bin/e-rechnung-studio.exe
+      - name: Build Linux AppImage
+        if: matrix.platform == 'linux'
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          wails3 task linux:create:appimage ARCH=${{ matrix.arch }}
+          mkdir -p release-assets
+          mv bin/*.AppImage release-assets/e-rechnung-studio-linux-${{ matrix.arch }}.AppImage
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 14
+  attach:
+    needs: [release, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      # Build provenance: GitHub signs which workflow run built each asset.
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: release-assets
+      - name: Bundle the third-party license texts
+        # No platform or architecture in the name, so the updater never picks it.
+        # third-party-licenses.txt is the offline catalog shown in the app: it
+        # holds the Go module and npm package texts that docs/ does not.
+        run: |
+          node frontend/scripts/license-text.mjs > docs/third-party-licenses.txt
+          cp LICENSE docs/LICENSE
+          cd docs
+          zip -qr ../release-assets/third-party-licenses.zip LICENSE third-party-notices.md third-party-licenses.txt pdf-licenses xml-licenses ui-licenses
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          check-latest: true
+      - name: Sign the packages for the in-app updater
+        # The app installs an update only with a <package>.sig that matches the
+        # public key in internal/updatesign; release-sign refuses any other key.
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          if [ -z "$UPDATE_SIGNING_KEY" ]; then
+            echo 'Configure the repository secret UPDATE_SIGNING_KEY: the private key that release-sign keygen wrote.' >&2
+            exit 1
+          fi
+          set -- release-assets/e-rechnung-studio-*
+          go run ./cmd/release-sign sign "$@"
+          go run ./cmd/release-sign verify "$@"
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          ls -l
+          sha256sum * > ../SHA256SUMS
+          mv ../SHA256SUMS .
+      - name: Attest build provenance
+        # Free for public repositories; check with gh attestation verify.
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release-assets/*
+      - name: Attach complete asset set
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          RELEASE_TAG: ${{ needs.release.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd release-assets
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')" = true
+          gh release upload "$RELEASE_TAG" * --clobber

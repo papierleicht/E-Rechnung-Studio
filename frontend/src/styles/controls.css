@@ -1,0 +1,455 @@
+/* Shared controls: one icon grid, consistent hit areas and visible keyboard focus. */
+.correction-reference {
+  margin: 0;
+  padding: 16px 24px;
+  background: var(--theme-info-bg);
+  color: var(--theme-info-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.correction-reason {
+  display: grid;
+  gap: 8px;
+  padding: 0 24px 16px;
+  background: var(--theme-info-bg);
+  color: var(--theme-info-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.correction-reason label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+.correction-reason label span {
+  display: grid;
+}
+.app-icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+button.primary,
+button.secondary,
+button.text,
+button.danger-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--theme-focus);
+  outline-offset: 3px;
+}
+.dialog-close,
+.error-notice > button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  color: var(--theme-muted);
+}
+.dialog-close:hover {
+  background: var(--theme-hover);
+}
+.app-dialog {
+  border: 0;
+  padding: 0;
+  border-radius: 13px;
+  color: inherit;
+  max-width: calc(100vw - 48px);
+  box-shadow: 0 24px 80px var(--theme-shadow);
+}
+.app-dialog::backdrop {
+  background: var(--theme-backdrop);
+  backdrop-filter: blur(3px);
+}
+.modal.form-dialog {
+  width: 620px;
+  max-width: 100%;
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.form-dialog > header,
+.form-dialog > footer {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 16px 24px;
+}
+.form-dialog > header {
+  border-bottom: 1px solid var(--theme-border);
+  gap: 16px;
+}
+.form-dialog > header h2 {
+  margin: 0;
+}
+.form-dialog > footer {
+  border-top: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+}
+.dialog-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.dialog-description {
+  margin: 0 0 20px;
+  color: var(--theme-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.dialog-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.settings-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.page-settings-body {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+}
+.position-error {
+  margin: 0;
+  border-radius: 0;
+}
+.dialog-fields .form-grid {
+  margin: 0;
+  gap: 16px;
+}
+.document-edit-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(100%, calc(210mm + 48px));
+  margin: 0 auto 10px;
+  color: var(--theme-muted);
+  font-size: 12px;
+}
+.document-edit-help > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.document-edit-help button {
+  min-height: 32px;
+  padding: 6px 0 6px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.invoice-rows .invoice-entry > .app-icon {
+  color: var(--theme-muted);
+}
+.export-menu {
+  display: flex;
+  position: relative;
+}
+.issue-export-menu button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.issue-export-menu button > span {
+  display: grid;
+  gap: 5px;
+}
+.issue-export-menu strong {
+  color: var(--theme-text);
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  left: 24px;
+  max-width: calc(100vw - 48px);
+}
+/* Messages can name a file or a customer; long words wrap inside the box. */
+.toast > span,
+.error-notice > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.toast > button {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 4px;
+  border: 0;
+  border-radius: 5px;
+  color: inherit;
+  background: transparent;
+}
+.toast > button:hover {
+  background: var(--theme-toast-bg);
+}
+
+.app-shell .issue-split > .issue-button {
+  border-radius: 7px 0 0 7px;
+}
+.app-shell .issue-split .issue-more-button {
+  border-radius: 0 7px 7px 0;
+  margin-left: -1px;
+}
+.adjustment-card {
+  padding: 12px;
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+}
+.adjustment-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.position-tax-details > td {
+  background: var(--theme-surface-muted);
+  padding-top: 0;
+}
+.position-tax-details .form-grid {
+  padding: 8px 0;
+  gap: 10px;
+}
+.invoice-settings-summary {
+  margin: 16px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.invoice-settings-summary > div {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+}
+.invoice-settings-summary dt {
+  color: var(--theme-muted);
+}
+.invoice-settings-summary dd {
+  margin: 0;
+  font-weight: 500;
+}
+.company-tax-settings {
+  margin: 20px 0;
+}
+.company-tax-settings > label {
+  display: grid;
+  gap: 7px;
+  max-width: 560px;
+  color: var(--theme-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.company-tax-settings select {
+  width: 100%;
+  min-height: 36px;
+}
+.active-tax-setting {
+  display: grid;
+  gap: 4px;
+  max-width: 560px;
+  padding: 11px 12px;
+  border: 1px solid var(--theme-focus);
+  border-radius: 8px;
+  background: var(--theme-selected);
+}
+.active-tax-setting span {
+  color: var(--theme-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.active-tax-setting strong {
+  color: var(--theme-text);
+  font-size: 13px;
+}
+/* A setting shown with its current value and a visible way to change it,
+   instead of a form behind a disclosure. */
+.setting-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--theme-border);
+}
+.setting-row > .setting-label {
+  flex: 0 0 7rem;
+  color: var(--theme-muted);
+  font-size: 12px;
+}
+.setting-row > .setting-value {
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.setting-row > button {
+  margin-left: auto;
+}
+/* Details that stay closed until needed: one list of rows, each with its state on
+   the right and a chevron, the whole row clickable. */
+.detail-list {
+  margin: 16px 0 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-surface);
+}
+/* One such row on its own, e.g. a log under a document. */
+details.detail-row {
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-surface);
+}
+details.detail-row > summary {
+  border-radius: 9px;
+}
+details.detail-row[open] > summary {
+  border-radius: 9px 9px 0 0;
+}
+details.detail-row > :not(summary) {
+  max-width: calc(100% - 28px);
+  margin: 0 14px 14px;
+}
+.detail-list > details + details {
+  border-top: 1px solid var(--theme-border);
+}
+.detail-list > details > summary,
+details.detail-row > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  list-style: none;
+  cursor: pointer;
+}
+.detail-list > details > summary::-webkit-details-marker,
+details.detail-row > summary::-webkit-details-marker {
+  display: none;
+}
+.detail-list > details > summary::after,
+details.detail-row > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 2px;
+  border: solid var(--theme-muted);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+}
+.detail-list > details[open] > summary::after,
+details.detail-row[open] > summary::after {
+  transform: rotate(45deg);
+}
+.detail-list > details > summary:hover,
+details.detail-row > summary:hover {
+  background: var(--theme-hover);
+}
+.detail-list > details:first-child > summary {
+  border-radius: 9px 9px 0 0;
+}
+.detail-list > details:last-child:not([open]) > summary {
+  border-radius: 0 0 9px 9px;
+}
+.detail-list > details:only-child:not([open]) > summary {
+  border-radius: 9px;
+}
+.detail-list .detail-title,
+.detail-row .detail-title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.detail-list .detail-state,
+.detail-row .detail-state {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  color: var(--theme-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-list .detail-state.good {
+  color: var(--theme-success-text);
+}
+.detail-list .detail-state.bad {
+  color: var(--theme-warning-text);
+}
+/* max-width keeps full-width content such as tables inside the side margins. */
+.detail-list > details > :not(summary) {
+  max-width: calc(100% - 28px);
+  margin: 0 14px 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-list > details > summary::after,
+  details.detail-row > summary::after {
+    transition: none;
+  }
+}
+/* "3 Einträge" under a figure or a help question: a link-like toggle with a
+   chevron that turns, instead of the small disclosure triangle. .chevron-toggle
+   keeps the surrounding colour, e.g. "Technische Details" in an error notice. */
+.link-toggle > summary,
+.chevron-toggle > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  list-style: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.link-toggle > summary {
+  color: var(--theme-accent);
+  font-weight: 600;
+}
+.link-toggle > summary::-webkit-details-marker,
+.chevron-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+.link-toggle > summary::after,
+.chevron-toggle > summary::after {
+  flex: none;
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-top: -3px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+.link-toggle[open] > summary::after,
+.chevron-toggle[open] > summary::after {
+  margin-top: 2px;
+  transform: rotate(-135deg);
+}
+.link-toggle > summary:hover,
+.chevron-toggle > summary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-toggle > summary::after,
+  .chevron-toggle > summary::after {
+    transition: none;
+  }
+}

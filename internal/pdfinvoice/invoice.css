@@ -1,0 +1,50 @@
+@page { size: A4; margin: 12mm 14mm 32mm; @bottom-center { content: element(pagefooter); } @bottom-right { content: "Seite " counter(page); font-family: sans; font-size: 7pt; color: #586b63; vertical-align: bottom; margin-bottom: 7mm; } }
+body { font-family: sans; font-size: 9pt; line-height: 1.45; color: #293f3a; }
+p { margin: 0 0 1.5mm; }
+table { width: 100%; border-collapse: collapse; }
+td { vertical-align: top; }
+.eyebrow { color: #397e6b; font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.4pt; }
+h1 { font-family: serif; font-size: 24pt; color: #293f3a; margin: 3mm 0 2mm; }
+/* Long seller names: see splitSellerName. Short names keep the h1 above. */
+h1.seller-compact { font-size: 16pt; line-height: 1.4; }
+.seller-subtitle { font-family: serif; font-size: 13pt; font-weight: bold; line-height: 1.4; color: #293f3a; margin: 0 0 2mm; }
+h2 { font-family: serif; font-size: 16pt; color: #293f3a; margin: 0 0 2mm; }
+.invoice-head { border-bottom: 0.8mm solid #397e6b; }
+.invoice-head td { padding: 0 0 8mm; }
+.identity { text-align: right; font-size: 13pt; font-weight: bold; color: #293f3a; padding-left: 4mm; }
+/* htmlbag ignores paragraph margins in table cells; a div's margin is kept. */
+.invoice-logo { margin: 0 0 4mm; text-align: right; }
+.invoice-logo p { margin: 0; line-height: 1; }
+.sender { line-height: 1.55; }
+.recipient { width: 98mm; margin: 10mm 0 8mm; padding: 3mm; min-height: 38mm; }
+.return-address { font-size: 7pt; color: #586b63; padding-bottom: 1mm; border-bottom: 0.2mm solid #d2dbd1; margin-bottom: 5mm; }
+.recipient-name { font-family: serif; font-size: 13pt; font-weight: bold; color: #293f3a; }
+.small { font-size: 8pt; color: #586b63; }
+.invoice-meta { margin-bottom: 8mm; }
+.invoice-meta td { padding: 1mm 3mm; }
+.date-label { color: #586b63; font-size: 7pt; }
+.date-value { font-size: 8pt; text-align: right; }
+.positions th { font-size: 7pt; text-align: left; text-transform: uppercase; color: #586b63; padding: 2mm 1.5mm; border-bottom: 0.3mm solid #d2dbd1; }
+.positions td { padding: 2.5mm 1.5mm; border-bottom: 0.2mm solid #d2dbd1; }
+.num, .positions th.num { text-align: right; }
+.description { font-size: 8pt; color: #586b63; margin-top: 1mm; white-space: pre-wrap; }
+.document-bottom { margin-top: 0; }
+.first-bottom { margin-top: 8mm; page-break-inside: avoid; }
+.payment { padding: 2mm 10mm 0 0; }
+
+.caption { font-size: 7pt; text-transform: uppercase; color: #586b63; font-weight: bold; }
+.paragraph { white-space: pre-wrap; font-size: 9pt; margin-bottom: 2mm; }
+.total-labels, .total-values { padding: 0 1mm; }
+.total-values { text-align: right; }
+.total-entry { margin: 0; padding: 2mm 0; }
+.grand { border-top: 0.6mm solid #293f3a; padding-top: 3mm; font-size: 12pt; font-weight: bold; color: #293f3a; }
+.positions th p { margin: 0; }
+.pagefooter { position: running(pagefooter); font-family: sans; font-size: 7pt; line-height: 1.5; color: #586b63; }
+.pagefooter table { width: 100%; border-top: 0.2mm solid #d2dbd1; }
+.pagefooter td { padding: 3mm 3mm 0 0; }
+.adjustments { margin-top: 5mm; font-size: 9pt; }
+.adjustments th { text-align: left; font-size: 7pt; color: #586b63; padding: 2mm 1mm; }
+.adjustments td { padding: 2mm 1mm; border-bottom: 0.2mm solid #d2dbd1; }
+.adjustments th.num { text-align: right; }
+.payment-qr { margin-top: 5mm; page-break-inside: avoid; }
+.payment-qr td { vertical-align: middle; }

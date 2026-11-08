@@ -1,0 +1,43 @@
+.task
+bin
+frontend/dist
+frontend/dist-demo
+/e-rechnung-studio
+/e-rechnung-studio.exe
+frontend/node_modules
+build/linux/appimage/build
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+.tools/
+.DS_Store
+/.vscode/
+/.idea/
+/output/
+# Retired mobile targets may still contain local caches
+/build/android/
+/build/ios/
+/release-assets/
+/tmp/
+/.testdaten/
+__pycache__/
+*.pyc
+*.syso
+
+# Local configuration, credentials and application data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Local AI assistant files: session settings, worktrees, personal notes
+.claude/
+CLAUDE.local.md
+
+# Apple API keys
+*.p8

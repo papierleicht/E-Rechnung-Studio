@@ -1,0 +1,10 @@
+DocBook 577
+RelaxNGSpectest 965
+TestQT3 29901
+TestQT3XQuery 29901
+TestXSLT30Suite 8640
+TestXSLTSuite 6149
+VendoredSchemas 185
+XSD10 39356
+XSD11 41543
+XSpec 225

@@ -1,0 +1,10 @@
+/* See narrow.ts: the sidebar overlays the page instead of narrowing it. */
+@media screen and (max-width: 760px) {
+  .shell.app-shell {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .app-shell .sidebar {
+    z-index: 40;
+    box-shadow: 0 12px 40px var(--theme-shadow);
+  }
+}

@@ -1,0 +1,62 @@
+name: Bug report
+description: Report reproducible library, protocol, CLI, or C-ABI behavior
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never include a PIN, TAN, complete FinTS request, account number, IBAN,
+        customer ID, system ID, or unredacted bank response.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Commit or release version
+    validations:
+      required: true
+  - type: input
+    id: go
+    attributes:
+      label: Go version and operating system
+      placeholder: go1.22.x, linux/amd64
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Go library
+        - CLI
+        - C shared library
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: Include sanitized error codes and segment types, but no credentials or financial data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Use placeholder credentials and redact account data.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Sensitive-data check
+      options:
+        - label: I removed credentials, identifiers, financial data, and raw signed FinTS messages.
+          required: true
