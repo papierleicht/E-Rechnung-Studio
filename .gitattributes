@@ -1,0 +1,4 @@
+# GitHub-Sprachstatistik (Linguist):
+# Die Prüfregeln (XSLT, XSD, Schematron) stammen von KoSIT bzw. FeRD und werden
+# nur mitgeliefert. Sie zählen deshalb nicht als eigener Code.
+internal/validation/rules/** linguist-vendored
