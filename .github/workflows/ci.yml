@@ -9,6 +9,25 @@ on:
 permissions:
   contents: read
 jobs:
+  # Decides whether this change needs the build and test steps below. Changes
+  # to documentation the app does not ship (scripts/ci-changes.mjs) skip them;
+  # the jobs still run and pass, as main requires their checks.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.diff.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+      - id: diff
+        run: node scripts/ci-changes.mjs --event "$GITHUB_EVENT_PATH"
   policy:
     name: Commit policy
     runs-on: ubuntu-latest
@@ -27,24 +46,46 @@ jobs:
       - run: node scripts/check-version.mjs
   frontend:
     name: Frontend
+    needs: changes
+    # Runs even when "changes" failed, and then builds: only a clear "false"
+    # skips the steps.
+    if: ${{ !cancelled() }}
+    env:
+      BUILD: ${{ needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Skip build and tests
+        if: env.BUILD != 'true'
+        run: echo "Only documentation the app does not ship changed; build and tests skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.BUILD == 'true'
         with:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: env.BUILD == 'true'
         with:
           node-version: "26"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --prefix frontend
-      - run: npm --prefix frontend run check
-      - run: npm --prefix frontend test
-      - run: npm --prefix frontend run format:check
-      - run: npm --prefix frontend run build
+      - if: env.BUILD == 'true'
+        run: npm ci --prefix frontend
+      - if: env.BUILD == 'true'
+        run: npm --prefix frontend run check
+      - if: env.BUILD == 'true'
+        run: npm --prefix frontend test
+      - if: env.BUILD == 'true'
+        run: npm --prefix frontend run format:check
+      - if: env.BUILD == 'true'
+        run: npm --prefix frontend run build
   desktop:
     name: Desktop (${{ matrix.os }})
+    needs: changes
+    # Runs even when "changes" failed, and then builds: only a clear "false"
+    # skips the steps.
+    if: ${{ !cancelled() }}
+    env:
+      BUILD: ${{ needs.changes.outputs.build != 'false' }}
     strategy:
       fail-fast: false
       matrix:
@@ -55,25 +96,35 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Skip build and tests
+        if: env.BUILD != 'true'
+        run: echo "Only documentation the app does not ship changed; build and tests skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.BUILD == 'true'
         with:
           persist-credentials: false
       - name: Install GTK 4 and WebKitGTK 6.0 development packages
-        if: runner.os == 'Linux'
+        if: env.BUILD == 'true' && runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev libx11-dev
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: env.BUILD == 'true'
         with:
           go-version: stable
           check-latest: true
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: env.BUILD == 'true'
         with:
           node-version: "26"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --prefix frontend
-      - run: npm --prefix frontend run build
-      - run: go test ./...
+      - if: env.BUILD == 'true'
+        run: npm ci --prefix frontend
+      - if: env.BUILD == 'true'
+        run: npm --prefix frontend run build
+      - if: env.BUILD == 'true'
+        run: go test ./...
       - name: Build desktop executable
+        if: env.BUILD == 'true'
         run: go build -tags production -o bin/e-rechnung-studio${{ runner.os == 'Windows' && '.exe' || '' }} .
