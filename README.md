@@ -10,18 +10,29 @@
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](#mitwirken)
 [![Lizenz: MPL-2.0](https://img.shields.io/badge/Lizenz-MPL--2.0-blue)](LICENSE)
 
-Desktop-App von papierleicht für Selbstständige und kleine Unternehmen in
-Deutschland: Angebote, E-Rechnungen, Zahlungen, Belege und Steuerwerte an einem
-Ort. Die App läuft lokal auf deinem Rechner, deine Daten bleiben auf deinem
-Gerät, und für die tägliche Arbeit brauchst du weder Internet noch Konto.
-Entwickelt mit Go, Wails 3 und Svelte.
+**Desktop-App für macOS, Windows und Linux** von papierleicht, für
+Selbstständige und kleine Unternehmen in Deutschland: Angebote, E-Rechnungen,
+Zahlungen, Belege und Steuerwerte an einem Ort. Die App wird installiert und
+läuft lokal auf deinem Rechner, deine Daten bleiben auf deinem Gerät, und für
+die tägliche Arbeit brauchst du weder Internet noch Konto. Entwickelt mit Go,
+Wails 3 und Svelte.
 
-**[Demo im Browser](https://papierleicht.de/#demo)** ·
+**[Herunterladen](https://github.com/papierleicht/E-Rechnung-Studio/releases/latest)** ·
+[Demo im Browser](https://papierleicht.de/#demo) ·
 [Videos](https://www.youtube.com/@papierleicht) ·
 [Website](https://papierleicht.de) ·
 [Releases](https://github.com/papierleicht/E-Rechnung-Studio/releases) ·
 [Changelog](CHANGELOG.md) ·
 [Sicherheitslücken melden](SECURITY.md)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/uebersicht-dunkel.png">
+  <img src="docs/screenshots/uebersicht.png" alt="Das Fenster von E-Rechnung-Studio unter macOS: links die Navigation, rechts die Übersicht mit „Neue Rechnung“, offenen Beträgen und einer Liste, was zu erledigen ist." width="100%">
+</picture>
+
+<sub>E-Rechnung-Studio als Programmfenster unter macOS, mit Beispieldaten. Unter
+Windows und Linux läuft dieselbe App im Fenster des jeweiligen Systems; sie
+folgt dem hellen oder dunklen Erscheinungsbild des Systems.</sub>
 
 ## Was du mit der App machen kannst
 
@@ -54,6 +65,29 @@ Entwickelt mit Go, Wails 3 und Svelte.
 - **Chat & Markt:** Austausch mit anderen Selbstständigen sowie Angebote und
   Gesuche.
 - **Sichern:** Daten sichern und wiederherstellen.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/screenshots/rechnung-erstellen.png"><img src="docs/screenshots/rechnung-erstellen.png" alt="Eine neue Rechnung mit zwei Positionen, Summen und Umsatzsteuer, bearbeitet direkt im Dokument."></a>
+      <br><b>Rechnung schreiben:</b> direkt im Dokument; Summen und Umsatzsteuer rechnet die App.
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/screenshots/e-rechnung-pruefen.png"><img src="docs/screenshots/e-rechnung-pruefen.png" alt="Eine empfangene XRechnung mit Formatfehler: die App erklärt den Befund und schlägt vor, die Vorsteuer nicht einzurechnen."></a>
+      <br><b>E-Rechnung prüfen:</b> Befund in einem verständlichen Satz, Vorschlag der App, Entscheidung bei dir.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/screenshots/kundenrechnungen.png"><img src="docs/screenshots/kundenrechnungen.png" alt="Liste der Kundenrechnungen mit Betrag und Status: Entwurf, offen, überfällig, bezahlt."></a>
+      <br><b>Kundenrechnungen:</b> offen, überfällig oder bezahlt auf einen Blick.
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/screenshots/finanzen.png"><img src="docs/screenshots/finanzen.png" alt="Konto und Finanzen: „Reicht das Geld?“ als Balken sowie Einnahmen, Ausgaben und Ergebnis im Quartal."></a>
+      <br><b>Konto & Finanzen:</b> „Reicht das Geld?“ und Ergebnis je Monat, Quartal und Jahr.
+    </td>
+  </tr>
+</table>
 
 ## Lokal und offline
 
