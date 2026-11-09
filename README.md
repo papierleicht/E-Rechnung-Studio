@@ -18,9 +18,9 @@ die tägliche Arbeit brauchst du weder Internet noch Konto. Entwickelt mit Go,
 Wails 3 und Svelte.
 
 **[Herunterladen](https://github.com/papierleicht/E-Rechnung-Studio/releases/latest)** ·
-[Demo im Browser](https://papierleicht.de/#demo) ·
+[Demo im Browser](https://papierleicht.de/?utm_source=github&utm_medium=readme&utm_content=linkzeile-demo#demo) ·
 [Videos](https://www.youtube.com/@papierleicht) ·
-[Website](https://papierleicht.de) ·
+[Website](https://papierleicht.de/?utm_source=github&utm_medium=readme&utm_content=linkzeile-website) ·
 [Releases](https://github.com/papierleicht/E-Rechnung-Studio/releases) ·
 [Changelog](CHANGELOG.md) ·
 [Sicherheitslücken melden](SECURITY.md)
@@ -128,7 +128,7 @@ python3 scripts/zugferd_parity.py /tmp/format-qa
 
 ## Ausprobieren
 
-Die [Demo auf papierleicht.de](https://papierleicht.de/#demo) zeigt die
+Die [Demo auf papierleicht.de](https://papierleicht.de/?utm_source=github&utm_medium=readme&utm_content=demo-abschnitt#demo) zeigt die
 Oberfläche mit Beispieldaten im Browser, ohne Installation. Datei-Export,
 E-Mail-Versand, Bankabruf und die vollständige Prüfung gibt es nur in der
 Desktop-App.
