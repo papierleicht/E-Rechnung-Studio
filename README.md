@@ -17,6 +17,7 @@ Gerät, und für die tägliche Arbeit brauchst du weder Internet noch Konto.
 Entwickelt mit Go, Wails 3 und Svelte.
 
 **[Demo im Browser](https://papierleicht.de/#demo)** ·
+[Videos](https://www.youtube.com/@papierleicht) ·
 [Website](https://papierleicht.de) ·
 [Releases](https://github.com/papierleicht/E-Rechnung-Studio/releases) ·
 [Changelog](CHANGELOG.md) ·
@@ -97,6 +98,14 @@ Die [Demo auf papierleicht.de](https://papierleicht.de/#demo) zeigt die
 Oberfläche mit Beispieldaten im Browser, ohne Installation. Datei-Export,
 E-Mail-Versand, Bankabruf und die vollständige Prüfung gibt es nur in der
 Desktop-App.
+
+Kurze Videos zeigen die wichtigsten Abläufe in der App (je etwa eine Minute,
+auf dem [YouTube-Kanal @papierleicht](https://www.youtube.com/@papierleicht)):
+
+- [E-Rechnung erstellen (ZUGFeRD)](https://www.youtube.com/watch?v=c3dP6Oo1qM4)
+- [XRechnung für Behörden mit Leitweg-ID](https://www.youtube.com/watch?v=-OTw0T-21wE)
+- [Empfangene E-Rechnungen öffnen und prüfen](https://www.youtube.com/watch?v=cpWWGhcNTDU)
+- [Die App in einer Minute](https://www.youtube.com/watch?v=h2r_w-191s4)
 
 ## Installieren
 
