@@ -1,5 +1,11 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Fragen und Hilfe
+    url: https://github.com/papierleicht/E-Rechnung-Studio/discussions/categories/q-a
+    about: Fragen zur Bedienung und Einrichtung bitte in den Discussions stellen, nicht als Issue.
+  - name: Ideen besprechen
+    url: https://github.com/papierleicht/E-Rechnung-Studio/discussions/categories/ideas
+    about: Ideen erst in den Discussions besprechen; ein Funktionswunsch als Issue, wenn er feststeht.
   - name: Sicherheitslücke melden
     url: https://github.com/papierleicht/E-Rechnung-Studio/blob/main/SECURITY.md
     about: Vertraulich per E-Mail oder über „Report a vulnerability“, nicht als öffentliches Issue.

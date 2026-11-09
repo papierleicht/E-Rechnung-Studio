@@ -277,7 +277,8 @@ oder nicht unterstützt, `1` für Ausführungsfehler.
 
 Issues und Pull Requests sind auf Deutsch oder Englisch willkommen. Größere
 Änderungen (neue Funktionen, Datenformate, Steuerlogik) bitte vorher in einem
-Issue abstimmen. Beiträge stehen unter der [MPL-2.0](LICENSE) des Projekts.
+Issue abstimmen. Fragen und Ideen gehören in die
+[Discussions](https://github.com/papierleicht/E-Rechnung-Studio/discussions). Beiträge stehen unter der [MPL-2.0](LICENSE) des Projekts.
 
 - Commit- und PR-Titel folgen [Conventional Commits](https://www.conventionalcommits.org/):
   `type(scope): description` mit einem der Typen `feat`, `fix`, `deps`, `perf`,
