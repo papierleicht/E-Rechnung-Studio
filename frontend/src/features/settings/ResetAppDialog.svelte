@@ -23,7 +23,9 @@
     typed = $state(""),
     busy = $state(false),
     error = $state(""),
-    done = $state<ResetResult | null>(null);
+    done = $state<ResetResult | null>(null),
+    // The setup's answers stay unless the customer wants a clean slate.
+    keepSetup = $state(true);
   const matches = $derived(typed.trim() === confirmation);
   const hasRecords = $derived(
     !!overview && overview.issuedInvoices + overview.receivedDocuments > 0,
@@ -47,7 +49,7 @@
     busy = true;
     error = "";
     try {
-      done = await ResetAPI.ResetApp(typed);
+      done = await ResetAPI.ResetApp(typed, keepSetup);
       // Remembered views and answers in this window belong to the old data.
       try {
         localStorage.clear();
@@ -118,8 +120,10 @@
     <div class="page-settings-body">
       {#if done}
         <p role="status">
-          Beim Beenden löscht die App alle Daten auf diesem Gerät. Beim nächsten Start beginnt sie
-          leer, wie nach der Installation.
+          {#if keepSetup}Beim Beenden löscht die App deine Daten auf diesem Gerät. Beim nächsten
+            Start sind deine Angaben aus der Einrichtung schon da, alles andere beginnt neu.{:else}Beim
+            Beenden löscht die App alle Daten auf diesem Gerät. Beim nächsten Start beginnt sie
+            leer, wie nach der Installation.{/if}
         </p>
         {#if done.keychainLeft?.length}
           <p class="reset-warning">
@@ -130,19 +134,55 @@
         {/if}
       {:else}
         <p>
-          Das setzt die App auf den Stand nach der Installation zurück, zum Beispiel nachdem du sie
-          ausprobiert hast. Gelöscht wird alles, was die App auf diesem Gerät gespeichert hat:
+          Das setzt die App zurück, zum Beispiel nachdem du sie ausprobiert hast. Wähle, womit du
+          danach startest:
         </p>
+        <fieldset class="reset-mode" disabled={busy} aria-label="Umfang des Zurücksetzens">
+          <label
+            ><input type="radio" name="reset-mode" value={true} bind:group={keepSetup} />
+            <span
+              ><strong>Daten löschen, Einrichtung behalten</strong>
+              <small
+                >Wie eine frische Installation, aber ohne die Einrichtung noch einmal zu
+                durchlaufen.</small
+              ></span
+            ></label
+          >
+          <label
+            ><input type="radio" name="reset-mode" value={false} bind:group={keepSetup} />
+            <span
+              ><strong>Alles löschen</strong>
+              <small>Wie nach der Installation, die Einrichtung beginnt von vorn.</small></span
+            ></label
+          >
+        </fieldset>
+        <p>Gelöscht wird:</p>
         <ul>
           <li>
-            Rechnungen, Angebote, Entwürfe, Kunden, Artikel, Belege, Zahlungen und alle
-            Einstellungen{#if records}, darunter {records}{/if}
+            Rechnungen, Angebote, Entwürfe, Kunden, Artikel, Belege, Zahlungen und Bankumsätze{#if records},
+              darunter {records}{/if}
           </li>
-          <li>Gespeicherte Passwörter für E-Mail-Versand, Bankzugang und Shops</li>
-          {#if overview?.signedIn}<li>Deine Anmeldung bei papierleicht auf diesem Gerät</li>{/if}
+          {#if keepSetup}
+            <li>
+              Weitere Einstellungen wie Nummernkreise, Mahnstufen und DATEV; sie beginnen wieder mit
+              den Vorgaben
+            </li>
+            <li>Gespeicherte Zugänge für Bank und Shops</li>
+          {:else}
+            <li>Alle Einstellungen, auch deine Angaben aus der Einrichtung</li>
+            <li>Gespeicherte Passwörter für E-Mail-Versand, Bankzugang und Shops</li>
+            {#if overview?.signedIn}<li>Deine Anmeldung bei papierleicht auf diesem Gerät</li>{/if}
+          {/if}
         </ul>
         <p>Erhalten bleiben:</p>
         <ul>
+          {#if keepSetup}
+            <li>
+              Deine Angaben aus der Einrichtung: Unternehmen mit Logo und Bankverbindung,
+              steuerliche Angaben und Steuerprofil, E-Mail-Konto und Darstellung{#if overview?.signedIn},
+                dazu deine Anmeldung bei papierleicht{/if}
+            </li>
+          {/if}
           <li>
             Dateien, die du exportiert oder gesichert hast{#if overview?.exportDirectory}, etwa im
               Exportordner <code>{overview.exportDirectory}</code>{/if}
@@ -157,7 +197,9 @@
           <div class="reset-warning">
             <p>
               Waren das keine Testdaten? Ausgestellte Rechnungen und Belege musst du in der Regel
-              acht Jahre aufbewahren. Exportiere sie vorher als Sicherung.
+              acht Jahre aufbewahren. Exportiere sie vorher als Sicherung. Nach dem Zurücksetzen
+              beginnen die Rechnungsnummern wieder von vorn; jede Nummer darf aber nur einmal
+              vorkommen.
             </p>
             <button type="button" class="secondary" disabled={busy} onclick={exportBackup}
               >Sicherung exportieren</button
@@ -183,7 +225,8 @@
       {:else}
         <button type="button" class="secondary" disabled={busy} onclick={cancel}>Abbrechen</button>
         <button class="danger-text" disabled={busy || !matches || !overview}
-          ><Icon name="trash" size={16} /> {busy ? "Wird zurückgesetzt …" : "Alles löschen"}</button
+          ><Icon name="trash" size={16} />
+          {busy ? "Wird zurückgesetzt …" : keepSetup ? "Daten löschen" : "Alles löschen"}</button
         >
       {/if}
     </footer>
@@ -217,6 +260,34 @@
     background: var(--theme-warning-bg);
     color: var(--theme-warning-text);
     line-height: 1.45;
+  }
+  .reset-mode {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .reset-mode label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--theme-border);
+    border-radius: var(--ui-control-radius);
+    cursor: pointer;
+  }
+  .reset-mode label:has(input:checked) {
+    border-color: var(--theme-focus);
+  }
+  .reset-mode span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .reset-mode small {
+    color: var(--theme-muted);
+    line-height: 1.4;
   }
   .reset-confirm {
     display: grid;

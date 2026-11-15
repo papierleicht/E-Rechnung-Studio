@@ -203,8 +203,9 @@
         <div>
           <h2>App zurücksetzen</h2>
           <p>
-            Löscht alle Daten und gespeicherten Zugangsdaten auf diesem Gerät, etwa nachdem du die
-            App ausprobiert hast. Danach beginnt sie wie nach der Installation.
+            Löscht deine Daten auf diesem Gerät, etwa nachdem du die App ausprobiert hast. Auf
+            Wunsch bleiben deine Angaben aus der Einrichtung erhalten, sonst beginnt die App wie
+            nach der Installation.
           </p>
         </div>
         <div class="actions">

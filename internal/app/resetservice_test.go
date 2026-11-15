@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"papierleicht.de/e-rechnung-studio/internal/account"
+	"papierleicht.de/e-rechnung-studio/internal/store"
 )
 
 type fakeResetAccount struct {
@@ -59,7 +60,7 @@ func TestResetOverviewCountsWhatGoes(t *testing.T) {
 
 func TestResetNeedsTheTypedConfirmation(t *testing.T) {
 	s, acc, deleted, dir := newResetFixture(t)
-	if _, err := s.ResetApp("ja"); err == nil {
+	if _, err := s.ResetApp("ja", false); err == nil {
 		t.Fatal("reset without confirmation")
 	}
 	if acc.signOuts != 0 || len(*deleted) != 0 {
@@ -78,7 +79,7 @@ func TestResetSignsOutClearsSecretsAndRemovesTheFolder(t *testing.T) {
 	s.invoices.close.setDirty(true)
 	quit := make(chan struct{})
 	s.quit = func() { close(quit) }
-	if _, err := s.ResetApp(" " + ResetConfirmation + " "); err != nil {
+	if _, err := s.ResetApp(" "+ResetConfirmation+" ", false); err != nil {
 		t.Fatal(err)
 	}
 	if acc.signOuts != 1 {
@@ -114,7 +115,7 @@ func TestResetReportsKeychainLeftovers(t *testing.T) {
 		}
 		return nil
 	}
-	r, err := s.ResetApp(ResetConfirmation)
+	r, err := s.ResetApp(ResetConfirmation, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,5 +176,95 @@ func TestResetAtStartDropsTheMarkerWhenFilesStay(t *testing.T) {
 	finishResetAtStart(dir)
 	if resetPending(dir) {
 		t.Fatal("marker kept after the start gave up")
+	}
+}
+
+func TestResetKeepingTheSetupStartsFreshWithTheSetupAnswers(t *testing.T) {
+	s, acc, deleted, dir := newResetFixture(t)
+	inv := s.invoices
+	issueNumbered(t, inv, "RST-2026-001")
+	c, err := inv.store.Company()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.SetupCompleted = true
+	c.Logo = "bG9nbw=="
+	if err = inv.store.SaveCompany(c); err != nil {
+		t.Fatal(err)
+	}
+	f, err := inv.store.FinanceSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Activity, f.Filing, f.VATPeriod = "freelance", "advisor", "quarterly"
+	f.Balances = []store.AccountBalance{{AccountID: "a", Amount: "12.00", Date: "2026-11-01"}}
+	if _, err = inv.store.SaveFinanceSettings(f); err != nil {
+		t.Fatal(err)
+	}
+	db := inv.store.DB()
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS mail_settings (id INTEGER PRIMARY KEY CHECK(id=1), data BLOB NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(`INSERT INTO mail_settings(id,data) VALUES(1,?)`, []byte(`{"account":{"host":"smtp.example.de"}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(dir, "account-device-id"), []byte("device"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = s.ResetApp(ResetConfirmation, true); err != nil {
+		t.Fatal(err)
+	}
+	if acc.signOuts != 0 {
+		t.Fatal("keeping the setup keeps the sign-in")
+	}
+	if slices.Contains(*deleted, mailKeyringService) || !slices.Contains(*deleted, shopKeyringService) {
+		t.Fatalf("keychain services %v: the mail password stays, the rest goes", *deleted)
+	}
+	if err = finishPendingReset(dir); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := []string{}
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	slices.Sort(names)
+	if !slices.Equal(names, []string{resetKeepFile, "account-device-id"}) {
+		t.Fatalf("after the reset the folder holds %v", names)
+	}
+
+	fresh, err := NewInvoiceService(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { fresh.Close() })
+	if _, err = fresh.store.DB().Exec(`CREATE TABLE IF NOT EXISTS mail_settings (id INTEGER PRIMARY KEY CHECK(id=1), data BLOB NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	if err = restoreKeptSetup(dir, fresh); err != nil {
+		t.Fatal(err)
+	}
+	got, err := fresh.store.Company()
+	if err != nil || got.Name != c.Name || got.Logo != c.Logo || !got.SetupCompleted || got.IBAN != c.IBAN {
+		t.Fatalf("company %+v %v", got, err)
+	}
+	gf, err := fresh.store.FinanceSettings()
+	if err != nil || gf.Activity != "freelance" || gf.Filing != "advisor" || gf.VATPeriod != "quarterly" || len(gf.Balances) != 0 {
+		t.Fatalf("finance %+v %v", gf, err)
+	}
+	var mail []byte
+	if err = fresh.store.DB().QueryRow(`SELECT data FROM mail_settings WHERE id=1`).Scan(&mail); err != nil || string(mail) != `{"account":{"host":"smtp.example.de"}}` {
+		t.Fatalf("mail %s %v", mail, err)
+	}
+	o, err := (&ResetService{dataDir: dir, invoices: fresh}).ResetOverview()
+	if err != nil || o.IssuedInvoices != 0 {
+		t.Fatalf("the invoices must be gone: %+v %v", o, err)
+	}
+	if _, err = os.Stat(filepath.Join(dir, resetKeepFile)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("the keep file stays after the restore")
 	}
 }

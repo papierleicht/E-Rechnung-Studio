@@ -17,12 +17,14 @@ export function QuitAfterReset(): $CancellablePromise<void> {
 }
 
 /**
- * ResetApp signs out, removes the stored mail, bank and shop secrets and
- * marks the data folder for removal. The caller ends the app with
- * QuitAfterReset; until then nothing is deleted from the folder.
+ * ResetApp marks the data folder for removal and removes what the reset
+ * takes along from the keychain. With keepSetup the answers of the setup
+ * stay (company with logo, tax profile, app settings, mail account) and so
+ * does the sign-in; everything else starts fresh. The caller ends the app
+ * with QuitAfterReset; until then nothing is deleted from the folder.
  */
-export function ResetApp(confirmation: string): $CancellablePromise<$models.ResetResult> {
-    return $Call.ByID(1742944074, confirmation);
+export function ResetApp(confirmation: string, keepSetup: boolean): $CancellablePromise<$models.ResetResult> {
+    return $Call.ByID(1742944074, confirmation, keepSetup);
 }
 
 /**

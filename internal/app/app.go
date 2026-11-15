@@ -46,6 +46,9 @@ func Run(assets fs.FS, version string) {
 		log.Fatal(err)
 	}
 	invoices.mail = mailService.mail
+	if err := restoreKeptSetup(dataDir, invoices); err != nil {
+		log.Printf("reset: restore setup: %v", err)
+	}
 	defer mailService.Close()
 	accounts, err := NewAccountService(dataDir)
 	if err != nil {
