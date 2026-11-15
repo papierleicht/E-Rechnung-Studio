@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	pdf "github.com/speedata/pdfdisassembler"
+	erechnung "github.com/papierleicht/go-e-rechnung-validator"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"papierleicht.de/e-rechnung-studio/internal/invoicexml"
 	"papierleicht.de/e-rechnung-studio/internal/model"
@@ -134,100 +133,18 @@ func receivedInvoiceXML(data []byte, kind string) ([]byte, *model.ImportInspecti
 	if kind == "xml" {
 		return data, nil, nil
 	}
-	fail := func(err error) ([]byte, *model.ImportInspection, error) { return nil, nil, err }
-	r, err := pdf.Open(bytes.NewReader(data), pdf.WithMaxStreamSize(maxReceivedSize))
-	if err != nil {
-		return fail(fmt.Errorf("Die PDF ist beschädigt, verschlüsselt oder nicht lesbar: %w", err))
-	}
-	defer r.Close()
-	if count, err := r.PageCount(); err != nil || count == 0 {
-		return fail(errors.New("Die PDF enthält keine lesbaren Seiten."))
-	}
-	cat, err := r.Catalog()
-	if err != nil {
-		return fail(err)
-	}
-	attachments := r.EmbeddedFiles()
-	// Associated files may be registered in /AF without an EmbeddedFiles name tree.
-	if associated, ok := cat.Array("AF"); ok {
-		for _, ref := range associated {
-			spec, err := r.ResolveDict(ref)
-			if err != nil {
-				return fail(errors.New("Ein PDF-Anhang ist nicht lesbar."))
-			}
-			attachments = append(attachments, pdf.EmbeddedFile{Spec: spec})
-		}
-	}
-	if len(attachments) > 128 {
-		return fail(errors.New("Die PDF enthält zu viele Anhänge (maximal 128)."))
-	}
-	seen := map[*pdf.Dict]bool{}
-	var candidates [][]byte
-	var otherXML [][]byte
-	decodedSize := 0
-	for _, attachment := range attachments {
-		if seen[attachment.Spec] {
-			continue
-		}
-		seen[attachment.Spec] = true
-		name := attachment.Name
-		if n, ok := attachment.Spec.String("UF"); ok {
-			name = string(n)
-		} else if n, ok := attachment.Spec.String("F"); ok {
-			name = string(n)
-		}
-		ef, ok := attachment.Spec.Dict("EF")
-		if !ok {
-			return fail(errors.New("Ein PDF-Anhang enthält keine lesbaren Daten."))
-		}
-		stream, ok := ef.Get("UF")
-		if !ok {
-			stream, ok = ef.Get("F")
-		}
-		if !ok {
-			return fail(errors.New("Ein PDF-Anhang enthält keine lesbaren Daten."))
-		}
-		content, err := r.DecodeStream(stream)
-		if err != nil {
-			return fail(fmt.Errorf("PDF-Anhang konnte nicht gelesen werden: %w", err))
-		}
-		decodedSize += len(content)
-		if decodedSize > maxReceivedSize {
-			return fail(errors.New("Die entpackten PDF-Anhänge überschreiten 20 MB."))
-		}
-		if invoiceXML(content) {
-			candidates = append(candidates, content)
-		} else if strings.HasSuffix(strings.ToLower(name), ".xml") {
-			otherXML = append(otherXML, content)
-		}
-	}
-	// Still inspect malformed XML attachments, but don't let unrelated metadata
-	// displace a recognizable invoice.
-	if len(candidates) == 0 {
-		candidates = otherXML
-	}
-	if len(candidates) == 0 {
+	invoice, err := erechnung.ExtractXML(data)
+	switch {
+	case errors.Is(err, erechnung.ErrNoInvoiceXML):
 		notice := receivedNotice("PDF-NO-XML", "Keine eingebetteten Rechnungsdaten gefunden. Du kannst dieses PDF als Beleg speichern, es gilt aber nicht als strukturierte E-Rechnung. Ein PDF kann noch ausreichen, wenn du zugestimmt hast: für Leistungen bis Ende 2026, für Leistungen im Jahr 2027 nur, wenn der Aussteller im Vorjahr höchstens 800.000 € Gesamtumsatz hatte (§ 27 Abs. 38 UStG). Ob das auf diese Rechnung zutrifft, prüft die App nicht.")
 		return nil, &notice, nil
-	}
-	if len(candidates) != 1 {
+	case errors.Is(err, erechnung.ErrMultipleInvoiceXML):
 		notice := receivedNotice("PDF-MULTIPLE-XML", "Die PDF enthält mehrere Rechnungsdateien. Eine eindeutige Prüfung ist deshalb nicht möglich.")
 		return nil, &notice, nil
+	case err != nil:
+		return nil, nil, fmt.Errorf("Die PDF oder einer ihrer Anhänge ist beschädigt, verschlüsselt, zu groß oder nicht lesbar: %w", err)
 	}
-	return candidates[0], nil, nil
-}
-
-func invoiceXML(data []byte) bool {
-	decoder := xml.NewDecoder(bytes.NewReader(data))
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return false
-		}
-		if start, ok := token.(xml.StartElement); ok {
-			return start.Name.Local == "CrossIndustryInvoice" || start.Name.Local == "Invoice" || start.Name.Local == "CreditNote"
-		}
-	}
+	return invoice, nil, nil
 }
 
 func receivedNotice(rule, message string) model.ImportInspection {

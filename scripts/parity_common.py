@@ -84,5 +84,12 @@ def app_validate(cli, paths, workers=4):
         return dict(pool.map(one, paths))
 
 
+def validator_rules():
+    """Rule folder of the go-e-rechnung-validator module the app builds with (from go.mod)."""
+    module = subprocess.run(["go", "list", "-m", "-f", "{{.Dir}}", "github.com/papierleicht/go-e-rechnung-validator"],
+                            cwd=root, capture_output=True, text=True, check=True).stdout.strip()
+    return Path(module) / "rules"
+
+
 def workdir(prefix):
     return Path(tempfile.mkdtemp(prefix=prefix))
