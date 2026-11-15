@@ -524,6 +524,43 @@ export interface FinanceYear {
 }
 
 /**
+ * The updater replaces the app where it runs: the .app bundle on macOS, the
+ * .exe on Windows and the AppImage on Linux. That only works when the app may
+ * write to that folder and the folder still exists after the app quits.
+ * InstallLocation tells the frontend whether this is the case and where the
+ * app can move itself so that updates work.
+ */
+export interface InstallLocation {
+    /**
+     * CanUpdate is false when the updater could not replace the app here.
+     */
+    "canUpdate": boolean;
+
+    /**
+     * Problem names why: "translocated" (macOS runs a download from a hidden,
+     * read-only copy), "diskImage" (started from a mounted disk image),
+     * "temporary" (started from a temporary folder, e.g. inside a ZIP) or
+     * "readOnly" (the folder is not writable).
+     */
+    "problem"?: string;
+
+    /**
+     * Current is the app the updater would replace.
+     */
+    "current"?: string;
+
+    /**
+     * Target is where MoveApp puts the app; empty when it cannot move itself.
+     */
+    "target"?: string;
+
+    /**
+     * TargetExists is true when MoveApp would replace an app already there.
+     */
+    "targetExists": boolean;
+}
+
+/**
  * InvoiceDeletion tells the UI whether an issued invoice can be deleted.
  */
 export interface InvoiceDeletion {

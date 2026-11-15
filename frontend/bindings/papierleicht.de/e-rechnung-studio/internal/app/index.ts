@@ -57,6 +57,7 @@ export type {
     FinanceMonth,
     FinanceReport,
     FinanceYear,
+    InstallLocation,
     InvoiceDeletion,
     InvoiceMailDraft,
     InvoiceMailRequest,

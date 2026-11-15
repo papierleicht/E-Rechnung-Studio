@@ -4,7 +4,11 @@
     Company,
     AppSettings,
   } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
-  import type { UpdateStatus } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/app/models";
+  import type {
+    InstallLocation,
+    UpdateStatus,
+  } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/app/models";
+  import { installProblemText } from "../../lib/installLocation";
   import ElectronicAddress from "../../components/ElectronicAddress.svelte";
   import Icon from "../../components/Icon.svelte";
   import CompanyTaxSettings from "./CompanyTaxSettings.svelte";
@@ -48,6 +52,8 @@
     shopConnected = false,
     checkForUpdates,
     onopenupdate = () => {},
+    installLocation = { canUpdate: true, targetExists: false },
+    onmoveapp = () => {},
   }: {
     company: Company;
     settings: AppSettings;
@@ -67,6 +73,9 @@
     /** Searches for a release now; the sidebar shows the result as well. */
     checkForUpdates: () => Promise<UpdateStatus>;
     onopenupdate?: () => void;
+    /** Where the app runs; updates fail when it cannot replace itself there. */
+    installLocation?: InstallLocation;
+    onmoveapp?: () => void;
   } = $props();
   let updateCheck = $state<{
     state: "idle" | "checking" | "done" | "error";
@@ -168,6 +177,14 @@
             nach einer neuen Version, solange sie geöffnet ist und Internet hat. Verfügbare Updates
             siehst du unten in der Seitenleiste. Die Installation startest du selbst.
           </p>
+          {#if !installLocation.canUpdate}
+            <p class="update-result error" role="status">
+              {installProblemText(installLocation.problem ?? "")}
+              <button type="button" class="text" onclick={onmoveapp}
+                >{installLocation.target ? "App verschieben …" : "Mehr erfahren"}</button
+              >
+            </p>
+          {/if}
           {#if updateCheck.state !== "idle"}
             <p class="update-result" class:error={updateCheck.state === "error"} role="status">
               {#if updateCheck.state === "checking"}

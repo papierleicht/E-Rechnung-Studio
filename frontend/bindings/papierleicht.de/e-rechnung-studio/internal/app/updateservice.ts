@@ -17,6 +17,22 @@ export function Check(): $CancellablePromise<$models.UpdateStatus> {
 }
 
 /**
+ * Location reports whether updates can replace the app where it runs.
+ */
+export function Location(): $CancellablePromise<$models.InstallLocation> {
+    return $Call.ByID(4120436669);
+}
+
+/**
+ * MoveApp copies the app to the recommended place, starts it from there once
+ * this process has ended and quits. Data stay where they are: they live in the
+ * user's configuration folder, not next to the app.
+ */
+export function MoveApp(): $CancellablePromise<void> {
+    return $Call.ByID(1743740566);
+}
+
+/**
  * Open shows Wails' built-in update flow. The call returns immediately so the
  * frontend remains responsive while Wails checks, downloads, and verifies.
  */

@@ -17,6 +17,7 @@
   import type {
     DeletedInvoiceResult,
     UpdateStatus,
+    InstallLocation,
   } from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/models";
   import type {
     Bootstrap,
@@ -58,6 +59,7 @@
   import CustomerChooser from "./features/customers/CustomerChooser.svelte";
   import InvoiceCompletion from "./features/invoices/InvoiceCompletion.svelte";
   import DeleteInvoiceDialog from "./features/invoices/DeleteInvoiceDialog.svelte";
+  import MoveAppDialog from "./features/settings/MoveAppDialog.svelte";
   import DeletedInvoicesDialog from "./features/invoices/DeletedInvoicesDialog.svelte";
   import RecurringDialog from "./features/recurring/RecurringDialog.svelte";
   import RecurringInvoices from "./features/recurring/RecurringInvoices.svelte";
@@ -224,6 +226,9 @@
     updateAvailable: false,
   });
   let updaterOpening = $state(false);
+  // Where the app runs; updates fail when it cannot replace itself there.
+  let installLocation = $state<InstallLocation>({ canUpdate: true, targetExists: false });
+  let moveAppOpen = $state(false);
   let settingsSaving = $state(false),
     navigationPending = $state(false);
   let confirmation = $state<{
@@ -298,6 +303,11 @@
   }
   async function openUpdater() {
     if (updaterOpening) return;
+    // The update would fail here; offer to move the app first.
+    if (!installLocation.canUpdate) {
+      moveAppOpen = true;
+      return;
+    }
     updaterOpening = true;
     try {
       await UpdateAPI.Open();
@@ -620,6 +630,13 @@
     // A window left open over several days still gets its due recurring drafts.
     const recurringTimer = window.setInterval(() => void runRecurringInvoices(), 3_600_000);
     window.addEventListener("online", poll);
+    void UpdateAPI.Location()
+      .then((location) => {
+        if (disposed) return;
+        installLocation = location;
+        if (!location.canUpdate) moveAppOpen = true;
+      })
+      .catch(() => {});
     void UpdateAPI.Status()
       .then((status) => {
         if (disposed) return;
@@ -2014,6 +2031,8 @@
           {importBackup}
           {checkForUpdates}
           onopenupdate={openUpdater}
+          {installLocation}
+          onmoveapp={() => (moveAppOpen = true)}
           onopenbanking={() => navigate("finance", "accounts")}
         />{/if}
     </main>
@@ -2063,6 +2082,11 @@
     ondirtychange={(dirty) => (dialogDirty = dirty)}
     ondelete={deleteProduct}
     onclose={() => (editingProduct = null)}
+  />{/if}
+{#if moveAppOpen}<MoveAppDialog
+    location={installLocation}
+    {unsaved}
+    onclose={() => (moveAppOpen = false)}
   />{/if}
 {#if inspection}<XMLInspectionDialog {inspection} onclose={() => (inspection = null)} />{/if}
 {#if repeating}<RecurringDialog

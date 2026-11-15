@@ -2213,6 +2213,8 @@ const handlers: Record<string, Handler> = {
   // UpdateService: the demo always shows the published version.
   "UpdateService.Status": () => ({ currentVersion: appVersion.trim(), updateAvailable: false }),
   "UpdateService.Check": () => ({ currentVersion: appVersion.trim(), updateAvailable: false }),
+  "UpdateService.Location": () => ({ canUpdate: true, targetExists: false }),
+  "UpdateService.MoveApp": () => {},
   "UpdateService.Open": () => {
     window.open("https://papierleicht.de/#download", "_blank", "noopener,noreferrer");
   },
