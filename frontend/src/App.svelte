@@ -288,6 +288,14 @@
       error = "Die Website ließ sich nicht öffnen: https://papierleicht.de";
     }
   }
+  let monitor: ReturnType<typeof createUpdateMonitor> | undefined;
+  /** The check the user starts in the settings; the sidebar follows the result. */
+  async function checkForUpdates(): Promise<UpdateStatus> {
+    if (monitor) return monitor.checkNow();
+    const status = await UpdateAPI.Check();
+    updateStatus = status;
+    return status;
+  }
   async function openUpdater() {
     if (updaterOpening) return;
     updaterOpening = true;
@@ -603,7 +611,6 @@
     } catch {}
     load();
     let disposed = false;
-    let monitor: ReturnType<typeof createUpdateMonitor> | undefined;
     const poll = () => {
       void monitor?.tick();
     };
@@ -2005,6 +2012,8 @@
           {chooseExportDirectory}
           {exportBackup}
           {importBackup}
+          {checkForUpdates}
+          onopenupdate={openUpdater}
           onopenbanking={() => navigate("finance", "accounts")}
         />{/if}
     </main>

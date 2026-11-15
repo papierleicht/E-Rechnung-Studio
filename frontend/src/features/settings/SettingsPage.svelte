@@ -4,6 +4,7 @@
     Company,
     AppSettings,
   } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
+  import type { UpdateStatus } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/app/models";
   import ElectronicAddress from "../../components/ElectronicAddress.svelte";
   import Icon from "../../components/Icon.svelte";
   import CompanyTaxSettings from "./CompanyTaxSettings.svelte";
@@ -45,6 +46,8 @@
     importBackup,
     onopenbanking = () => {},
     shopConnected = false,
+    checkForUpdates,
+    onopenupdate = () => {},
   }: {
     company: Company;
     settings: AppSettings;
@@ -61,7 +64,22 @@
     chooseExportDirectory: () => void;
     exportBackup: () => void;
     importBackup: () => void;
+    /** Searches for a release now; the sidebar shows the result as well. */
+    checkForUpdates: () => Promise<UpdateStatus>;
+    onopenupdate?: () => void;
   } = $props();
+  let updateCheck = $state<{
+    state: "idle" | "checking" | "done" | "error";
+    status?: UpdateStatus;
+  }>({ state: "idle" });
+  async function runUpdateCheck() {
+    updateCheck = { state: "checking" };
+    try {
+      updateCheck = { state: "done", status: await checkForUpdates() };
+    } catch {
+      updateCheck = { state: "error" };
+    }
+  }
   async function switchTab(event: KeyboardEvent, index: number) {
     let next = index;
     if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
@@ -144,17 +162,39 @@
       </section>
       <section class="appearance-settings update-settings" aria-labelledby="updates-title">
         <div>
-          <h2 id="updates-title">Automatische Updates</h2>
+          <h2 id="updates-title">Updates</h2>
           <p>
-            Bei geöffneter App und Internetverbindung sucht die App einmal täglich nach Updates.
-            Verfügbare Updates siehst du unten in der Seitenleiste. Die Installation startest du
-            selbst.
+            Mit automatischen Updates sucht die App bei jedem Start und danach alle sechs Stunden
+            nach einer neuen Version, solange sie geöffnet ist und Internet hat. Verfügbare Updates
+            siehst du unten in der Seitenleiste. Die Installation startest du selbst.
           </p>
+          {#if updateCheck.state !== "idle"}
+            <p class="update-result" class:error={updateCheck.state === "error"} role="status">
+              {#if updateCheck.state === "checking"}
+                Suche nach Updates …
+              {:else if updateCheck.state === "error"}
+                Die Suche ist gescheitert. Prüfe die Internetverbindung und versuche es noch einmal.
+              {:else if updateCheck.status?.updateAvailable}
+                Version {updateCheck.status.availableVersion} ist verfügbar.
+                <button type="button" class="text" onclick={onopenupdate}>Update öffnen</button>
+              {:else}
+                Du hast die neueste Version ({updateCheck.status?.currentVersion}).
+              {/if}
+            </p>
+          {/if}
         </div>
-        <label class="update-toggle">
-          <input type="checkbox" bind:checked={settings.automaticUpdates} />
-          Automatische Updates aktivieren
-        </label>
+        <div class="update-controls">
+          <label class="update-toggle">
+            <input type="checkbox" bind:checked={settings.automaticUpdates} />
+            Automatische Updates aktivieren
+          </label>
+          <button
+            type="button"
+            class="secondary"
+            disabled={updateCheck.state === "checking"}
+            onclick={runUpdateCheck}>Jetzt nach Updates suchen</button
+          >
+        </div>
       </section>
       <section class="appearance-settings update-settings" aria-labelledby="menu-title">
         <div>
@@ -420,6 +460,21 @@
 {#if resetOpen}<ResetAppDialog {exportBackup} oncancel={() => (resetOpen = false)} />{/if}
 
 <style>
+  .update-controls {
+    display: grid;
+    gap: 10px;
+    justify-items: start;
+  }
+  .update-result.error {
+    color: var(--theme-error-text);
+  }
+  .update-result button {
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    font-weight: 650;
+    text-decoration: underline;
+  }
   .menu-sections {
     display: grid;
     gap: 10px;
