@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/papierleicht/E-Rechnung-Studio/compare/v1.1.0...v1.1.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* **updates:** check at every start and on request ([#9](https://github.com/papierleicht/E-Rechnung-Studio/issues/9)) ([fa2b249](https://github.com/papierleicht/E-Rechnung-Studio/commit/fa2b249f1f6a0e1449a5c6a9f2bb549ccdb75888))
+
 ## [1.1.0](https://github.com/papierleicht/E-Rechnung-Studio/compare/v1.0.0...v1.1.0) (2026-11-15)
 
 
