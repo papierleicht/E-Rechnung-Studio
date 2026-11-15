@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createUpdateMonitor, UPDATE_DAY } from "./updateMonitor.ts";
+import { createUpdateMonitor, UPDATE_INTERVAL } from "./updateMonitor.ts";
 function fixture() {
   let now = 1_000_000,
     enabled = true,
@@ -35,9 +35,9 @@ function fixture() {
     fail: (v) => (fail = v),
   };
 }
-test("checks require consent and network, and run once per day across restarts", async () => {
+test("checks require consent and network, then repeat every interval", async () => {
   const f = fixture();
-  let m = createUpdateMonitor(f.options);
+  const m = createUpdateMonitor(f.options);
   f.enable(false);
   await m.tick();
   f.enable(true);
@@ -48,16 +48,51 @@ test("checks require consent and network, and run once per day across restarts",
   await m.tick();
   assert.equal(f.calls, 1);
   assert.equal(f.published[0].availableVersion, "1.1");
-  m.stop();
-  m = createUpdateMonitor(f.options);
-  await m.tick();
-  assert.equal(f.calls, 1);
-  f.advance(UPDATE_DAY - 1);
+  f.advance(UPDATE_INTERVAL - 1);
   await m.tick();
   assert.equal(f.calls, 1);
   f.advance(1);
   await m.tick();
   assert.equal(f.calls, 2);
+});
+test("every start checks again but shows the cached result first", async () => {
+  const f = fixture();
+  await createUpdateMonitor(f.options).tick();
+  assert.equal(f.calls, 1);
+  f.advance(60_000);
+  const published = f.published.length;
+  const m = createUpdateMonitor(f.options);
+  assert.equal(f.published.length, published + 1);
+  assert.equal(f.published.at(-1).availableVersion, "1.1");
+  await m.tick();
+  assert.equal(f.calls, 2);
+});
+test("a manual check runs with automatic checks off and reports failures", async () => {
+  const f = fixture();
+  f.enable(false);
+  const m = createUpdateMonitor(f.options);
+  const status = await m.checkNow();
+  assert.equal(status.availableVersion, "1.1");
+  assert.equal(f.calls, 1);
+  assert.equal(f.published.at(-1).availableVersion, "1.1");
+  f.fail(true);
+  await assert.rejects(m.checkNow(), /offline/);
+  assert.equal(f.calls, 2);
+});
+test("a manual check joins a running automatic check", async () => {
+  const f = fixture();
+  let release;
+  f.options.check = () => {
+    f.options.calls = (f.options.calls ?? 0) + 1;
+    return new Promise((r) => (release = r));
+  };
+  const m = createUpdateMonitor(f.options);
+  const automatic = m.tick();
+  const manual = m.checkNow();
+  assert.equal(f.options.calls, 1);
+  release({ currentVersion: "1.0", updateAvailable: false });
+  await automatic;
+  assert.equal((await manual).updateAvailable, false);
 });
 test("failed checks silently retry after backoff", async () => {
   const f = fixture();
@@ -90,10 +125,11 @@ test("concurrent ticks coalesce and stopped monitors ignore late results", async
   assert.equal(f.published.length, 0);
   assert.equal(f.storage.size, 0);
 });
-test("new app version invalidates cached releases", async () => {
+test("a cached result of another app version is not shown", async () => {
   const f = fixture();
   await createUpdateMonitor(f.options).tick();
+  const published = f.published.length;
   f.options.currentVersion = "1.1";
-  await createUpdateMonitor(f.options).tick();
-  assert.equal(f.calls, 2);
+  createUpdateMonitor(f.options);
+  assert.equal(f.published.length, published);
 });
