@@ -104,7 +104,10 @@ Einstellungen abschaltbar).
 Die Prüfung von XRechnung und ZUGFeRD/Factur-X ist in Go umgesetzt und läuft
 ohne Java und ohne Internet. Sie nutzt die offiziellen XSD-Schemas und
 Schematron-Regeln (KoSIT-Konfiguration für XRechnung, Factur-X 1.09.2 für
-ZUGFeRD), die in der App gebündelt und per SHA-256 festgeschrieben sind.
+ZUGFeRD), per SHA-256 festgeschrieben. Den Kern bildet die eigenständige
+Library [go-e-rechnung-validator](https://github.com/papierleicht/go-e-rechnung-validator)
+mit dem gebündelten Regelwerk; deutsche Meldungen und die eigenen
+Schutzprüfungen der App liegen in `internal/validation`.
 
 Abgleich am 7. November 2026 mit den jeweils neuesten offiziellen Releases:
 
@@ -240,7 +243,7 @@ Fork selbst eintragen muss, steht in [TRADEMARK.md](TRADEMARK.md#infrastruktur).
 | `cmd/e-rechnung-studio-cli/` | Kommandozeile zum Prüfen und Erzeugen                                                                                                                                                                    |
 | `cmd/release-sign/`          | Schlüssel und Signaturen für den Updater, nur für Releases                                                                                                                                               |
 | `build/`                     | Plattformdateien, Symbole, Installer und Signierung                                                                                                                                                      |
-| `third_party/`               | eingebundene Quellpakete: `go-xml` unverändert, `go-fints` als angepasster FinTS-Fork                                                                                                                    |
+| `third_party/`               | eingebundenes Quellpaket: `go-fints` als angepasster FinTS-Fork                                                                                                                                          |
 | `scripts/`                   | Prüf- und Hilfsskripte für CI und Releases                                                                                                                                                               |
 | `docs/`                      | Lizenztexte und Hinweise zu Drittanbietern                                                                                                                                                               |
 

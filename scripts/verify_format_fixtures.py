@@ -16,7 +16,9 @@ from lxml import etree
 
 root = Path(__file__).resolve().parents[1]
 fixtures, saxon = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
-rules = root / "internal/validation/rules"
+# The official rules ship with go-e-rechnung-validator (version from go.mod).
+rules = Path(subprocess.run(["go", "list", "-m", "-f", "{{.Dir}}", "github.com/papierleicht/go-e-rechnung-validator"],
+                            cwd=root, capture_output=True, text=True, check=True).stdout.strip()) / "rules"
 ns = {"svrl": "http://purl.oclc.org/dsdl/svrl"}
 manifest, cases, schemas = [], [], {}
 

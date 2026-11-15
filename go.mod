@@ -9,7 +9,7 @@ require (
 	github.com/boxesandglue/boxesandglue v0.2.101
 	github.com/boxesandglue/htmlbag v0.0.102
 	github.com/google/uuid v1.6.0
-	github.com/knroy/go-xml v0.0.0-00010101000000-000000000000
+	github.com/papierleicht/go-e-rechnung-validator v0.1.0
 	github.com/shopspring/decimal v1.6.0
 	github.com/speedata/pdfdisassembler v0.0.9
 	github.com/wailsapp/wails/v3 v3.1.0
@@ -34,6 +34,7 @@ require (
 	github.com/ebitengine/purego v0.11.3 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
+	github.com/knroy/go-xml v1.8.1 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -46,7 +47,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
-
-replace github.com/knroy/go-xml => ./third_party/go-xml
 
 replace github.com/BergerAPI/go-fints => ./third_party/go-fints

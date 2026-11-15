@@ -44,17 +44,22 @@ even though it no longer appears in `go list -m`.
 for EPC payment images. `speedata/barcode` is still a transitive dependency of
 `htmlbag`; its MIT notice remains in the PDF notices and offline license catalog.
 
+## papierleicht/go-e-rechnung-validator
+
+- Module: `github.com/papierleicht/go-e-rechnung-validator` (version in `go.mod`)
+- License: MPL-2.0 (code); the embedded rule material keeps its upstream licenses
+- Use: XSD and Schematron validation of XRechnung and ZUGFeRD/Factur-X, PDF attachment extraction
+- Rule files and their SHA-256 hashes: `rules/` and `rules.sha256.json` in the module
+
 ## knroy/go-xml
 
-- Local source: `third_party/go-xml`
-- Pinned revision: `3b6e68522004277934566df82a1c065e68454d9f`
+- Module: `github.com/knroy/go-xml` (dependency of go-e-rechnung-validator, version in `go.mod`)
 - License: MIT
 - Copyright: 2026 Komol Nath Roy
-- Notice source: `third_party/go-xml/LICENSE`
 
 ## Factur-X/ZUGFeRD validation material
 
-Runtime files under `internal/validation/rules/facturx-*` come from the German
+Rule files under `rules/facturx-*` of go-e-rechnung-validator come from the German
 ZUGFeRD 2.5.2 / Factur-X 1.09.2 information package, published by FeRD on 4 August
 2026. Source: [FeRD publications](https://www.ferd-net.de/downloads/veroeffentlichungen).
 
@@ -62,7 +67,7 @@ The BASIC, EN16931 and EXTENDED schema sets, compiled business-rule stylesheets
 and code databases are preserved without editing. Unused duplicate code databases
 at the profile root are omitted; the stylesheets load their adjacent copies.
 File hashes are recorded in
-`docs/validation-bundle-sha256.json`.
+`rules.sha256.json` of go-e-rechnung-validator.
 
 FeRD identifies Apache-2.0 as the license for the standard's technical artifacts
 (schemas and Schematron) in its [published usage terms](https://www.ferd-net.de/ueber-uns/ressourcen-1/veroeffentlichungen/haftungsausschluss-und-nutzungsrechte).
@@ -73,10 +78,10 @@ is not bundled here. No project license supersedes upstream terms.
 
 ## XRechnung validation material
 
-`internal/validation/rules/xrechnung` contains the required CII 16B and UBL 2.1
+`rules/xrechnung` of go-e-rechnung-validator contains the required CII 16B and UBL 2.1
 Invoice/CreditNote XSDs plus CEN and XRechnung compiled Schematron from the local
 official `xrechnung-3.0.2-validator-configuration-2026-08-31` bundle. `scenarios.xml`
-is preserved and its standard-scenario severity overrides are applied by the app.
+is preserved and its standard-scenario severity overrides are applied by the validator.
 Original files remain unchanged. For complete document inputs only, the loader
 adapts the unsupported `match="root()"` pattern to `match="/"` in memory.
 The test-only Saxon runner uses the unmodified originals.

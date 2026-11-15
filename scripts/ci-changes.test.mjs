@@ -21,7 +21,7 @@ test("builds for code, shipped documents, workflows and unknown changes", () => 
     ["README.md", "main.go"],
     ["frontend/src/App.svelte"],
     ["docs/third-party-notices.md"],
-    ["docs/validation-bundle-sha256.json"],
+    ["docs/xml-licenses/EN16931-LICENSE.txt"],
     ["LICENSE"],
     [".github/workflows/ci.yml"],
     ["internal/einvoice/README.md"],

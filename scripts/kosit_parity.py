@@ -23,9 +23,10 @@ import sys
 import xml.etree.ElementTree as ET
 import zipfile
 
-from parity_common import DEFAULT_CACHE, JAVA, app_validate, build_cli, fetch, root, sha256, workdir
+from parity_common import DEFAULT_CACHE, JAVA, app_validate, build_cli, fetch, root, sha256, validator_rules, workdir
 
-rules = root / "internal/validation/rules/xrechnung"
+# The official rules ship with go-e-rechnung-validator; compare the version in go.mod.
+rules = validator_rules() / "xrechnung"
 REP = "{http://www.xoev.de/de/validator/varl/1}"
 SCN = "{http://www.xoev.de/de/validator/framework/1/scenarios}"
 # bundled file (relative to rules/xrechnung) -> file in the KoSIT configuration zip
