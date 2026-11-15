@@ -26,6 +26,9 @@ func Run(assets fs.FS, version string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// A reset that the app could not finish on the way out ends here,
+	// before anything opens the data.
+	finishResetAtStart(dataDir)
 	invoices, err := NewInvoiceService(dataDir)
 	if err != nil {
 		log.Fatal(err)
@@ -43,6 +46,9 @@ func Run(assets fs.FS, version string) {
 		log.Fatal(err)
 	}
 	invoices.mail = mailService.mail
+	if err := restoreKeptSetup(dataDir, invoices); err != nil {
+		log.Printf("reset: restore setup: %v", err)
+	}
 	defer mailService.Close()
 	accounts, err := NewAccountService(dataDir)
 	if err != nil {
@@ -55,6 +61,7 @@ func Run(assets fs.FS, version string) {
 	shopService := NewShopService(invoices)
 	defer shopService.Close()
 	updates := &UpdateService{}
+	resets := NewResetService(dataDir, invoices, accounts.manager, account.SystemVault{})
 
 	app := application.New(application.Options{
 		Name:        "E-Rechnung-Studio",
@@ -69,9 +76,25 @@ func Run(assets fs.FS, version string) {
 			application.NewService(audits),
 			application.NewService(shopService),
 			application.NewService(chats),
+			application.NewService(resets),
 		},
 		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
 		Mac:    application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: true},
+		// On macOS the process ends inside app.Run, so deferred calls in Run
+		// never run. After a reset in the app, close every file here and
+		// remove the data folder once the services have shut down.
+		PostShutdown: func() {
+			if !resetPending(dataDir) {
+				return
+			}
+			shopService.Close()
+			mailService.Close()
+			bankingService.Close()
+			invoices.Close()
+			if err := finishPendingReset(dataDir); err != nil {
+				log.Printf("reset: %v", err)
+			}
+		},
 	})
 	// Updates come from GitHub Releases and install only with a signature
 	// that matches the public key built into the app (internal/updatesign).
@@ -92,6 +115,7 @@ func Run(assets fs.FS, version string) {
 		log.Fatal(err)
 	}
 	updates.app = app
+	resets.quit = app.Quit
 	updates.updater = app.Updater
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
