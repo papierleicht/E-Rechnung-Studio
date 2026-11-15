@@ -6,7 +6,7 @@
 name: "e-rechnung-studio"
 arch: ${GOARCH}
 platform: "linux"
-version: "1.1.0" # x-release-please-version
+version: "1.1.1" # x-release-please-version
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
