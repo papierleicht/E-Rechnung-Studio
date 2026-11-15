@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/papierleicht/E-Rechnung-Studio/compare/v1.0.0...v1.1.0) (2026-11-15)
+
+
+### Features
+
+* reset the app from the settings, optionally keeping the setup ([#7](https://github.com/papierleicht/E-Rechnung-Studio/issues/7)) ([b7182b1](https://github.com/papierleicht/E-Rechnung-Studio/commit/b7182b1360a5bf09e9c087cf70705ab409cca7ca))
+
 ## 1.0.0 (2026-11-07)
 
 Erste öffentliche Version von E-Rechnung-Studio. Das Repository beginnt mit
