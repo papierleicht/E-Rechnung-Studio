@@ -171,6 +171,17 @@
   let shopToConnect = $state("");
   let paymentOverview = $state<PaymentOverview | null>(null);
   const navigationLocked = $derived(busy || receivedBusy || paymentsBusy || shopsBusy);
+  // The first load has its own loading text; short operations must not flash a status box.
+  let starting = $state(true);
+  let showBusy = $state(false);
+  $effect(() => {
+    if (!navigationLocked || starting) {
+      showBusy = false;
+      return;
+    }
+    const timer = window.setTimeout(() => (showBusy = true), 400);
+    return () => window.clearTimeout(timer);
+  });
   let cancelFileDialog = $state<(() => void) | null>(null);
   async function pickFile<T>(open: () => Promise<T>): Promise<T | undefined> {
     const controller = new AbortController();
@@ -620,7 +631,7 @@
     try {
       sidebarOpen = localStorage.getItem("e-rechnung-studio-sidebar-open") !== "false";
     } catch {}
-    load();
+    void load().finally(() => (starting = false));
     let disposed = false;
     const poll = () => {
       void monitor?.tick();
@@ -2130,7 +2141,7 @@
     {/snippet}
   </FormDialog>
 {/if}
-{#if navigationLocked || cancelFileDialog}<div class="busy" role="status">
+{#if showBusy || cancelFileDialog}<div class="busy" role="status">
     {cancelFileDialog ? "Dateiauswahl geöffnet …" : "Wird verarbeitet …"}
     {#if cancelFileDialog}<button type="button" class="secondary" onclick={cancelFileDialog}
         >Dateiauswahl abbrechen</button
