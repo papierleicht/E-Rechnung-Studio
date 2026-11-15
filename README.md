@@ -34,6 +34,20 @@ Wails 3 und Svelte.
 Windows und Linux läuft dieselbe App im Fenster des jeweiligen Systems; sie
 folgt dem hellen oder dunklen Erscheinungsbild des Systems.</sub>
 
+## Rechnung schreiben, wie sie gedruckt wird
+
+Du schreibst deine Rechnung direkt im Dokument, wie in einem WYSIWYG-Editor:
+Was du siehst, ist die fertige PDF, denn Vorschau und PDF entstehen aus
+derselben Vorlage und denselben Rechnungsdaten. Klick auf Absender, Empfänger,
+Rechnungsdaten, Positionen oder Zahlungsangaben, und du änderst genau diesen
+Teil. Summen und Umsatzsteuer rechnet die App, und das Dokument ist sofort
+wieder aktuell. Formulare zum Durchklicken oder eine Vorlagensprache brauchst
+du nicht.
+
+<p align="center">
+  <img src="docs/screenshots/rechnung-im-dokument.gif" alt="Animation: Neue Rechnung für die Bäckerei Sonnenkorn. Beim Überfahren hebt die App die Abschnitte des Dokuments hervor. Ein Klick auf die Positionen öffnet sie; eingetragen werden 12 Stunden Logo-Entwicklung zu 85 Euro. Danach zeigt das Dokument die Position und den Gesamtbetrag von 1.213,80 Euro." width="100%">
+</p>
+
 ## Was du mit der App machen kannst
 
 - **Angebote & Rechnungen:** Angebote schreiben und in Rechnungen umwandeln;
