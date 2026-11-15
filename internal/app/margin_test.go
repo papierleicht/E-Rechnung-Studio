@@ -6,6 +6,7 @@ import (
 
 	"github.com/shopspring/decimal"
 	"papierleicht.de/e-rechnung-studio/internal/model"
+	"papierleicht.de/e-rechnung-studio/internal/store"
 )
 
 func marginDraft(lines ...model.InvoiceLine) model.InvoiceDraft {
@@ -78,10 +79,41 @@ func TestKnownMarginEntersVATFigures(t *testing.T) {
 
 func TestSetPurchasePricesRejectsBadPrice(t *testing.T) {
 	s := &InvoiceService{}
-	if err := s.SetPurchasePrices("x", map[string]string{"a": "zwölf"}); err == nil || !strings.Contains(err.Error(), "zwölf") {
+	if err := s.SetPurchasePrices("x", map[string]model.PurchaseAssignment{"a": {Price: "zwölf"}}); err == nil || !strings.Contains(err.Error(), "zwölf") {
 		t.Fatalf("err %v", err)
 	}
-	if err := s.SetPurchasePrices("x", map[string]string{"a": "-5"}); err == nil {
+	if err := s.SetPurchasePrices("x", map[string]model.PurchaseAssignment{"a": {Price: "-5"}}); err == nil {
 		t.Fatal("negative price accepted")
+	}
+	if err := s.SetPurchasePrices("x", map[string]model.PurchaseAssignment{"a": {Price: "5", Source: "invoice:1"}}); err == nil {
+		t.Fatal("unknown document kind accepted")
+	}
+}
+
+func TestPurchaseDocumentsShowUse(t *testing.T) {
+	s, err := NewInvoiceService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	e, err := s.store.SaveExpense(store.Expense{Date: "2026-10-01", Supplier: "Max Privat", Category: "sonstige", Gross: "4000.00", TaxRate: "none", PaidWith: "bank"}, func(string) bool { return true }, "asset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := model.NewDraft()
+	d.TaxTreatment = "margin-goods"
+	d.Lines = []model.InvoiceLine{{ID: "car", Name: "Golf", Quantity: "1", UnitPrice: "5000", PurchasePrice: "4000.00", PurchaseSource: "expense:" + e.ID}}
+	if _, err = s.store.SaveInvoice(d, "5000"); err != nil {
+		t.Fatal(err)
+	}
+	docs, err := s.PurchaseDocuments()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(docs) != 1 || docs[0].Source != "expense:"+e.ID || docs[0].Gross != "4000.00" || !strings.Contains(docs[0].Label, "Max Privat") {
+		t.Fatalf("docs %+v", docs)
+	}
+	if len(docs[0].UsedBy) != 1 || docs[0].UsedBy[0] != "Entwurf" {
+		t.Fatalf("used by %v", docs[0].UsedBy)
 	}
 }

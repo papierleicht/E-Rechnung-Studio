@@ -9,6 +9,7 @@
   import { newLine, isBlankLine, invoiceUnits } from "../../lib/invoiceDraft";
   import { taxChoices, taxReasons } from "../../lib/tax";
   import { grossUnitPrice, netUnitPrice, roundPrice, typedPrice } from "../../lib/priceInput";
+  import PurchaseSourceField from "./PurchaseSourceField.svelte";
 
   let {
     lines,
@@ -300,6 +301,16 @@
                           /><span>€</span></span
                         ></label
                       >
+                      <PurchaseSourceField
+                        source={line.purchaseSource}
+                        label={line.purchaseSourceLabel}
+                        quantity={line.quantity}
+                        onchange={(choice) => {
+                          line.purchaseSource = choice?.source ?? "";
+                          line.purchaseSourceLabel = choice?.label ?? "";
+                          if (choice?.price) line.purchasePrice = choice.price;
+                        }}
+                      />
                       <p class="form-help">
                         Erscheint nicht auf der Rechnung. Die App rechnet damit die Umsatzsteuer auf
                         deine Marge aus.

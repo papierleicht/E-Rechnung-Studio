@@ -21,6 +21,7 @@ export type {
     InvoiceView,
     PrecedingInvoice,
     Product,
+    PurchaseAssignment,
     Quote,
     QuoteSummary,
     QuoteView,

@@ -701,6 +701,32 @@ export interface PaymentSuggestion {
     "certain": boolean;
 }
 
+/**
+ * PurchaseDocument is a received invoice or recorded receipt a purchase price
+ * can come from, e.g. the Ankaufbeleg of a used car.
+ */
+export interface PurchaseDocument {
+    /**
+     * Source is what an invoice line stores: "received:<id>" or "expense:<id>".
+     */
+    "source": string;
+
+    /**
+     * received or expense
+     */
+    "kind": string;
+    "number": string;
+    "partner": string;
+    "date": string;
+    "gross": string;
+    "label": string;
+
+    /**
+     * UsedBy names the invoices that already take a purchase price from it.
+     */
+    "usedBy": string[] | null;
+}
+
 export interface Reconciliation {
     "other": OtherBooking[] | null;
     "automatic": number;

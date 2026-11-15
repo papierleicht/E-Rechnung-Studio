@@ -3,6 +3,7 @@
     InvoiceDraft,
     InvoiceSummary,
     InvoiceView,
+    PurchaseAssignment,
   } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
   import InvoicePayments from "../payments/InvoicePayments.svelte";
   import InvoiceReminders from "../reminders/InvoiceReminders.svelte";
@@ -80,7 +81,7 @@
     markSent: (sent: boolean) => void;
     deleteIssued: () => void;
     /** Records purchase prices of Differenzbesteuerung items, by line ID. */
-    savePurchasePrices?: (prices: Record<string, string>) => Promise<void> | void;
+    savePurchasePrices?: (prices: Record<string, PurchaseAssignment>) => Promise<void> | void;
   } = $props();
   const selectedFormat = $derived(invoiceFormats.find((format) => format.id === draft.profile));
   const isXRechnung = $derived(draft.profile.startsWith("xrechnung-"));

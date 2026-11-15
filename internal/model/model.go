@@ -125,6 +125,19 @@ type InvoiceLine struct {
 	// the Differenzbesteuerung (§ 25a UStG). It stays internal: neither the
 	// PDF nor the XML shows it, it only yields the taxable margin.
 	PurchasePrice string `json:"purchasePrice,omitempty"`
+	// PurchaseSource links the document behind the purchase price, a received
+	// invoice ("received:<id>") or a recorded receipt ("expense:<id>").
+	// PurchaseSourceLabel keeps how it read when it was chosen.
+	PurchaseSource      string `json:"purchaseSource,omitempty"`
+	PurchaseSourceLabel string `json:"purchaseSourceLabel,omitempty"`
+}
+
+// PurchaseAssignment is the purchase price of one invoice line and the
+// document it comes from, if any. Empty values remove them.
+type PurchaseAssignment struct {
+	Price       string `json:"price"`
+	Source      string `json:"source"`
+	SourceLabel string `json:"sourceLabel"`
 }
 
 // InvoiceAdjustment is a net document-level allowance or charge (BG-20/21).

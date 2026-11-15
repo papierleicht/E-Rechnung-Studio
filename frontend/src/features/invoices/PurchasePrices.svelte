@@ -1,8 +1,12 @@
 <script lang="ts">
-  import type { InvoiceDraft } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
+  import type {
+    InvoiceDraft,
+    PurchaseAssignment,
+  } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
   import { roundPrice, typedPrice } from "../../lib/priceInput";
   import { amountLabel } from "../../lib/format";
   import { marginLines } from "../../lib/marginScheme";
+  import PurchaseSourceField from "./PurchaseSourceField.svelte";
 
   let {
     draft,
@@ -11,20 +15,28 @@
   }: {
     draft: InvoiceDraft;
     busy: boolean;
-    /** Saves the purchase prices by line ID; an empty value removes one. */
-    onsave: (prices: Record<string, string>) => Promise<void> | void;
+    /** Saves price and document per line ID; empty values remove them. */
+    onsave: (prices: Record<string, PurchaseAssignment>) => Promise<void> | void;
   } = $props();
   const lines = $derived(marginLines(draft));
-  let typed: Record<string, string> = $state({});
-  // The stored prices fill the fields again whenever the invoice reloads.
+  type Entry = { price: string; source: string; sourceLabel: string };
+  let typed: Record<string, Entry> = $state({});
+  const stored = (line: (typeof lines)[number]): Entry => ({
+    price: roundPrice(line.purchasePrice ?? ""),
+    source: line.purchaseSource ?? "",
+    sourceLabel: line.purchaseSourceLabel ?? "",
+  });
+  // The stored values fill the fields again whenever the invoice reloads.
   $effect(() => {
-    typed = Object.fromEntries(
-      lines.map((line) => [line.id, roundPrice(line.purchasePrice ?? "")]),
-    );
+    typed = Object.fromEntries(lines.map((line) => [line.id, stored(line)]));
   });
   const missing = $derived(lines.filter((line) => !line.purchasePrice).length);
   const changed = $derived(
-    lines.some((line) => (typed[line.id] ?? "").trim() !== roundPrice(line.purchasePrice ?? "")),
+    lines.some((line) => {
+      const now = typed[line.id],
+        was = stored(line);
+      return !!now && (now.price.trim() !== was.price || now.source !== was.source);
+    }),
   );
 </script>
 
@@ -36,7 +48,8 @@
         {missing
           ? "Ohne Einkaufspreis fehlt die Umsatzsteuer auf deine Marge in Finanzen, Voranmeldung und EÜR."
           : "Die App rechnet die Umsatzsteuer auf deine Marge mit diesen Preisen aus."}
-        Sie erscheinen nicht auf der Rechnung, Änderungen stehen im Änderungsprotokoll.
+        Trage den Preis ein oder übernimm ihn aus dem Ankaufbeleg. Er erscheint nicht auf der Rechnung,
+        Änderungen stehen im Änderungsprotokoll.
       </p>
     </div>
     <form
@@ -44,31 +57,55 @@
         event.preventDefault();
         void onsave(
           Object.fromEntries(
-            lines.map((line) => [line.id, typedPrice(typed[line.id] ?? "").replace(",", ".")]),
+            lines.map((line) => {
+              const e = typed[line.id] ?? stored(line);
+              return [
+                line.id,
+                {
+                  price: typedPrice(e.price),
+                  source: e.source,
+                  sourceLabel: e.sourceLabel,
+                },
+              ];
+            }),
           ),
         );
       }}
     >
       <ul>
         {#each lines as line (line.id)}
-          <li>
-            <span class="purchase-line"
-              >{line.name}<small>{line.quantity} × {amountLabel(line.unitPrice)}</small></span
-            >
-            <span class="input-suffix"
-              ><input
-                aria-label={`Einkaufspreis je Einheit für ${line.name}`}
-                inputmode="decimal"
-                bind:value={typed[line.id]}
-                placeholder="Einkaufspreis"
-                disabled={busy}
-                onblur={() => {
-                  const rounded = roundPrice(typedPrice(typed[line.id] ?? ""));
-                  if (rounded) typed[line.id] = rounded;
-                }}
-              /><span>€</span></span
-            >
-          </li>
+          {#if typed[line.id]}
+            <li>
+              <span class="purchase-line"
+                >{line.name}<small>{line.quantity} × {amountLabel(line.unitPrice)}</small>
+                <PurchaseSourceField
+                  source={typed[line.id].source}
+                  label={typed[line.id].sourceLabel}
+                  quantity={line.quantity}
+                  invoiceNumber={draft.number}
+                  disabled={busy}
+                  onchange={(choice) => {
+                    typed[line.id].source = choice?.source ?? "";
+                    typed[line.id].sourceLabel = choice?.label ?? "";
+                    if (choice?.price) typed[line.id].price = choice.price;
+                  }}
+                /></span
+              >
+              <span class="input-suffix"
+                ><input
+                  aria-label={`Einkaufspreis je Einheit für ${line.name}`}
+                  inputmode="decimal"
+                  bind:value={typed[line.id].price}
+                  placeholder="Einkaufspreis"
+                  disabled={busy}
+                  onblur={() => {
+                    const rounded = roundPrice(typedPrice(typed[line.id].price));
+                    if (rounded) typed[line.id].price = rounded;
+                  }}
+                /><span>€</span></span
+              >
+            </li>
+          {/if}
         {/each}
       </ul>
       <button class="secondary" disabled={busy || !changed}>Einkaufspreise speichern</button>
@@ -103,7 +140,7 @@
   }
   .purchase-prices ul {
     display: grid;
-    gap: 8px;
+    gap: 12px;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -119,6 +156,7 @@
   .purchase-line {
     display: grid;
     flex: 1 1 220px;
+    gap: 2px;
     min-width: 0;
     overflow-wrap: anywhere;
   }

@@ -17,7 +17,7 @@ func TestSetPurchasePricesOnIssuedInvoice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SetPurchasePrices(saved.ID, map[string]string{"car": "4000.00"}); err == nil {
+	if err = s.SetPurchasePrices(saved.ID, map[string]model.PurchaseAssignment{"car": {Price: "4000.00"}}); err == nil {
 		t.Fatal("prices of a draft set outside the editor")
 	}
 	if _, err = s.Issue(saved.ID, saved, "5000", func(model.InvoiceDraft) ([]byte, []byte, error) {
@@ -25,11 +25,11 @@ func TestSetPurchasePricesOnIssuedInvoice(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SetPurchasePrices(saved.ID, map[string]string{"car": "4000.00", "unknown": "1.00"}); err != nil {
+	if err = s.SetPurchasePrices(saved.ID, map[string]model.PurchaseAssignment{"car": {Price: "4000.00", Source: "expense:x", SourceLabel: "Beleg B-1 · Privat"}, "unknown": {Price: "1.00"}}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := s.Invoice(saved.ID)
-	if err != nil || got.Lines[0].PurchasePrice != "4000.00" || got.Status == "draft" {
+	if err != nil || got.Lines[0].PurchasePrice != "4000.00" || got.Lines[0].PurchaseSource != "expense:x" || got.Status == "draft" {
 		t.Fatalf("invoice %+v, %v", got.Lines, err)
 	}
 	entries, err := s.AuditEntries(AuditFilter{Object: AuditInvoice})
@@ -45,10 +45,14 @@ func TestSetPurchasePricesOnIssuedInvoice(t *testing.T) {
 	if !found {
 		t.Fatalf("no log entry in %+v", entries)
 	}
+	uses, err := s.PurchaseSourceUses()
+	if err != nil || len(uses["expense:x"]) != 1 || uses["expense:x"][0] == "Entwurf" {
+		t.Fatalf("uses %v, %v", uses, err)
+	}
 	if _, err = s.LockPeriod("", "2026-10-31"); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.SetPurchasePrices(saved.ID, map[string]string{"car": "3000.00"}); err == nil || !strings.Contains(err.Error(), "festgeschrieben") {
+	if err = s.SetPurchasePrices(saved.ID, map[string]model.PurchaseAssignment{"car": {Price: "3000.00"}}); err == nil || !strings.Contains(err.Error(), "festgeschrieben") {
 		t.Fatalf("closed period changed: %v", err)
 	}
 }

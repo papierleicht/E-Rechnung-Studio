@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+
+	"papierleicht.de/e-rechnung-studio/internal/model"
 )
 
 // SetPurchasePrices records the purchase prices of items an issued invoice
-// sold under the Differenzbesteuerung, by line ID; an empty price removes
-// one. They are internal records (§ 25a Abs. 6 UStG): the invoice document
+// sold under the Differenzbesteuerung and the documents they come from, by
+// line ID; empty values remove them. They are internal records (§ 25a Abs. 6 UStG): the invoice document
 // stays unchanged. A period that is closed or whose return is filed keeps
 // its figures, so the prices of its invoices no longer change.
-func (s *Store) SetPurchasePrices(id string, prices map[string]string) error {
+func (s *Store) SetPurchasePrices(id string, prices map[string]model.PurchaseAssignment) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -33,7 +35,7 @@ func (s *Store) SetPurchasePrices(id string, prices map[string]string) error {
 		return err
 	}
 	lines, _ := d["lines"].([]any)
-	before, after := map[string]string{}, map[string]string{}
+	before, after := map[string]model.PurchaseAssignment{}, map[string]model.PurchaseAssignment{}
 	changed := false
 	for _, l := range lines {
 		line, ok := l.(map[string]any)
@@ -41,19 +43,26 @@ func (s *Store) SetPurchasePrices(id string, prices map[string]string) error {
 			continue
 		}
 		lineID, _ := line["id"].(string)
-		old, _ := line["purchasePrice"].(string)
-		before[lineID] = old
-		after[lineID] = old
-		price, set := prices[lineID]
-		if !set || price == old {
+		var old model.PurchaseAssignment
+		old.Price, _ = line["purchasePrice"].(string)
+		old.Source, _ = line["purchaseSource"].(string)
+		old.SourceLabel, _ = line["purchaseSourceLabel"].(string)
+		before[lineID], after[lineID] = old, old
+		next, set := prices[lineID]
+		if next.Source == "" {
+			next.SourceLabel = ""
+		}
+		if !set || next == old {
 			continue
 		}
 		changed = true
-		after[lineID] = price
-		if price == "" {
-			delete(line, "purchasePrice")
-		} else {
-			line["purchasePrice"] = price
+		after[lineID] = next
+		for key, value := range map[string]string{"purchasePrice": next.Price, "purchaseSource": next.Source, "purchaseSourceLabel": next.SourceLabel} {
+			if value == "" {
+				delete(line, key)
+			} else {
+				line[key] = value
+			}
 		}
 	}
 	if !changed {
@@ -92,4 +101,40 @@ func (s *Store) SetPurchasePrices(id string, prices map[string]string) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+// PurchaseSourceUses names, per linked document, the invoices whose lines
+// take their purchase price from it: the number, or "Entwurf".
+func (s *Store) PurchaseSourceUses() (map[string][]string, error) {
+	rows, err := s.db.Query(`SELECT number,status,data FROM invoices`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	uses := map[string][]string{}
+	for rows.Next() {
+		var number, status string
+		var raw []byte
+		if err = rows.Scan(&number, &status, &raw); err != nil {
+			return nil, err
+		}
+		var d struct {
+			Lines []struct {
+				PurchaseSource string `json:"purchaseSource"`
+			} `json:"lines"`
+		}
+		if json.Unmarshal(raw, &d) != nil {
+			continue
+		}
+		label := number
+		if status == "draft" || label == "" {
+			label = "Entwurf"
+		}
+		for _, l := range d.Lines {
+			if l.PurchaseSource != "" {
+				uses[l.PurchaseSource] = append(uses[l.PurchaseSource], label)
+			}
+		}
+	}
+	return uses, rows.Err()
 }

@@ -69,6 +69,7 @@ export type {
     OtherBooking,
     PaymentBooking,
     PaymentSuggestion,
+    PurchaseDocument,
     Reconciliation,
     ResetOverview,
     ResetResult,
