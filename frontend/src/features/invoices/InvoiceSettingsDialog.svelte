@@ -261,8 +261,8 @@
               </p>{/if}
             {#if working.taxTreatment.startsWith("margin-")}<p class="form-help wide-setting">
                 {invoice ? "Die Rechnung" : "Das Angebot"} weist die Umsatzsteuer nicht gesondert aus
-                und enthält den passenden Hinweis zur Sonderregelung. Die interne Besteuerung deiner Marge
-                berechnet die App nicht.
+                und enthält den passenden Hinweis zur Sonderregelung. Trage an jeder Position den Einkaufspreis
+                ein, dann rechnet die App die Umsatzsteuer auf deine Marge aus.
               </p>{/if}
             {#if working.taxTreatment === "out-of-scope"}<p class="form-help wide-setting">
                 Kategorie O wird als eigene Rechnung ausgegeben. USt-IdNrn. werden in deren XML

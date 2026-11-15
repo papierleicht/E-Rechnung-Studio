@@ -323,6 +323,13 @@ export interface InvoiceLine {
     "unitPrice": string;
     "taxRate": string;
     "taxCategory": string;
+
+    /**
+     * PurchasePrice is what the seller paid per unit for an item sold under
+     * the Differenzbesteuerung (§ 25a UStG). It stays internal: neither the
+     * PDF nor the XML shows it, it only yields the taxable margin.
+     */
+    "purchasePrice"?: string;
 }
 
 /**

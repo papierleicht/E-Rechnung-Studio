@@ -1444,6 +1444,16 @@ const handlers: Record<string, Handler> = {
     if (sent) d.markedSentAt = now();
     else delete d.markedSentAt;
   },
+  "InvoiceService.SetPurchasePrices": (id: string, prices: Record<string, string>) => {
+    const d = find(db.invoices, id, "Rechnung");
+    if (d.status === "draft")
+      throw new Error("Einkaufspreise eines Entwurfs trägst du in den Positionen ein.");
+    for (const line of d.lines ?? []) {
+      if (!(line.id in prices)) continue;
+      if (prices[line.id]) line.purchasePrice = prices[line.id];
+      else delete line.purchasePrice;
+    }
+  },
   "InvoiceService.InvoiceDeletionCheck": deletionCheck,
   "InvoiceService.DeleteIssuedInvoice": (id: string, reason: string) => {
     const check = deletionCheck(id);

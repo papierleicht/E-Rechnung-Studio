@@ -90,7 +90,7 @@ export const taxQuestions = [
     id: "margin-goods",
     question: "Ich nutze die Sonderregelung für gebrauchte Waren",
     explanation:
-      "Bei der sogenannten Differenzbesteuerung weist du keine Umsatzsteuer gesondert aus. Die Steuer auf deinen Gewinnanteil berechnet die App nicht. Für Kunst oder Sammlerstücke wähle den passenden Fall in den Rechnungseinstellungen.",
+      "Bei der sogenannten Differenzbesteuerung weist du keine Umsatzsteuer gesondert aus. Trage an den Positionen deine Einkaufspreise ein, dann rechnet die App die Steuer auf deinen Gewinnanteil aus. Für Kunst oder Sammlerstücke wähle den passenden Fall in den Rechnungseinstellungen.",
     source: "https://www.gesetze-im-internet.de/ustg_1980/__25a.html",
   },
 ] as const;

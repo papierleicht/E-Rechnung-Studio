@@ -626,6 +626,15 @@ export function SetPaid(id: string, paid: boolean): $CancellablePromise<void> {
 }
 
 /**
+ * SetPurchasePrices records the purchase prices of Differenzbesteuerung items
+ * on an issued invoice, by line ID. They never appear on the invoice; the
+ * finance figures use them for the tax on the margin.
+ */
+export function SetPurchasePrices(id: string, prices: { [_ in string]?: string } | null): $CancellablePromise<void> {
+    return $Call.ByID(2346462561, id, prices);
+}
+
+/**
  * SetQuoteStatus records acceptance or rejection, or reopens a quote for editing.
  */
 export function SetQuoteStatus(id: string, status: string): $CancellablePromise<model$0.QuoteView> {

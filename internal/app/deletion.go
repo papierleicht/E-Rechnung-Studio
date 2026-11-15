@@ -221,3 +221,26 @@ func (s *InvoiceService) MarkInvoiceSent(id string, sent bool) error {
 	}
 	return s.store.MarkSent(id, sent)
 }
+
+// SetPurchasePrices records the purchase prices of Differenzbesteuerung items
+// on an issued invoice, by line ID. They never appear on the invoice; the
+// finance figures use them for the tax on the margin.
+func (s *InvoiceService) SetPurchasePrices(id string, prices map[string]string) error {
+	if id == "" {
+		return errors.New("Die Rechnung wurde nicht gefunden.")
+	}
+	clean := map[string]string{}
+	for lineID, price := range prices {
+		price = strings.TrimSpace(price)
+		if price == "" {
+			clean[lineID] = ""
+			continue
+		}
+		v, ok := parsePurchasePrice(price)
+		if !ok {
+			return fmt.Errorf("„%s“ ist kein gültiger Einkaufspreis.", price)
+		}
+		clean[lineID] = v.StringFixed(2)
+	}
+	return s.store.SetPurchasePrices(id, clean)
+}

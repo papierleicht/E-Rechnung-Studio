@@ -1159,6 +1159,18 @@
     message = sent ? "Als verschickt markiert" : "Markierung zurückgenommen";
     await run(refreshApplicationLists);
   }
+  async function saveIssuedPurchasePrices(prices: Record<string, string>) {
+    const id = draft?.id;
+    if (!id || busy) return;
+    const result = await run(async () => {
+      await API.SetPurchasePrices(id, prices);
+      return API.OpenInvoice(id);
+    });
+    if (!result) return;
+    acceptInvoiceView(result);
+    rememberDraft();
+    message = "Einkaufspreise gespeichert";
+  }
   function openDraftView(result: InvoiceView) {
     acceptInvoiceView(result);
     exportedPDF = "";
@@ -1830,6 +1842,7 @@
               schedulePreview();
             }}
             markSent={markInvoiceSent}
+            savePurchasePrices={saveIssuedPurchasePrices}
             deleteIssued={() => (deletingInvoice = true)}
           />
           {#if deletingInvoice && draft.id}<DeleteInvoiceDialog

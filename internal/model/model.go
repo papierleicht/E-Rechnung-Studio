@@ -121,6 +121,10 @@ type InvoiceLine struct {
 	UnitPrice       string `json:"unitPrice"`
 	TaxRate         string `json:"taxRate"`
 	TaxCategory     string `json:"taxCategory"`
+	// PurchasePrice is what the seller paid per unit for an item sold under
+	// the Differenzbesteuerung (§ 25a UStG). It stays internal: neither the
+	// PDF nor the XML shows it, it only yields the taxable margin.
+	PurchasePrice string `json:"purchasePrice,omitempty"`
 }
 
 // InvoiceAdjustment is a net document-level allowance or charge (BG-20/21).

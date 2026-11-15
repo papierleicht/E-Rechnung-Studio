@@ -98,7 +98,10 @@ func openShares(in financeInput, issued map[string]issuedTax, e FinanceEntry, op
 	var basis, later decimal.Decimal
 	for _, r := range v.Rates {
 		basis = basis.Add(r.Basis.Abs())
-		if !v.documentDated(r) && !v.margin(r) {
+		switch {
+		case v.margin(r) && r.MarginKnown:
+			later = later.Add(r.MarginTax.Abs())
+		case !v.documentDated(r) && !v.margin(r):
 			later = later.Add(r.Amount.Abs())
 		}
 	}

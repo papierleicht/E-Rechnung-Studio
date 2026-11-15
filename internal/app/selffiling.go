@@ -395,7 +395,8 @@ func vatRecords(in financeInput) ([]taxforms.Sale, []taxforms.Purchase, []taxfor
 				continue
 			}
 			sales = append(sales, taxforms.Sale{Entry: e, Category: t.Category, Percent: t.Percent,
-				Net: part(t.Basis), Tax: part(t.Amount), BuyerCountry: v.BuyerCountry, Margin: v.margin(t)})
+				Net: part(t.Basis), Tax: part(t.Amount), BuyerCountry: v.BuyerCountry, Margin: v.margin(t),
+				MarginKnown: t.MarginKnown, MarginBase: part(t.MarginBase), MarginTax: part(t.MarginTax)})
 		}
 	}
 	addInvoices := func() {
@@ -1121,7 +1122,8 @@ func (s *InvoiceService) eurRecords(in financeInput, year int) ([]taxforms.Incom
 			}
 			share := amount.Div(v.Gross)
 			for _, t := range v.Rates {
-				income = append(income, taxforms.Income{Entry: e, Category: t.Category, Net: t.Basis.Mul(share).Round(2), Tax: t.Amount.Mul(share).Round(2), Margin: v.margin(t)})
+				income = append(income, taxforms.Income{Entry: e, Category: t.Category, Net: t.Basis.Mul(share).Round(2), Tax: t.Amount.Mul(share).Round(2), Margin: v.margin(t),
+					MarginKnown: t.MarginKnown, MarginTax: t.MarginTax.Mul(share).Round(2)})
 			}
 			continue
 		}
