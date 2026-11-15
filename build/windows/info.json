@@ -1,10 +1,10 @@
 {
 	"fixed": {
-		"file_version": "1.1.1"
+		"file_version": "1.2.0"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "1.1.1",
+			"ProductVersion": "1.2.0",
 			"CompanyName": "papierleicht",
 			"FileDescription": "Offline electronic invoicing for German businesses",
 			"LegalCopyright": "Copyright 2026 papierleicht",
