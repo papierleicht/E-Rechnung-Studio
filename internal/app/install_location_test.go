@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -68,7 +69,8 @@ func TestInstallAppReplacesExistingCopy(t *testing.T) {
 			t.Errorf("%s left behind", leftover)
 		}
 	}
-	if info, err := os.Stat(target); err != nil || info.Mode().Perm()&0o100 == 0 {
+	// Windows has no executable bit; elsewhere the copy must keep it.
+	if info, err := os.Stat(target); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm()&0o100 == 0) {
 		t.Errorf("target not executable: %v", info)
 	}
 }
