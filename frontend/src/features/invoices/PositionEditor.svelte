@@ -9,6 +9,7 @@
   import { newLine, isBlankLine, invoiceUnits } from "../../lib/invoiceDraft";
   import { taxChoices, taxReasons } from "../../lib/tax";
   import { grossUnitPrice, netUnitPrice, roundPrice, typedPrice } from "../../lib/priceInput";
+  import PurchaseSourceField from "./PurchaseSourceField.svelte";
 
   let {
     lines,
@@ -284,6 +285,37 @@
                   <p class="form-help">
                     {taxReasons[mixedTax ? line.taxTreatment! : taxTreatment]}
                   </p>
+                  {#if !quote}<div class="position-tax-reason">
+                      <label
+                        >Einkaufspreis je Einheit (intern)<span class="input-suffix"
+                          ><input
+                            data-field={`lines.${index}.purchasePrice`}
+                            aria-label={`Einkaufspreis Position ${index + 1}`}
+                            inputmode="decimal"
+                            bind:value={line.purchasePrice}
+                            placeholder="für die Steuer auf die Marge"
+                            onblur={() => {
+                              const rounded = roundPrice(typedPrice(line.purchasePrice ?? ""));
+                              if (rounded) line.purchasePrice = rounded;
+                            }}
+                          /><span>€</span></span
+                        ></label
+                      >
+                      <PurchaseSourceField
+                        source={line.purchaseSource}
+                        label={line.purchaseSourceLabel}
+                        quantity={line.quantity}
+                        onchange={(choice) => {
+                          line.purchaseSource = choice?.source ?? "";
+                          line.purchaseSourceLabel = choice?.label ?? "";
+                          if (choice?.price) line.purchasePrice = choice.price;
+                        }}
+                      />
+                      <p class="form-help">
+                        Erscheint nicht auf der Rechnung. Die App rechnet damit die Umsatzsteuer auf
+                        deine Marge aus.
+                      </p>
+                    </div>{/if}
                 {/if}
                 {#if mixedTax && line.taxTreatment && !["standard", "zero-rated", "margin-goods", "margin-art", "margin-collectibles"].includes(line.taxTreatment)}
                   <div class="position-tax-reason">

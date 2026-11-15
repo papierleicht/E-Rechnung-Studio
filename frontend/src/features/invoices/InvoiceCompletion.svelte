@@ -3,12 +3,14 @@
     InvoiceDraft,
     InvoiceSummary,
     InvoiceView,
+    PurchaseAssignment,
   } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
   import InvoicePayments from "../payments/InvoicePayments.svelte";
   import InvoiceReminders from "../reminders/InvoiceReminders.svelte";
   import Icon from "../../components/Icon.svelte";
   import ExportMenu from "./ExportMenu.svelte";
   import InvoiceMail from "./InvoiceMail.svelte";
+  import PurchasePrices from "./PurchasePrices.svelte";
   import TaxReview from "./TaxReview.svelte";
   import ValidationReport from "../../components/ValidationReport.svelte";
   import MoreMenu, { type MoreMenuItem } from "../../components/MoreMenu.svelte";
@@ -48,6 +50,7 @@
     applyTaxReview,
     markSent,
     deleteIssued,
+    savePurchasePrices = () => {},
     invoices = [],
   }: {
     /** All invoices, to compare dates and see whether this one went out. */
@@ -77,6 +80,8 @@
     /** Notes or withdraws that the invoice was sent outside the app. */
     markSent: (sent: boolean) => void;
     deleteIssued: () => void;
+    /** Records purchase prices of Differenzbesteuerung items, by line ID. */
+    savePurchasePrices?: (prices: Record<string, PurchaseAssignment>) => Promise<void> | void;
   } = $props();
   const selectedFormat = $derived(invoiceFormats.find((format) => format.id === draft.profile));
   const isXRechnung = $derived(draft.profile.startsWith("xrechnung-"));
@@ -341,6 +346,7 @@
           <p>Die gespeicherte E-Rechnung entspricht den unterstützten Format- und Rechenregeln.</p>
         </details>
       </div>{:else}<ValidationReport result={view?.validation} />{/if}
+    <PurchasePrices {draft} {busy} onsave={savePurchasePrices} />
     <InvoicePayments
       invoiceID={draft.id}
       onchanged={async () => {

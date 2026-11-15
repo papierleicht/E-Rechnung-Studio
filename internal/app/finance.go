@@ -106,6 +106,11 @@ type taxRate struct {
 	Percent       decimal.Decimal
 	Basis, Amount decimal.Decimal
 	ReasonCode    string // BT-121, e.g. VATEX-EU-F for the Differenzbesteuerung
+	// MarginKnown marks a Differenzbesteuerung group whose purchase prices
+	// are all recorded. MarginBase and MarginTax are then the taxable margin
+	// and the Umsatzsteuer in it, see margin.go.
+	MarginKnown           bool
+	MarginBase, MarginTax decimal.Decimal
 }
 
 // issuedTax is an issued invoice reduced to the values the report needs.
@@ -148,16 +153,17 @@ func documentDatedTax(category, buyerCountry string) bool {
 	return category == "K" || (category == "AE" && taxforms.OtherEU(buyerCountry))
 }
 
-func (v issuedTax) hasMargin() bool {
+// marginMissing reports a Differenzbesteuerung group without purchase prices.
+func (v issuedTax) marginMissing() bool {
 	for _, t := range v.Rates {
-		if v.margin(t) {
+		if v.margin(t) && !t.MarginKnown {
 			return true
 		}
 	}
 	return false
 }
 
-const marginNotice = "Bei Differenzbesteuerung fehlt die Umsatzsteuer auf deine Marge, weil die App deine Einkaufspreise nicht kennt."
+const marginNotice = "Bei Differenzbesteuerung fehlt die Umsatzsteuer auf deine Marge, weil der Einkaufspreis fehlt. Trage ihn in den Positionen dieser Rechnungen ein."
 
 // receivedTax is a stored e-invoice reduced to its tax breakdown. Credit notes
 // (type code 381) carry negative amounts, like issued ones.
@@ -333,7 +339,13 @@ func issuedFromDocument(d store.IssuedDocument) issuedTax {
 	}
 	v.Gross = inv.GrandTotal.Mul(sign)
 	for _, t := range inv.TradeTaxes {
-		v.Rates = append(v.Rates, taxRate{Category: t.CategoryCode, Percent: t.Percent, Basis: t.BasisAmount.Mul(sign), Amount: t.CalculatedAmount.Mul(sign), ReasonCode: t.ExemptionReasonCode})
+		r := taxRate{Category: t.CategoryCode, Percent: t.Percent, Basis: t.BasisAmount.Mul(sign), Amount: t.CalculatedAmount.Mul(sign), ReasonCode: t.ExemptionReasonCode}
+		if v.margin(r) {
+			if base, tax, ok := draftMargin(d.Draft, r.ReasonCode, t.BasisAmount); ok {
+				r.MarginKnown, r.MarginBase, r.MarginTax = true, base.Mul(sign), tax.Mul(sign)
+			}
+		}
+		v.Rates = append(v.Rates, r)
 	}
 	return v
 }
@@ -705,15 +717,26 @@ func buildFinanceReport(in financeInput) FinanceReport {
 	// VAT.
 	var outputEntries []FinanceEntry
 	rates := map[string]*TaxRateLine{}
-	addRate := func(t taxRate, part func(decimal.Decimal) decimal.Decimal) decimal.Decimal {
-		key := t.Category + "|" + t.Percent.String()
+	addLine := func(category string, percent, basis, amount decimal.Decimal) {
+		key := category + "|" + percent.String()
 		if rates[key] == nil {
-			rates[key] = &TaxRateLine{Category: t.Category, Percent: t.Percent.String(), Net: "0.00", Tax: "0.00"}
+			rates[key] = &TaxRateLine{Category: category, Percent: percent.String(), Net: "0.00", Tax: "0.00"}
 		}
 		net, _ := decimal.NewFromString(rates[key].Net)
 		tax, _ := decimal.NewFromString(rates[key].Tax)
-		basis, amount := part(t.Basis), part(t.Amount)
 		rates[key].Net, rates[key].Tax = money(net.Add(basis)), money(tax.Add(amount))
+	}
+	addRate := func(t taxRate, part func(decimal.Decimal) decimal.Decimal) decimal.Decimal {
+		if t.MarginKnown {
+			// § 25a Abs. 5 UStG: the margin is taxed at the standard rate; the
+			// rest of the price, the purchase price, stays without tax.
+			base, tax := part(t.MarginBase), part(t.MarginTax)
+			addLine(t.Category, t.Percent, part(t.Basis).Sub(base).Sub(tax), decimal.Zero)
+			addLine("S", marginRate, base, tax)
+			return tax
+		}
+		basis, amount := part(t.Basis), part(t.Amount)
+		addLine(t.Category, t.Percent, basis, amount)
 		return amount
 	}
 	if !in.SmallBusiness {
@@ -738,7 +761,7 @@ func buildFinanceReport(in financeInput) FinanceReport {
 				if v.Advance && !counted {
 					continue // all of it follows the payments
 				}
-				if v.hasMargin() {
+				if v.marginMissing() {
 					issue("margin_scheme", areaVAT, marginNotice, e)
 				}
 				e.Amount = money(tax)
@@ -753,7 +776,7 @@ func buildFinanceReport(in financeInput) FinanceReport {
 					}
 				}
 				e := item.Entry
-				if item.Invoice.hasMargin() {
+				if item.Invoice.marginMissing() {
 					issue("margin_scheme", areaVAT, marginNotice, e)
 				}
 				e.Amount = money(tax)
@@ -784,7 +807,7 @@ func buildFinanceReport(in financeInput) FinanceReport {
 				for _, t := range v.Rates {
 					tax = tax.Add(addRate(t, shareOf(share)))
 				}
-				if v.hasMargin() {
+				if v.marginMissing() {
 					issue("margin_scheme", areaVAT, marginNotice, e)
 				}
 				e.Amount = money(tax)

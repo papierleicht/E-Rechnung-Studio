@@ -460,6 +460,14 @@ export function PreviewQuote(q: model$0.Quote): $CancellablePromise<model$0.Quot
 }
 
 /**
+ * PurchaseDocuments lists the documents a purchase price can be taken from,
+ * newest first. Misimported invoices and cancelled receipts are left out.
+ */
+export function PurchaseDocuments(): $CancellablePromise<$models.PurchaseDocument[] | null> {
+    return $Call.ByID(2833922755);
+}
+
+/**
  * QuoteDocumentHTML renders the preview without saving anything.
  */
 export function QuoteDocumentHTML(q: model$0.Quote): $CancellablePromise<string> {
@@ -623,6 +631,16 @@ export function SetBookingTreatment(id: string, kind: string, note: string): $Ca
 
 export function SetPaid(id: string, paid: boolean): $CancellablePromise<void> {
     return $Call.ByID(1314216410, id, paid);
+}
+
+/**
+ * SetPurchasePrices records the purchase prices of Differenzbesteuerung items
+ * on an issued invoice and the documents they come from, by line ID. They
+ * never appear on the invoice; the finance figures use them for the tax on
+ * the margin.
+ */
+export function SetPurchasePrices(id: string, prices: { [_ in string]?: model$0.PurchaseAssignment } | null): $CancellablePromise<void> {
+    return $Call.ByID(2346462561, id, prices);
 }
 
 /**

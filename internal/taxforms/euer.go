@@ -14,6 +14,9 @@ type Income struct {
 	Category string // EN 16931 VAT category of the share
 	Net, Tax decimal.Decimal
 	Margin   bool
+	// MarginKnown and MarginTax: see Sale.
+	MarginKnown bool
+	MarginTax   decimal.Decimal
 }
 
 // Expense is a deductible payment of the year. Category is a Categories ID.
@@ -112,9 +115,13 @@ func BuildEUR(year int, smallBusiness bool, income []Income, vat []VATMovement, 
 				// Zeile 13 breaks out what does not count towards the limits of § 19.
 				put("13", "119", "davon nicht steuerbare Umsätze", true, in.Net.Add(in.Tax), in.Entry, "")
 			}
+		case in.Margin && in.MarginKnown:
+			// The whole price is income; the tax on the margin goes to Zeile 17.
+			put("15", "112", "Umsatzsteuerpflichtige Betriebseinnahmen (netto)", false, in.Net.Add(in.Tax).Sub(in.MarginTax), in.Entry, "")
+			put("17", "140", "Vereinnahmte Umsatzsteuer", false, in.MarginTax, in.Entry, "")
 		case in.Margin:
 			put("15", "112", "Umsatzsteuerpflichtige Betriebseinnahmen (netto)", false, in.Net.Add(in.Tax), in.Entry, "")
-			issues.add("margin_scheme", "Bei Differenzbesteuerung steht hier der volle Verkaufspreis. Rechne die Umsatzsteuer auf deine Marge heraus: Zeile 15 sinkt um diesen Betrag, Zeile 17 steigt um ihn.", in.Entry)
+			issues.add("margin_scheme", "Bei Differenzbesteuerung ohne Einkaufspreis steht hier der volle Verkaufspreis. Trage den Einkaufspreis in den Positionen der Rechnung ein, dann teilt die App ihn auf. Von Hand: Rechne die Umsatzsteuer auf deine Marge heraus, Zeile 15 sinkt um diesen Betrag, Zeile 17 steigt um ihn.", in.Entry)
 		case in.Category == "S" && !in.Tax.IsZero():
 			// Refunds on credit notes are negative and reduce both lines.
 			put("15", "112", "Umsatzsteuerpflichtige Betriebseinnahmen (netto)", false, in.Net, in.Entry, "")

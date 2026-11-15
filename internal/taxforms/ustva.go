@@ -40,14 +40,17 @@ type Issue struct {
 // Sale is the tax breakdown of one outgoing invoice (or the paid share of it
 // under Ist-Versteuerung). Category is the EN 16931 VAT category code. Margin
 // marks the Differenzbesteuerung (§ 25a UStG): the taxable margin depends on
-// the purchase price, which the app does not know.
+// the purchase prices. MarginKnown says they are recorded; MarginBase is then
+// the margin without the Umsatzsteuer, MarginTax the tax in it.
 type Sale struct {
-	Entry        Entry
-	Category     string
-	Percent      decimal.Decimal
-	Net, Tax     decimal.Decimal
-	BuyerCountry string
-	Margin       bool
+	Entry                 Entry
+	Category              string
+	Percent               decimal.Decimal
+	Net, Tax              decimal.Decimal
+	BuyerCountry          string
+	Margin                bool
+	MarginKnown           bool
+	MarginBase, MarginTax decimal.Decimal
 }
 
 // Purchase is the tax breakdown of a received invoice or captured receipt.
@@ -150,7 +153,7 @@ func (l issueList) sorted() []Issue {
 	return out
 }
 
-const marginMessage = "Verkäufe mit Differenzbesteuerung (§ 25a UStG) sind nicht enthalten, weil die App deine Einkaufspreise nicht kennt. Steuerpflichtig ist die Marge: Verkaufspreis minus Einkaufspreis, geteilt durch 1,19. Addiere sie zu Kennzahl 81; ist sie negativ, zählt sie mit 0."
+const marginMessage = "Verkäufe mit Differenzbesteuerung (§ 25a UStG) ohne Einkaufspreis sind nicht enthalten. Trage den Einkaufspreis in den Positionen der Rechnung ein, dann rechnet die App die Marge in Kennzahl 81 ein. Von Hand: Verkaufspreis minus Einkaufspreis, geteilt durch 1,19; eine negative Marge zählt mit 0."
 
 // BuildVATReturn maps sales and purchases of one period to USt 1 A.
 // special is the Sondervorauszahlung to deduct (zero if none).
@@ -180,7 +183,12 @@ func BuildVATReturn(sales []Sale, purchases []Purchase, special decimal.Decimal)
 		case "Z":
 			add("87", s.Net, s.Entry)
 		case "E":
-			if s.Margin {
+			if s.Margin && s.MarginKnown {
+				// § 25a Abs. 5 UStG: the margin is taxed at the standard rate.
+				e := s.Entry
+				e.Note = "Marge aus Verkaufspreis " + FormatGerman(s.Net.Add(s.Tax).StringFixed(2), true) + " €"
+				add("81", s.MarginBase, e)
+			} else if s.Margin {
 				e := s.Entry
 				e.Note = "Verkaufspreis " + FormatGerman(s.Net.Add(s.Tax).StringFixed(2), true) + " €"
 				issues.add("margin_scheme", marginMessage, e)

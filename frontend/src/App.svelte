@@ -29,6 +29,7 @@
     RecurringInvoice,
     InvoiceView,
     Product,
+    PurchaseAssignment,
   } from "../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
   import InvoiceSettingsDialog from "./features/invoices/InvoiceSettingsDialog.svelte";
   import PositionEditor from "./features/invoices/PositionEditor.svelte";
@@ -1176,6 +1177,18 @@
     message = sent ? "Als verschickt markiert" : "Markierung zurückgenommen";
     await run(refreshApplicationLists);
   }
+  async function saveIssuedPurchasePrices(prices: Record<string, PurchaseAssignment>) {
+    const id = draft?.id;
+    if (!id || busy) return;
+    const result = await run(async () => {
+      await API.SetPurchasePrices(id, prices);
+      return API.OpenInvoice(id);
+    });
+    if (!result) return;
+    acceptInvoiceView(result);
+    rememberDraft();
+    message = "Einkaufspreise gespeichert";
+  }
   function openDraftView(result: InvoiceView) {
     acceptInvoiceView(result);
     exportedPDF = "";
@@ -1847,6 +1860,7 @@
               schedulePreview();
             }}
             markSent={markInvoiceSent}
+            savePurchasePrices={saveIssuedPurchasePrices}
             deleteIssued={() => (deletingInvoice = true)}
           />
           {#if deletingInvoice && draft.id}<DeleteInvoiceDialog

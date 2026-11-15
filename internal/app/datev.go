@@ -70,6 +70,9 @@ const (
 type datevTax struct {
 	Category, ReasonCode, Reason string
 	Percent, Basis, Amount       decimal.Decimal
+	// MarginKnown, MarginBase and MarginTax: see taxRate.
+	MarginKnown           bool
+	MarginBase, MarginTax decimal.Decimal
 }
 
 // datevDoc is an issued or received invoice or a receipt reduced to what the export needs.
@@ -331,7 +334,11 @@ func issuedDatevDoc(d store.IssuedDocument) datevDoc {
 		return v
 	}
 	for _, t := range inv.TradeTaxes {
-		v.Taxes = append(v.Taxes, datevTax{Category: t.CategoryCode, ReasonCode: t.ExemptionReasonCode, Reason: t.ExemptionReason, Percent: t.Percent, Basis: t.BasisAmount, Amount: t.CalculatedAmount})
+		tax := datevTax{Category: t.CategoryCode, ReasonCode: t.ExemptionReasonCode, Reason: t.ExemptionReason, Percent: t.Percent, Basis: t.BasisAmount, Amount: t.CalculatedAmount}
+		if t.CategoryCode == "E" && (marginCodes[t.ExemptionReasonCode] || strings.HasPrefix(d.Draft.TaxTreatment, "margin-")) {
+			tax.MarginBase, tax.MarginTax, tax.MarginKnown = draftMargin(d.Draft, t.ExemptionReasonCode, t.BasisAmount)
+		}
+		v.Taxes = append(v.Taxes, tax)
 	}
 	return v
 }
@@ -627,7 +634,13 @@ func buildDatevExport(in datevInput) datevBuild {
 				}
 			}
 			if l.label == "Differenzbesteuerung" {
-				issue("margin_scheme", severityReview, "Differenzbesteuerung: Der Bruttobetrag ist ohne Steuer gebucht. Die Steuer auf die Marge ermittelt deine Kanzlei.", entryOf(doc))
+				e := entryOf(doc)
+				if l.tax.MarginKnown {
+					e.Note = "Marge netto " + taxforms.FormatGerman(l.tax.MarginBase.StringFixed(2), true) + " €, darin Umsatzsteuer " + taxforms.FormatGerman(l.tax.MarginTax.StringFixed(2), true) + " €"
+				} else {
+					e.Note = "Einkaufspreis fehlt"
+				}
+				issue("margin_scheme", severityReview, "Differenzbesteuerung: Der Bruttobetrag ist ohne Steuer gebucht. Die Umsatzsteuer auf die Marge steht beim Beleg, sobald die Einkaufspreise eingetragen sind; deine Kanzlei bucht sie um.", e)
 			}
 			add(doc, l.gross, side, debtor, l.account, "", text, vat, date, field)
 		}

@@ -71,21 +71,21 @@ export const setupTaxGuidance: Record<
     example:
       "Der Handel mit gebrauchten Waren allein genügt nicht; auch die Voraussetzungen beim Einkauf und Verkauf sind entscheidend.",
     effect:
-      "Kein gesonderter Umsatzsteuerausweis. Die App ergänzt den Sonderregelungshinweis, berechnet die interne Margensteuer aber nicht.",
+      "Kein gesonderter Umsatzsteuerausweis. Die App ergänzt den Sonderregelungshinweis und rechnet die Steuer auf die Marge aus den Einkaufspreisen aus, die du an den Positionen einträgst.",
   },
   "margin-art": {
     meaning: "Für die betreffenden Kunstgegenstände wendest du die Differenzbesteuerung an.",
     example:
       "Wähle das nur, wenn du geklärt hast, dass es für deinen konkreten Handel gilt – nicht pauschal für jede künstlerische Tätigkeit.",
     effect:
-      "Die App ergänzt den Sonderregelungshinweis für Kunstgegenstände, ohne gesonderten Umsatzsteuerausweis. Die interne Margensteuer berechnet sie nicht.",
+      "Die App ergänzt den Sonderregelungshinweis für Kunstgegenstände, ohne gesonderten Umsatzsteuerausweis. Die Steuer auf die Marge rechnet sie aus den Einkaufspreisen an den Positionen aus.",
   },
   "margin-collectibles": {
     meaning: "Für Antiquitäten oder Sammlungsstücke wendest du die Differenzbesteuerung an.",
     example:
       "Entscheidend sind die gesetzlichen Voraussetzungen des konkreten Umsatzes, nicht nur die Bezeichnung des Artikels.",
     effect:
-      "Die App ergänzt den passenden Sonderregelungshinweis, ohne gesonderten Umsatzsteuerausweis. Die interne Margensteuer berechnet sie nicht.",
+      "Die App ergänzt den passenden Sonderregelungshinweis, ohne gesonderten Umsatzsteuerausweis. Die Steuer auf die Marge rechnet sie aus den Einkaufspreisen an den Positionen aus.",
   },
 };
 

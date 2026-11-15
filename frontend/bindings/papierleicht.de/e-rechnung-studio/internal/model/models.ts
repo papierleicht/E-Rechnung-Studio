@@ -323,6 +323,21 @@ export interface InvoiceLine {
     "unitPrice": string;
     "taxRate": string;
     "taxCategory": string;
+
+    /**
+     * PurchasePrice is what the seller paid per unit for an item sold under
+     * the Differenzbesteuerung (§ 25a UStG). It stays internal: neither the
+     * PDF nor the XML shows it, it only yields the taxable margin.
+     */
+    "purchasePrice"?: string;
+
+    /**
+     * PurchaseSource links the document behind the purchase price, a received
+     * invoice ("received:<id>") or a recorded receipt ("expense:<id>").
+     * PurchaseSourceLabel keeps how it read when it was chosen.
+     */
+    "purchaseSource"?: string;
+    "purchaseSourceLabel"?: string;
 }
 
 /**
@@ -410,6 +425,16 @@ export interface Product {
     "taxCategory": string;
     "createdAt": string;
     "updatedAt": string;
+}
+
+/**
+ * PurchaseAssignment is the purchase price of one invoice line and the
+ * document it comes from, if any. Empty values remove them.
+ */
+export interface PurchaseAssignment {
+    "price": string;
+    "source": string;
+    "sourceLabel": string;
 }
 
 /**

@@ -1444,6 +1444,43 @@ const handlers: Record<string, Handler> = {
     if (sent) d.markedSentAt = now();
     else delete d.markedSentAt;
   },
+  "InvoiceService.SetPurchasePrices": (
+    id: string,
+    prices: Record<string, { price: string; source: string; sourceLabel: string }>,
+  ) => {
+    const d = find(db.invoices, id, "Rechnung");
+    if (d.status === "draft")
+      throw new Error("Einkaufspreise eines Entwurfs trägst du in den Positionen ein.");
+    for (const line of d.lines ?? []) {
+      const next = prices[line.id];
+      if (!next) continue;
+      line.purchasePrice = next.price.replace(",", ".") || undefined;
+      line.purchaseSource = next.source || undefined;
+      line.purchaseSourceLabel = next.source ? next.sourceLabel : undefined;
+    }
+  },
+  // Receipts a purchase price can come from, with the invoices using them.
+  "InvoiceService.PurchaseDocuments": () => {
+    const uses: Record<string, string[]> = {};
+    for (const d of db.invoices)
+      for (const line of d.lines ?? [])
+        if (line.purchaseSource)
+          (uses[line.purchaseSource] ??= []).push(d.status === "draft" ? "Entwurf" : d.number);
+    // The demo records no receipts; two sample purchases show how linking works.
+    return [
+      ["demo-ankauf-2", "B-2026-0012", "Ankauf von Privat · Jana Weber", "2026-10-28", "3800.00"],
+      ["demo-ankauf-1", "B-2026-0009", "Ankauf von Privat · Tom Schulz", "2026-10-14", "950.00"],
+    ].map(([id, number, partner, date, gross]) => ({
+      source: `expense:${id}`,
+      kind: "expense",
+      number,
+      partner,
+      date,
+      gross,
+      label: `Beleg ${number} · ${partner}`,
+      usedBy: uses[`expense:${id}`] ?? [],
+    }));
+  },
   "InvoiceService.InvoiceDeletionCheck": deletionCheck,
   "InvoiceService.DeleteIssuedInvoice": (id: string, reason: string) => {
     const check = deletionCheck(id);
