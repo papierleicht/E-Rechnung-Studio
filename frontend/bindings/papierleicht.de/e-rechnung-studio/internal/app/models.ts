@@ -709,6 +709,26 @@ export interface Reconciliation {
 }
 
 /**
+ * ResetOverview tells the UI what a reset would delete and what stays.
+ */
+export interface ResetOverview {
+    "issuedInvoices": number;
+    "receivedDocuments": number;
+    "signedIn": boolean;
+    "backupKey": boolean;
+    "exportDirectory": string;
+    "dataDirectory": string;
+}
+
+/**
+ * ResetResult names what could not be removed, so the customer can do it by
+ * hand.
+ */
+export interface ResetResult {
+    "keychainLeft": string[] | null;
+}
+
+/**
  * RestorePreview shows a backup and what restoring it would remove.
  */
 export interface RestorePreview {

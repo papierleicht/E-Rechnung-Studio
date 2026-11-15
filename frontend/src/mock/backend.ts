@@ -2117,6 +2117,19 @@ const handlers: Record<string, Handler> = {
   "AccountService.SubscribeNewsletter": () => {
     throw desktopOnly("die Anmeldung zum Newsletter");
   },
+  // ResetService: the demo keeps no data on the device.
+  "ResetService.ResetOverview": () => ({
+    issuedInvoices: 0,
+    receivedDocuments: 0,
+    signedIn: false,
+    backupKey: false,
+    exportDirectory: "",
+    dataDirectory: "",
+  }),
+  "ResetService.ResetApp": () => {
+    throw desktopOnly("das Zurücksetzen der App");
+  },
+  "ResetService.QuitAfterReset": () => undefined,
   // ChatService: the demo shows the showcase of "Chat & Markt"; the
   // community itself runs on the server for members.
   "ChatService.Preview": () => ({

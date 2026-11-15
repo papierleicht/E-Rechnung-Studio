@@ -8,6 +8,7 @@ import * as BankingService from "./bankingservice.js";
 import * as ChatService from "./chatservice.js";
 import * as InvoiceService from "./invoiceservice.js";
 import * as MailService from "./mailservice.js";
+import * as ResetService from "./resetservice.js";
 import * as ShopService from "./shopservice.js";
 import * as UpdateService from "./updateservice.js";
 export {
@@ -18,6 +19,7 @@ export {
     ChatService,
     InvoiceService,
     MailService,
+    ResetService,
     ShopService,
     UpdateService
 };
@@ -68,6 +70,8 @@ export type {
     PaymentBooking,
     PaymentSuggestion,
     Reconciliation,
+    ResetOverview,
+    ResetResult,
     RestorePreview,
     RestoreResult,
     SmallBusinessStatus,

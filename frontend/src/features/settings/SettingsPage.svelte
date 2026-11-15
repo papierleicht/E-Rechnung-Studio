@@ -17,10 +17,12 @@
   import { setupMissing } from "../../lib/onboarding";
   import AccountSettings from "./AccountSettings.svelte";
   import AuditSettings from "./AuditSettings.svelte";
+  import ResetAppDialog from "./ResetAppDialog.svelte";
   import PlusHint from "../../components/PlusHint.svelte";
   import NewsletterSignup from "../../components/NewsletterSignup.svelte";
   import { optionalSections, sectionVisible } from "../../lib/menuSections";
   let aboutOpen = $state(false);
+  let resetOpen = $state(false);
   const tabs = [
     { id: "general", label: "Allgemein" },
     { id: "company", label: "Unternehmen" },
@@ -194,6 +196,20 @@
             >Sicherung exportieren</button
           ><button class="secondary" disabled={busy} onclick={importBackup}
             >Sicherung importieren</button
+          >
+        </div>
+      </div>
+      <div class="backup">
+        <div>
+          <h2>App zurücksetzen</h2>
+          <p>
+            Löscht alle Daten und gespeicherten Zugangsdaten auf diesem Gerät, etwa nachdem du die
+            App ausprobiert hast. Danach beginnt sie wie nach der Installation.
+          </p>
+        </div>
+        <div class="actions">
+          <button class="danger-text" disabled={busy} onclick={() => (resetOpen = true)}
+            ><Icon name="trash" size={16} /> Zurücksetzen …</button
           >
         </div>
       </div>
@@ -399,6 +415,8 @@
     <button type="button" onclick={() => (aboutOpen = false)}>Schließen</button>
   {/await}
 {/if}
+
+{#if resetOpen}<ResetAppDialog {exportBackup} oncancel={() => (resetOpen = false)} />{/if}
 
 <style>
   .menu-sections {
