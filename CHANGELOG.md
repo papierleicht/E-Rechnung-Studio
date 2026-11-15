@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/papierleicht/E-Rechnung-Studio/compare/v1.1.1...v1.2.0) (2026-11-15)
+
+
+### Features
+
+* **tax:** compute the tax on the margin from purchase prices ([#13](https://github.com/papierleicht/E-Rechnung-Studio/issues/13)) ([c38a5f4](https://github.com/papierleicht/E-Rechnung-Studio/commit/c38a5f453b5ad2166041cb507f8b3f2ee9740ecf))
+* **updates:** offer to move the app where updates can install ([#12](https://github.com/papierleicht/E-Rechnung-Studio/issues/12)) ([669425c](https://github.com/papierleicht/E-Rechnung-Studio/commit/669425c2cf865bc383dc89badf243933a39031d9))
+
 ## [1.1.1](https://github.com/papierleicht/E-Rechnung-Studio/compare/v1.1.0...v1.1.1) (2026-11-15)
 
 
