@@ -26,8 +26,12 @@ func TestSavingSettingsOffForgetsUsageCounters(t *testing.T) {
 	}
 	settings.ImprovementStatistics = true
 	settings.ExportDirectory = t.TempDir()
-	if _, err := s.SaveAppSettings(settings); err != nil {
+	saved, err := s.SaveAppSettings(settings)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !saved.StatisticsAsked {
+		t.Fatal("turning the help on did not answer the one-time question")
 	}
 	(&UsageService{recorder: usage}).RecordArea("invoices")
 	(&UsageService{recorder: usage}).RecordArea("nicht-im-menue")

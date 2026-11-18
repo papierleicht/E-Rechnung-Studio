@@ -81,9 +81,13 @@ type AppSettings struct {
 	UsageStatistics bool `json:"usageStatistics"`
 	// ImprovementStatistics counts which areas and functions are used and
 	// reports them without an identifier; off unless the user turned it on.
-	ImprovementStatistics bool   `json:"improvementStatistics"`
-	ExportDirectory       string `json:"exportDirectory"`
-	Appearance            string `json:"appearance,omitempty"`
+	ImprovementStatistics bool `json:"improvementStatistics"`
+	// StatisticsAsked is true once the user answered the question about
+	// ImprovementStatistics, in the setup or in the one-time hint shown after
+	// the update that introduced it.
+	StatisticsAsked bool   `json:"statisticsAsked"`
+	ExportDirectory string `json:"exportDirectory"`
+	Appearance      string `json:"appearance,omitempty"`
 	// Sections shows (true) or hides (false) optional areas of the menu,
 	// see MenuSections. A missing key keeps the default: "shops" shows only
 	// with a connected shop, "products" always, "migration" only while the

@@ -63,6 +63,8 @@ const db = structuredClone({
     automaticUpdates: false,
     usageStatistics: false,
     improvementStatistics: false,
+    // The demo never asks; it sends nothing.
+    statisticsAsked: true,
     exportDirectory: "",
     appearance: "system",
   },

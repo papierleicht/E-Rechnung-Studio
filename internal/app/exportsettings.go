@@ -99,6 +99,10 @@ func (s *InvoiceService) prepareAppSettings(v model.AppSettings) (model.AppSetti
 	default:
 		return v, errors.New("Wähle für die Darstellung System, Hell oder Dunkel.")
 	}
+	// Turning the help on in the settings answers the one-time question.
+	if v.ImprovementStatistics {
+		v.StatisticsAsked = true
+	}
 	for id := range v.Sections {
 		if !slices.Contains(model.MenuSections, id) {
 			delete(v.Sections, id)

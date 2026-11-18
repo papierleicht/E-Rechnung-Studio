@@ -23,6 +23,13 @@ export interface AppSettings {
      * reports them without an identifier; off unless the user turned it on.
      */
     "improvementStatistics": boolean;
+
+    /**
+     * StatisticsAsked is true once the user answered the question about
+     * ImprovementStatistics, in the setup or in the one-time hint shown after
+     * the update that introduced it.
+     */
+    "statisticsAsked": boolean;
     "exportDirectory": string;
     "appearance"?: string;
 

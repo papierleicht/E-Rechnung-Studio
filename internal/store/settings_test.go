@@ -107,14 +107,15 @@ func TestStatisticsDefaults(t *testing.T) {
 	}
 	defer s.Close()
 	settings, err := s.AppSettings()
-	if err != nil || !settings.UsageStatistics || settings.ImprovementStatistics {
+	if err != nil || !settings.UsageStatistics || settings.ImprovementStatistics || settings.StatisticsAsked {
 		t.Fatalf("new installation: %+v, %v", settings, err)
 	}
 	// Settings saved before the preferences existed keep the defaults.
 	if err := s.writeSetting("app", map[string]any{"automaticUpdates": false}); err != nil {
 		t.Fatal(err)
 	}
-	if settings, err = s.AppSettings(); err != nil || !settings.UsageStatistics || settings.ImprovementStatistics {
+	// Installations from before the update have not been asked yet.
+	if settings, err = s.AppSettings(); err != nil || !settings.UsageStatistics || settings.ImprovementStatistics || settings.StatisticsAsked {
 		t.Fatalf("legacy settings: %+v, %v", settings, err)
 	}
 	settings.UsageStatistics, settings.ImprovementStatistics = false, true
