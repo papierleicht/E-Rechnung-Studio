@@ -80,12 +80,13 @@ type AppSettings struct {
 	Appearance       string `json:"appearance,omitempty"`
 	// Sections shows (true) or hides (false) optional areas of the menu,
 	// see MenuSections. A missing key keeps the default: "shops" shows only
-	// with a connected shop, "products" always.
+	// with a connected shop, "products" always, "migration" only while the
+	// legacy archive holds documents.
 	Sections map[string]bool `json:"sections,omitempty"`
 }
 
 // MenuSections are the areas of the menu a customer may hide.
-var MenuSections = []string{"shops", "products"}
+var MenuSections = []string{"shops", "products", "migration"}
 
 type InvoiceExport struct {
 	PDFPath string `json:"pdfPath"`

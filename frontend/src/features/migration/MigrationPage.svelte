@@ -137,9 +137,13 @@
       filePreview = null;
       notice =
         `${result.imported === 1 ? "1 Dokument" : `${result.imported} Dokumente`} im Altbestand abgelegt.` +
-        (result.duplicates ? ` ${result.duplicates} waren schon da.` : "") +
+        (result.duplicates
+          ? result.duplicates === 1
+            ? " 1 war schon da."
+            : ` ${result.duplicates} waren schon da.`
+          : "") +
         (result.failed.length
-          ? ` ${result.failed.length} ließen sich nicht übernehmen: ${result.failed
+          ? ` ${result.failed.length === 1 ? "1 ließ" : `${result.failed.length} ließen`} sich nicht übernehmen: ${result.failed
               .slice(0, 3)
               .map((item) => item.origin)
               .join(", ")}${result.failed.length > 3 ? " …" : ""}`
@@ -199,7 +203,11 @@
       notice =
         `${result.created} ${noun} übernommen.` +
         (result.existing ? ` ${result.existing} gab es schon.` : "") +
-        (result.failed.length ? ` ${result.failed.length} Zeilen übersprungen.` : "");
+        (result.failed.length
+          ? result.failed.length === 1
+            ? " 1 Zeile übersprungen."
+            : ` ${result.failed.length} Zeilen übersprungen.`
+          : "");
       await onchanged();
     } catch (cause) {
       dialogError = serviceErrorMessage(cause, "Die Liste ließ sich nicht übernehmen.");

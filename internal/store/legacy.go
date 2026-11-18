@@ -180,6 +180,9 @@ func (s *Store) LegacyFile(documentID, sum string) (model.LegacyFile, error) {
 	return f, err
 }
 
+// noDate is the year of documents without a date.
+const noDate = "ohne Datum"
+
 // LegacyYears sums up the archive per year and direction. Only documents with
 // e-invoice data have amounts; the others are counted.
 func (s *Store) LegacyYears() ([]model.LegacyYear, error) {
@@ -194,7 +197,7 @@ func (s *Store) LegacyYears() ([]model.LegacyYear, error) {
 	}
 	totals := map[key]*sums{}
 	for _, d := range docs {
-		year := "ohne Datum"
+		year := noDate
 		if len(d.Date) >= 4 {
 			year = d.Date[:4]
 		}
@@ -228,6 +231,10 @@ func (s *Store) LegacyYears() ([]model.LegacyYear, error) {
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Year != out[j].Year {
+			// Documents without a date come last, after the oldest year.
+			if (out[i].Year == noDate) != (out[j].Year == noDate) {
+				return out[j].Year == noDate
+			}
 			return out[i].Year > out[j].Year
 		}
 		return out[i].Direction < out[j].Direction

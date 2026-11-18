@@ -83,7 +83,7 @@ func TestLegacyListFiltersAndYearSums(t *testing.T) {
 		"2024outgoing": {Count: 1, Structured: 1, Net: "100.00", Tax: "19.00", Gross: "119.00"},
 		"ohne Datum":   {Count: 1, Structured: 0, Net: "0.00", Tax: "0.00", Gross: "0.00"},
 	}
-	if len(years) != len(want) {
+	if len(years) != len(want) || years[len(years)-1].Year != "ohne Datum" || years[0].Year != "2025" {
 		t.Fatalf("years %+v", years)
 	}
 	for _, y := range years {

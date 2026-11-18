@@ -235,11 +235,11 @@ func TestMenuSectionsAreSavedAndUnknownOnesDropped(t *testing.T) {
 	}
 	defer s.Close()
 	dir := t.TempDir()
-	if _, err := s.SaveAppSettings(model.AppSettings{ExportDirectory: dir, Sections: map[string]bool{"shops": false, "products": true, "invoices": false}}); err != nil {
+	if _, err := s.SaveAppSettings(model.AppSettings{ExportDirectory: dir, Sections: map[string]bool{"shops": false, "products": true, "migration": true, "invoices": false}}); err != nil {
 		t.Fatal(err)
 	}
 	saved, err := s.GetAppSettings()
-	if err != nil || len(saved.Sections) != 2 || saved.Sections["shops"] || !saved.Sections["products"] {
+	if err != nil || len(saved.Sections) != 3 || saved.Sections["shops"] || !saved.Sections["products"] || !saved.Sections["migration"] {
 		t.Fatalf("sections %v %v", saved.Sections, err)
 	}
 	// Only unknown keys: nothing to keep.
