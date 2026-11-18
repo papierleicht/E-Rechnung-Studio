@@ -195,3 +195,58 @@ func TestGdpduEncodingsAndHeaderlessTables(t *testing.T) {
 		t.Fatalf("table %+v err=%v", table, err)
 	}
 }
+
+func TestListsInsideAnExport(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "backup")
+	write(t, filepath.Join(dir, "clients.csv"), []byte("Kundennummer;Firma;Straße;PLZ;Ort;E-Mail\nK-1;Muster GmbH;Hauptstr. 1;10115;Berlin;a@muster.example\n"))
+	write(t, filepath.Join(dir, "articles.xlsx"), testWorkbook(t))
+	// An invoice list names the customer's address too, but it is no customer list.
+	write(t, filepath.Join(dir, "invoices.csv"), []byte("Rechnungsnummer;Datum;Firma;Straße;PLZ;Ort;Brutto\nRE-1;01.02.2025;Muster GmbH;Hauptstr. 1;10115;Berlin;119,00\n"))
+	write(t, filepath.Join(dir, "settings.csv"), []byte("Schlüssel;Wert\nwaehrung;EUR\n"))
+	write(t, filepath.Join(dir, "pdf", "RE-1.pdf"), []byte("%PDF eins"))
+	c, err := Collect([]string{dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	p, err := Analyze(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Tables) != 2 || len(p.Groups) != 1 || len(p.Skipped) != 2 {
+		t.Fatalf("tables %+v groups %d skipped %+v", p.Tables, len(p.Groups), p.Skipped)
+	}
+	byList := map[string]ExportTable{}
+	for _, table := range p.Tables {
+		byList[table.List] = table
+	}
+	customers, products := byList[ListCustomers], byList[ListProducts]
+	if customers.Format != "list" || customers.Label != "clients" || customers.Rows != 1 || products.Label != "articles" || products.Rows != 2 {
+		t.Fatalf("tables %+v", p.Tables)
+	}
+	table, err := LoadExportTable(c, products)
+	if err != nil || len(table.Rows) != 2 || table.Rows[0][0] != "Beratung" {
+		t.Fatalf("products %+v err=%v", table, err)
+	}
+	if table, err = LoadExportTable(c, customers); err != nil || table.Rows[0][1] != "Muster GmbH" {
+		t.Fatalf("customers %+v err=%v", table, err)
+	}
+}
+
+func TestListKind(t *testing.T) {
+	for _, tc := range []struct {
+		columns []string
+		want    string
+	}{
+		{[]string{"Firma", "PLZ", "Ort"}, ListCustomers},
+		{[]string{"Name", "E-Mail"}, ""},
+		{[]string{"Vorname", "Nachname", "Name", "E-Mail"}, ListCustomers},
+		{[]string{"Bezeichnung", "Preis", "Einheit"}, ListProducts},
+		{[]string{"Bezeichnung", "Einheit"}, ""},
+		{[]string{"Belegnummer", "Firma", "PLZ", "Ort"}, ""},
+	} {
+		if got := ListKind(tc.columns); got != tc.want {
+			t.Errorf("%v: %q, want %q", tc.columns, got, tc.want)
+		}
+	}
+}

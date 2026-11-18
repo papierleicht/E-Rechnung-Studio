@@ -406,7 +406,16 @@ func (s *MigrationService) PreviewList(list, path string, mapping map[string]int
 	return s.readList(list, func() (umzug.Table, error) { return readListFile(path) }, mapping)
 }
 
-// exportTable reads a customer list found inside an export.
+// exportList is the kind of list an export table holds; tables from before
+// the list field are customer lists.
+func exportList(table umzug.ExportTable) string {
+	if table.List == umzug.ListProducts {
+		return umzug.ListProducts
+	}
+	return umzug.ListCustomers
+}
+
+// exportTable reads a customer or product list found inside an export.
 func exportTable(paths []string, table umzug.ExportTable) func() (umzug.Table, error) {
 	return func() (umzug.Table, error) {
 		paths, err := cleanPaths(paths)
@@ -422,14 +431,14 @@ func exportTable(paths []string, table umzug.ExportTable) func() (umzug.Table, e
 	}
 }
 
-// PreviewExportList reads a customer list from inside an export without saving.
+// PreviewExportList reads a list from inside an export without saving.
 func (s *MigrationService) PreviewExportList(paths []string, table umzug.ExportTable, mapping map[string]int) (ListPreview, error) {
-	return s.readList(umzug.ListCustomers, exportTable(paths, table), mapping)
+	return s.readList(exportList(table), exportTable(paths, table), mapping)
 }
 
-// ImportExportList saves the new customers of a list inside an export.
+// ImportExportList saves the new customers or products of a list inside an export.
 func (s *MigrationService) ImportExportList(paths []string, table umzug.ExportTable, mapping map[string]int) (ListImportResult, error) {
-	return s.importList(umzug.ListCustomers, exportTable(paths, table), mapping)
+	return s.importList(exportList(table), exportTable(paths, table), mapping)
 }
 
 // ListImportResult says what an import of a list saved.

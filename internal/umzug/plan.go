@@ -15,12 +15,14 @@ type Plan struct {
 	Skipped []Skipped
 }
 
-// ExportTable points to a customer list inside an export, so it can be read
-// again when the customer opens it.
+// ExportTable points to a customer or product list inside an export, so it
+// can be read again when the customer opens it.
 type ExportTable struct {
-	// Format is "datev" or "gdpdu".
+	// Format is "datev", "gdpdu" or "list" (a CSV, text or Excel list).
 	Format string `json:"format"`
-	// Origin is the DATEV file or the index.xml.
+	// List is ListCustomers or ListProducts.
+	List string `json:"list"`
+	// Origin is the DATEV file, the index.xml or the list file.
 	Origin string `json:"origin"`
 	// Table is the name of a GDPdU table.
 	Table string `json:"table"`
@@ -165,7 +167,7 @@ func Analyze(c *Collection) (*Plan, error) {
 				if name == "" {
 					name = t.Name
 				}
-				p.Tables = append(p.Tables, ExportTable{Format: "gdpdu", Origin: e.Origin, Table: t.Name, Label: name + " (Prüferexport)", Rows: len(table.Rows)})
+				p.Tables = append(p.Tables, ExportTable{Format: "gdpdu", List: ListCustomers, Origin: e.Origin, Table: t.Name, Label: name + " (Prüferexport)", Rows: len(table.Rows)})
 			}
 		}
 	}
@@ -206,7 +208,7 @@ func Analyze(c *Collection) (*Plan, error) {
 				}
 			}
 			if customers > 0 {
-				p.Tables = append(p.Tables, ExportTable{Format: "datev", Origin: e.Origin, Label: "Debitoren (DATEV)", Rows: customers})
+				p.Tables = append(p.Tables, ExportTable{Format: "datev", List: ListCustomers, Origin: e.Origin, Label: "Debitoren (DATEV)", Rows: customers})
 			}
 		}
 	}
@@ -225,13 +227,18 @@ func Analyze(c *Collection) (*Plan, error) {
 		g.Meta = &b
 	}
 
-	// Everything else: receipts as before, lists and unknown data are skipped.
+	// Everything else: receipts as before; customer and product lists are
+	// offered for review, other data is skipped.
 	var rest []Entry
 	for _, e := range c.Entries {
 		if claimed[e.Origin] {
 			continue
 		}
 		if fileKind(e.Name) == "data" {
+			if t, ok := listFile(e); ok {
+				p.Tables = append(p.Tables, t)
+				continue
+			}
 			p.Skipped = append(p.Skipped, Skipped{e.Origin, "Keine Rechnung und kein bekannter Export. Kunden- und Artikellisten übernimmst du mit „Kunden aus Liste“ oder „Artikel aus Liste“."})
 			continue
 		}
@@ -257,7 +264,72 @@ func Analyze(c *Collection) (*Plan, error) {
 	return p, nil
 }
 
-// LoadExportTable reads a customer list found inside an export.
+// listExtensions are the files that may hold a list of customers or products.
+var listExtensions = map[string]bool{".csv": true, ".txt": true, ".tsv": true, ".xlsx": true}
+
+// listFile recognizes a customer or product list inside an export by its
+// column names, so it can be offered for review like a list chosen by hand.
+func listFile(e Entry) (ExportTable, bool) {
+	if !listExtensions[strings.ToLower(path.Ext(e.Name))] || e.Size > MaxTableSize {
+		return ExportTable{}, false
+	}
+	data, err := e.Open()
+	if err != nil {
+		return ExportTable{}, false
+	}
+	t, err := ReadList(data)
+	if err != nil || len(t.Rows) == 0 {
+		return ExportTable{}, false
+	}
+	kind := ListKind(t.Columns)
+	if kind == "" {
+		return ExportTable{}, false
+	}
+	label := strings.TrimSuffix(path.Base(e.Origin), path.Ext(e.Origin))
+	return ExportTable{Format: "list", List: kind, Origin: e.Origin, Label: label, Rows: len(t.Rows)}, true
+}
+
+// documentColumns are column names that only invoice, receipt and booking
+// lists have.
+var documentColumns = map[string]bool{
+	"rechnungsnummer": true, "rechnungsnr": true, "belegnummer": true, "belegnr": true, "dokumentnummer": true,
+	"rechnungsdatum": true, "belegdatum": true, "buchungsdatum": true, "faelligkeit": true, "faelligam": true,
+	"invoicenumber": true, "invoicedate": true, "duedate": true,
+}
+
+// ListKind tells by its column names whether a table is a customer list, a
+// product list or neither: a customer list names a customer and at least two
+// parts of the address or contact, a product list names a product and a price.
+func ListKind(columns []string) string {
+	// Invoice and booking lists often carry the customer's address too;
+	// they are no customer list.
+	for _, column := range columns {
+		if documentColumns[headerKey(column)] {
+			return ""
+		}
+	}
+	c := GuessMapping(ListCustomers, columns)
+	if _, ok := c["name"]; ok {
+		known := 0
+		for _, f := range []string{"firstName", "lastName", "street", "postcode", "city", "country", "email", "vatId"} {
+			if _, ok := c[f]; ok {
+				known++
+			}
+		}
+		if known >= 2 {
+			return ListCustomers
+		}
+	}
+	p := GuessMapping(ListProducts, columns)
+	_, name := p["name"]
+	_, price := p["unitPrice"]
+	if name && price {
+		return ListProducts
+	}
+	return ""
+}
+
+// LoadExportTable reads a customer or product list found inside an export.
 func LoadExportTable(c *Collection, t ExportTable) (Table, error) {
 	var entry *Entry
 	for i := range c.Entries {
@@ -274,6 +346,8 @@ func LoadExportTable(c *Collection, t ExportTable) (Table, error) {
 		return Table{}, err
 	}
 	switch t.Format {
+	case "list":
+		return ReadList(data)
 	case "datev":
 		f, err := ReadDatev(data)
 		return f.Table, err

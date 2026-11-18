@@ -203,6 +203,17 @@
     listPreview = preview;
   }
 
+  function tableNoun(table: ExportTable): string {
+    return table.list === "products" ? "Artikel" : "Kunden";
+  }
+
+  function exportOffer(tables: ExportTable[]): string {
+    const customers = tables.some((t) => t.list !== "products");
+    const products = tables.some((t) => t.list === "products");
+    if (customers && products) return "Im Export stecken Kunden und Artikel.";
+    return products ? "Im Export stecken Artikel." : "Im Export stecken Kunden.";
+  }
+
   async function openExportTable(table: ExportTable) {
     const paths = exportTables.paths;
     const preview = await run(() => migration.previewExportList(paths, table, null));
@@ -313,13 +324,13 @@
   {#if notice}<p class="move-feedback move-success" role="status">{notice}</p>{/if}
   {#if exportTables.tables.length && tab === "move"}
     <div class="move-feedback move-offer">
-      <p>Im Export stecken Kunden. Sieh dir jede Zeile an, bevor sie übernommen werden.</p>
+      <p>{exportOffer(exportTables.tables)} Sieh dir jede Zeile an, bevor sie übernommen werden.</p>
       <div class="move-offer-actions">
         {#each exportTables.tables as table (table.origin + table.table)}
           <button class="secondary" disabled={busy} onclick={() => openExportTable(table)}
             >{exportTables.tables.length === 1
-              ? "Kunden aus dem Export prüfen"
-              : `Kunden prüfen: ${table.label}`}</button
+              ? `${tableNoun(table)} aus dem Export prüfen`
+              : `${tableNoun(table)} prüfen: ${table.label}`}</button
           >
         {/each}
       </div>

@@ -161,3 +161,33 @@ func TestMigrationSavesAWholeExport(t *testing.T) {
 		t.Fatal("existing folder overwritten")
 	}
 }
+
+func TestMigrationTakesProductsFromAnExport(t *testing.T) {
+	invoices, err := NewInvoiceService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer invoices.Close()
+	m := NewMigrationService(invoices)
+	dir := filepath.Join(t.TempDir(), "backup")
+	os.MkdirAll(dir, 0o700)
+	if err = os.WriteFile(filepath.Join(dir, "artikel.csv"), []byte("Artikelnummer;Bezeichnung;Preis;Einheit\nA-1;Beratung;100,00;Std\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := m.PreviewFiles([]string{dir})
+	if err != nil || len(preview.Tables) != 1 || preview.Tables[0].List != "products" {
+		t.Fatalf("preview %+v err=%v", preview, err)
+	}
+	list, err := m.PreviewExportList([]string{dir}, preview.Tables[0], nil)
+	if err != nil || list.List != "products" || list.New != 1 || len(list.Products) != 1 {
+		t.Fatalf("list %+v err=%v", list, err)
+	}
+	saved, err := m.ImportExportList([]string{dir}, preview.Tables[0], list.Mapping)
+	if err != nil || saved.Created != 1 {
+		t.Fatalf("saved %+v err=%v", saved, err)
+	}
+	products, _ := invoices.store.Products()
+	if len(products) != 1 || products[0].Name != "Beratung" {
+		t.Fatalf("products %+v", products)
+	}
+}

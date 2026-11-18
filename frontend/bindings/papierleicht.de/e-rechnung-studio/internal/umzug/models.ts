@@ -22,17 +22,22 @@ export interface CustomerProposal {
 }
 
 /**
- * ExportTable points to a customer list inside an export, so it can be read
- * again when the customer opens it.
+ * ExportTable points to a customer or product list inside an export, so it
+ * can be read again when the customer opens it.
  */
 export interface ExportTable {
     /**
-     * Format is "datev" or "gdpdu".
+     * Format is "datev", "gdpdu" or "list" (a CSV, text or Excel list).
      */
     "format": string;
 
     /**
-     * Origin is the DATEV file or the index.xml.
+     * List is ListCustomers or ListProducts.
+     */
+    "list": string;
+
+    /**
+     * Origin is the DATEV file, the index.xml or the list file.
      */
     "origin": string;
 

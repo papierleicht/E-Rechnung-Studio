@@ -48,7 +48,7 @@ type Skipped struct {
 // and export files, or "".
 func fileKind(name string) string {
 	switch strings.ToLower(path.Ext(name)) {
-	case ".csv", ".txt", ".tsv", ".dtd":
+	case ".csv", ".txt", ".tsv", ".xlsx", ".dtd":
 		return "data"
 	case ".pdf":
 		return "pdf"

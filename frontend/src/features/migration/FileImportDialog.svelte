@@ -81,12 +81,18 @@
     <p class="move-note">In der Auswahl gibt es keine PDF-, XML- oder Bilddateien.</p>
   {/if}
   {#if preview.tables.length}
-    <ul class="move-tables" aria-label="Kunden im Export">
+    <ul class="move-tables" aria-label="Listen im Export">
       {#each preview.tables as table (table.origin + table.table)}
+        {@const products = table.list === "products"}
         <li>
-          <strong>{table.label}</strong>: {table.rows === 1 ? "1 Kunde" : `${table.rows} Kunden`}.
-          Nach dem Übernehmen kannst du sie mit „Kunden aus dem Export prüfen“ ansehen und
-          übernehmen.
+          <strong>{table.label}</strong>:
+          {#if products}{table.rows === 1
+              ? "1 Artikel"
+              : `${table.rows} Artikel`}{:else}{table.rows === 1
+              ? "1 Kunde"
+              : `${table.rows} Kunden`}{/if}. Nach dem Übernehmen kannst du sie mit „{products
+            ? "Artikel"
+            : "Kunden"} aus dem Export prüfen“ ansehen und übernehmen.
         </li>
       {/each}
     </ul>

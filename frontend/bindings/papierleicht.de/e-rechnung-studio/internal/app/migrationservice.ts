@@ -63,7 +63,7 @@ export function ImportAPIList(mapping: { [_ in string]?: number } | null): $Canc
 }
 
 /**
- * ImportExportList saves the new customers of a list inside an export.
+ * ImportExportList saves the new customers or products of a list inside an export.
  */
 export function ImportExportList(paths: string[] | null, table: umzug$0.ExportTable, mapping: { [_ in string]?: number } | null): $CancellablePromise<$models.ListImportResult> {
     return $Call.ByID(2380928980, paths, table, mapping);
@@ -105,7 +105,7 @@ export function PreviewAPIList(mapping: { [_ in string]?: number } | null): $Can
 }
 
 /**
- * PreviewExportList reads a customer list from inside an export without saving.
+ * PreviewExportList reads a list from inside an export without saving.
  */
 export function PreviewExportList(paths: string[] | null, table: umzug$0.ExportTable, mapping: { [_ in string]?: number } | null): $CancellablePromise<$models.ListPreview> {
     return $Call.ByID(436365935, paths, table, mapping);
