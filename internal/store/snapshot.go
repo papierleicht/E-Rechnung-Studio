@@ -91,6 +91,7 @@ func readBlob(q sqlRunner, source string) ([]byte, error) {
 		"deleted-xml": "SELECT xml FROM deleted_invoices WHERE id=?",
 		"deleted-pdf": "SELECT pdf FROM deleted_invoices WHERE id=?",
 		"expense":     "SELECT data FROM expense_files WHERE expense_id||':'||sha256=?",
+		"legacy":      "SELECT data FROM legacy_files WHERE document_id||':'||sha256=?",
 	}[kind]
 	if query == "" {
 		return nil, errors.New("Unbekannte Dokumentquelle.")
