@@ -48,6 +48,20 @@ func (s *Store) writeSetting(key string, value any) error {
 	return err
 }
 
+// UpdateState is what the app remembers about updates: the version whose
+// release notes the customer saw and a version they chose to skip.
+type UpdateState struct {
+	Seen    string `json:"seen,omitempty"`
+	Skipped string `json:"skipped,omitempty"`
+}
+
+func (s *Store) UpdateState() (v UpdateState, err error) {
+	err = s.readSetting("updates", &v)
+	return
+}
+
+func (s *Store) SaveUpdateState(v UpdateState) error { return s.writeSetting("updates", v) }
+
 func (s *Store) AppSettings() (v model.AppSettings, err error) {
 	v.AutomaticUpdates = true
 	err = s.readSetting("app", &v)

@@ -2263,10 +2263,37 @@ const handlers: Record<string, Handler> = {
   "UpdateService.Check": () => ({ currentVersion: appVersion.trim(), updateAvailable: false }),
   "UpdateService.Location": () => ({ canUpdate: true, targetExists: false }),
   "UpdateService.MoveApp": () => {},
-  "UpdateService.Open": () => {
-    window.open("https://papierleicht.de/#download", "_blank", "noopener,noreferrer");
+  "UpdateService.Install": () => {
+    throw desktopOnly("das Installieren von Updates");
   },
+  "UpdateService.Progress": () => ({ phase: "idle", written: 0, total: 0 }),
+  "UpdateService.Restart": () => {},
+  "UpdateService.Skip": () => {},
+  "UpdateService.WhatsNew": () => [],
+  "UpdateService.MarkSeen": () => {},
+  "UpdateService.ReleaseNotes": () => releaseNotes(),
 };
+
+/** The release notes the desktop app ships with, newest first. */
+function releaseNotes() {
+  const files = import.meta.glob("../../../docs/versionshinweise/*.md", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }) as Record<string, string>;
+  const key = (v: string) =>
+    v
+      .split(".")
+      .map((n) => n.padStart(4, "0"))
+      .join(".");
+  return Object.entries(files)
+    .map(([path, notes]) => ({
+      version: path.split("/").pop()!.replace(/\.md$/, ""),
+      notes: notes.trim(),
+    }))
+    .filter((n) => /^\d+\.\d+\.\d+$/.test(n.version))
+    .sort((a, b) => (key(a.version) < key(b.version) ? 1 : -1));
+}
 
 function accountStatus() {
   return {

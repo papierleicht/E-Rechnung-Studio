@@ -264,3 +264,18 @@ jobs:
           cd release-assets
           test "$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')" = true
           gh release upload "$RELEASE_TAG" * --clobber
+      - name: Use the German release notes as release text
+        # The app shows the release text in its update window; customers read
+        # German. The technical changelog stays in CHANGELOG.md.
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          RELEASE_TAG: ${{ needs.release.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          NOTES="docs/versionshinweise/${RELEASE_TAG#v}.md"
+          test -s "$NOTES"
+          {
+            cat "$NOTES"
+            printf '\n---\n\nTechnische Änderungen: [CHANGELOG.md](https://github.com/%s/blob/%s/CHANGELOG.md)\n' "$GH_REPO" "$RELEASE_TAG"
+          } > release-notes.md
+          gh release edit "$RELEASE_TAG" --notes-file release-notes.md

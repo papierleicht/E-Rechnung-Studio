@@ -3,8 +3,22 @@
   import PlusHint from "../../components/PlusHint.svelte";
   import catalog from "../../lib/license-catalog.json";
   import notices from "../../../../docs/third-party-notices.md?raw";
+  import ReleaseNotesDialog from "../updates/ReleaseNotesDialog.svelte";
+  import * as UpdateAPI from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/app/updateservice";
+  import type { VersionNotes } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/app/models";
   let { onclose }: { onclose: () => void } = $props();
   let licenses = $state(false);
+  // The release notes the app ships with, once the customer opens them.
+  let releaseNotes = $state<VersionNotes[] | null>(null);
+  let notesError = $state("");
+  async function showReleaseNotes() {
+    notesError = "";
+    try {
+      releaseNotes = (await UpdateAPI.ReleaseNotes()) ?? [];
+    } catch {
+      notesError = "Die Versionshinweise ließen sich nicht laden.";
+    }
+  }
   let query = $state("");
   const filtered = $derived(
     catalog.filter((entry) =>
@@ -13,7 +27,11 @@
   );
 </script>
 
-<FormDialog title={licenses ? "Lizenzen & Drittanbieterhinweise" : "Über papierleicht"} {onclose}>
+<FormDialog
+  title={licenses ? "Lizenzen & Drittanbieterhinweise" : "Über papierleicht"}
+  error={notesError}
+  {onclose}
+>
   {#if licenses}
     <p>
       Lizenztexte und Hinweise zu Bibliotheken, Schriften und Validierungsdaten. Die
@@ -54,9 +72,12 @@
       topic="plus"
       text="Mit Plus kannst du optional Konten per FinTS abrufen, dein Änderungsprotokoll extern bestätigen lassen und bekommst Software-Support per E-Mail."
     />
-    <button type="button" class="secondary" onclick={() => (licenses = true)}
-      >Lizenzen & Drittanbieterhinweise</button
-    >
+    <div class="about-actions">
+      <button type="button" class="secondary" onclick={showReleaseNotes}>Versionshinweise</button>
+      <button type="button" class="secondary" onclick={() => (licenses = true)}
+        >Lizenzen & Drittanbieterhinweise</button
+      >
+    </div>
   {/if}
   {#snippet footer()}
     {#if licenses}<button type="button" class="secondary" onclick={() => (licenses = false)}
@@ -65,8 +86,18 @@
     <button type="button" class="secondary" onclick={onclose}>Schließen</button>
   {/snippet}
 </FormDialog>
+{#if releaseNotes}<ReleaseNotesDialog
+    versions={releaseNotes}
+    title="Versionshinweise"
+    onclose={() => (releaseNotes = null)}
+  />{/if}
 
 <style>
+  .about-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
   .license-search {
     display: grid;
     gap: 6px;

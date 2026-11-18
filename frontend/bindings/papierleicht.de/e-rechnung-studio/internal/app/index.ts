@@ -93,9 +93,11 @@ export type {
     TaxRateLine,
     TaxSetup,
     TaxSummary,
+    UpdateProgress,
     UpdateStatus,
     VATPeriodStatus,
     VATReturnView,
     VerifyResult,
+    VersionNotes,
     ZMReturnView
 } from "./models.js";

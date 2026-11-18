@@ -20,7 +20,10 @@
     DeletedInvoiceResult,
     UpdateStatus,
     InstallLocation,
+    VersionNotes,
   } from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/models";
+  import UpdateDialog from "./features/updates/UpdateDialog.svelte";
+  import ReleaseNotesDialog from "./features/updates/ReleaseNotesDialog.svelte";
   import type {
     Bootstrap,
     Customer,
@@ -263,6 +266,9 @@
   // Where the app runs; updates fail when it cannot replace itself there.
   let installLocation = $state<InstallLocation>({ canUpdate: true, targetExists: false });
   let moveAppOpen = $state(false);
+  let updateDialogOpen = $state(false);
+  // Release notes of the versions installed since the customer last saw them.
+  let whatsNew = $state<VersionNotes[]>([]);
   let settingsSaving = $state(false),
     navigationPending = $state(false);
   let confirmation = $state<{
@@ -344,9 +350,13 @@
     }
     updaterOpening = true;
     try {
-      await UpdateAPI.Open();
+      // The dialog shows the notes of the available version; ask again so
+      // they are current.
+      updateStatus = await UpdateAPI.Check();
+      if (updateStatus.updateAvailable) updateDialogOpen = true;
+      else error = "Es gibt gerade kein Update. Du hast die neueste Version.";
     } catch {
-      error = "Das Update ließ sich nicht öffnen. Versuche es noch einmal.";
+      error = "Die Suche nach dem Update ist gescheitert. Prüfe die Internetverbindung.";
     } finally {
       updaterOpening = false;
     }
@@ -700,6 +710,11 @@
       .then((status) => {
         if (disposed) return;
         updateStatus = status;
+        void UpdateAPI.WhatsNew()
+          .then((notes) => {
+            if (!disposed) whatsNew = notes ?? [];
+          })
+          .catch(() => {});
         monitor = createUpdateMonitor({
           currentVersion: status.currentVersion,
           enabled: () => Boolean(settingsBaseline && JSON.parse(settingsBaseline).automaticUpdates),
@@ -1674,7 +1689,7 @@
           >
           <span class="version-number">Version {updateStatus.currentVersion}</span>
         </div>
-        {#if updateStatus.updateAvailable}
+        {#if updateStatus.updateAvailable && !updateStatus.skipped}
           <button
             class="update-available"
             disabled={updaterOpening}
@@ -2197,6 +2212,21 @@
     ondirtychange={(dirty) => (dialogDirty = dirty)}
     ondelete={deleteProduct}
     onclose={() => (editingProduct = null)}
+  />{/if}
+{#if updateDialogOpen}<UpdateDialog
+    status={updateStatus}
+    onclose={() => (updateDialogOpen = false)}
+    onskipped={() => {
+      updateDialogOpen = false;
+      updateStatus = { ...updateStatus, skipped: true };
+    }}
+  />{/if}
+{#if whatsNew.length && !updateDialogOpen}<ReleaseNotesDialog
+    versions={whatsNew}
+    onclose={() => {
+      whatsNew = [];
+      void UpdateAPI.MarkSeen().catch(() => {});
+    }}
   />{/if}
 {#if moveAppOpen}<MoveAppDialog
     location={installLocation}

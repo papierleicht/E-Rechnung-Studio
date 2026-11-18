@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 const read = (p) => readFileSync(p, "utf8");
 const json = (p) => JSON.parse(read(p));
 const version = read("version.txt").trim();
@@ -30,4 +30,9 @@ for (const file of ["build/darwin/Info.plist", "build/darwin/Info.dev.plist"]) {
 }
 for (const [name, actual] of Object.entries(versions))
   assert.equal(actual, version, `${name} differs from version.txt`);
-console.log(`All product versions match ${version}.`);
+// Customers read the German release notes in the update window and after the
+// update; a release without them must not happen.
+const notes = `docs/versionshinweise/${version}.md`;
+assert.ok(existsSync(notes), `${notes} is missing: write the German release notes for ${version}`);
+assert.match(read(notes), /^## (Neu|Verbessert|Behoben)$/m, `${notes} needs a section "## Neu", "## Verbessert" or "## Behoben"`);
+console.log(`All product versions match ${version}, release notes present.`);

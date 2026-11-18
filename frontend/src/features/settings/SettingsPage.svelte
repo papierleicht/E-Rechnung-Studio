@@ -196,7 +196,10 @@
               {:else if updateCheck.state === "error"}
                 Die Suche ist gescheitert. Prüfe die Internetverbindung und versuche es noch einmal.
               {:else if updateCheck.status?.updateAvailable}
-                Version {updateCheck.status.availableVersion} ist verfügbar.
+                Version {updateCheck.status.availableVersion} ist verfügbar{updateCheck.status
+                  .skipped
+                  ? " (übersprungen)"
+                  : ""}.
                 <button type="button" class="text" onclick={onopenupdate}>Update öffnen</button>
               {:else}
                 Du hast die neueste Version ({updateCheck.status?.currentVersion}).
