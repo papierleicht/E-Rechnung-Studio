@@ -3,7 +3,7 @@
 - GrandTotal läuft auf dem Mac. Der Export für die Buchhaltung legt einen Ordner mit Rechnungs-PDFs und CSV-Listen an.
 - Die Menünamen kennen wir nur auf Englisch. In der deutschen Version können sie anders heißen.
 - Nach Ende des Abos tragen neue Dokumente laut Hersteller einen Teststempel. Erzeuge deine Exporte deshalb vorher.
-- Excel-Dateien liest papierleicht noch nicht.
+- Listen liest papierleicht als CSV oder als Excel-Datei (.xlsx); ältere Excel-Dateien (.xls) speicherst du vorher als .xlsx oder CSV.
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre.
 
 ## In GrandTotal

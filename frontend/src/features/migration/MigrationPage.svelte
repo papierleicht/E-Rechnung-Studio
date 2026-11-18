@@ -8,6 +8,7 @@
   import FileImportDialog from "./FileImportDialog.svelte";
   import ListImportDialog from "./ListImportDialog.svelte";
   import ArchiveView from "./ArchiveView.svelte";
+  import APIConnectDialog from "./APIConnectDialog.svelte";
   import { serviceErrorMessage } from "../../lib/errors";
   import { isFileDialogCancellation } from "../../lib/fileDialog";
   import { dateLabel } from "../../lib/format";
@@ -58,7 +59,9 @@
   // inside an export that was just taken over.
   type ListSource =
     | { kind: "file"; path: string; name: string }
-    | { kind: "export"; paths: string[]; table: ExportTable; name: string };
+    | { kind: "export"; paths: string[]; table: ExportTable; name: string }
+    | { kind: "api"; name: string };
+  let connecting = $state(false);
   let listSource = $state<ListSource | null>(null);
   // Customer lists found in the export taken over last.
   let exportTables = $state<{ paths: string[]; tables: ExportTable[] }>({ paths: [], tables: [] });
@@ -186,7 +189,9 @@
             CanChooseFiles: true,
             CanChooseDirectories: false,
             AllowsMultipleSelection: false,
-            Filters: [{ DisplayName: "CSV- oder Textliste", Pattern: "*.csv;*.txt;*.tsv" }],
+            Filters: [
+              { DisplayName: "Liste (CSV, Text oder Excel)", Pattern: "*.csv;*.txt;*.tsv;*.xlsx" },
+            ],
           }),
         )[0],
     );
@@ -209,9 +214,19 @@
 
   function readListAgain(mapping: Record<string, number>): Promise<ListPreview> {
     const source = listSource!;
-    return source.kind === "file"
-      ? migration.previewList(listPreview!.list as MoveList, source.path, mapping)
-      : migration.previewExportList(source.paths, source.table, mapping);
+    if (source.kind === "file")
+      return migration.previewList(listPreview!.list as MoveList, source.path, mapping);
+    if (source.kind === "api") return migration.previewAPIList(mapping);
+    return migration.previewExportList(source.paths, source.table, mapping);
+  }
+
+  async function openAPICustomers() {
+    const preview = await run(() => migration.previewAPIList(null));
+    if (!preview) return;
+    connecting = false;
+    listSource = { kind: "api", name: `Kunden aus ${selected?.name ?? "dem Programm"}` };
+    dialogError = "";
+    listPreview = preview;
   }
 
   async function remap(mapping: Record<string, number>) {
@@ -237,7 +252,9 @@
       const result =
         source.kind === "file"
           ? await migration.importList(list, source.path, listPreview.mapping)
-          : await migration.importExportList(source.paths, source.table, listPreview.mapping);
+          : source.kind === "api"
+            ? await migration.importAPIList(listPreview.mapping)
+            : await migration.importExportList(source.paths, source.table, listPreview.mapping);
       if (source.kind === "export")
         exportTables = {
           ...exportTables,
@@ -359,8 +376,16 @@
               </div>
             </div>
             <div class="move-actions" role="group" aria-label="Übernehmen">
+              {#if selected.api}
+                <button class="primary" disabled={busy} onclick={() => (connecting = true)}
+                  >Direkt verbinden</button
+                >
+              {/if}
               {#if selected.ways.includes("files")}
-                <button class="primary" disabled={busy} onclick={() => chooseFiles(true)}
+                <button
+                  class={selected.api ? "secondary" : "primary"}
+                  disabled={busy}
+                  onclick={() => chooseFiles(true)}
                   ><Icon name="folder" size={16} /> Ordner übernehmen</button
                 >
                 <button class="secondary" disabled={busy} onclick={() => chooseFiles(false)}
@@ -402,6 +427,17 @@
     error={dialogError}
     onconfirm={importFiles}
     onclose={() => (filePreview = null)}
+  />
+{/if}
+{#if connecting && selected}
+  <APIConnectDialog
+    source={selected}
+    onclose={() => (connecting = false)}
+    oncustomers={openAPICustomers}
+    onfinished={() => {
+      archiveVersion++;
+      void load();
+    }}
   />
 {/if}
 {#if listPreview}

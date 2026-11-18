@@ -27,6 +27,7 @@ export {
 };
 
 export type {
+    APIStatus,
     AnnualStatus,
     ArchiveResult,
     AuditExportResult,

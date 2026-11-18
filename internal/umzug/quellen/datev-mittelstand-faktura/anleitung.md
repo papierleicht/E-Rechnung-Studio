@@ -5,7 +5,7 @@
 - Zum 31.12.2026 endet laut DATEV auch der Vertrag zu Unternehmen online. Ab dem 01.01.2027 hast du dann keinen Zugriff mehr auf Belege online, Bank online, Kassenbuch online, Auswertungen online und weitere Teile von Unternehmen online.
 - Willst du Unternehmen online kostenpflichtig weiter nutzen, musst du dich laut DATEV **vorher** per E-Mail an mittelstand-faktura@service.datev.de melden und deine Beraternummer angeben.
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre. Das gilt auch, wenn das Programm nicht mehr läuft.
-- Excel-Dateien liest papierleicht noch nicht, Bankumsätze übernimmt die App ebenfalls noch nicht.
+- Listen liest papierleicht als CSV oder als Excel-Datei (.xlsx); ältere Excel-Dateien (.xls) speicherst du vorher als .xlsx oder CSV. Bankumsätze übernimmt die App noch nicht.
 
 ## In DATEV Mittelstand Faktura
 

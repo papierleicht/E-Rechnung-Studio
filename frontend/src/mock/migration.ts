@@ -15,10 +15,14 @@ const texts = import.meta.glob("../../../internal/umzug/quellen/*/anleitung.md",
   eager: true,
 }) as Record<string, string>;
 
+/** The programs the desktop app reads over their API. */
+const apiSources = ["lexware-office", "sevdesk", "easybill"];
+
 function sources() {
   const list = Object.entries(metadata).map(([path, meta]) => ({
     ...meta,
     ways: (meta.ways as string[]) ?? [],
+    api: apiSources.includes(meta.id),
     sources: (meta.sources as string[]) ?? [],
     guide: texts[path.replace("quelle.json", "anleitung.md")] ?? "",
   }));
@@ -199,6 +203,29 @@ export const migrationHandlers = {
     throw desktopOnly("der Umzug");
   },
   "MigrationService.ImportExportList": () => {
+    throw desktopOnly("der Umzug");
+  },
+  "MigrationService.ConnectAPI": () => {
+    throw desktopOnly("die direkte Verbindung zu deinem bisherigen Programm");
+  },
+  "MigrationService.APIStatus": () => ({
+    state: "idle",
+    source: "",
+    account: "",
+    phase: "",
+    total: 0,
+    done: 0,
+    imported: 0,
+    duplicates: 0,
+    failed: [],
+    message: "",
+    customers: 0,
+  }),
+  "MigrationService.CancelAPI": () => undefined,
+  "MigrationService.PreviewAPIList": () => {
+    throw desktopOnly("der Umzug");
+  },
+  "MigrationService.ImportAPIList": () => {
     throw desktopOnly("der Umzug");
   },
   "MigrationService.SaveArchiveFiles": () => {

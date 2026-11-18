@@ -108,6 +108,9 @@ func Read(g Group, source string, own Own) (model.LegacyDocument, error) {
 		// counts; an XML that is no invoice is kept as a plain file.
 		if m := g.Meta; m != nil && (m.Number != "" || m.Date != "" || m.Gross != "") {
 			d.Basis = "datev"
+			if m.Source != "" {
+				d.Basis = m.Source
+			}
 			d.Number, d.Date, d.Gross, d.Partner, d.Direction = m.Number, m.Date, m.Gross, m.Text, m.Direction
 			if d.Gross != "" {
 				d.Currency = "EUR"

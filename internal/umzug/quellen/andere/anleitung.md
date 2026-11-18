@@ -8,7 +8,7 @@
 
 1. **Rechnungen exportieren.** Suche nach „Export“, „Datensicherung“, „Belege herunterladen“ oder „Steuerberater-Export“. Gut sind eine ZIP-Datei oder ein Ordner mit PDFs, am besten als E-Rechnung.
 2. **Belege exportieren.** Eingangsrechnungen und Belege lädst du genauso herunter. Fotos (JPG, PNG) übernimmt die App ebenfalls.
-3. **Kunden und Artikel exportieren** als CSV. Bietet das Programm nur Excel an, öffne die Datei in Excel oder LibreOffice und speichere sie als CSV.
+3. **Kunden und Artikel exportieren** als CSV oder Excel-Datei (.xlsx). Eine ältere Excel-Datei (.xls) öffnest du in Excel oder LibreOffice und speicherst sie als .xlsx oder CSV.
 4. **Zusätzlich ablegen:** Exporte für die Steuerberatung (zum Beispiel DATEV) und für die Betriebsprüfung (GoBD/GDPdU) bewahrst du zusätzlich auf. Die App liest sie in einer späteren Version.
 
 ## In papierleicht

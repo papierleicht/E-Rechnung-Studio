@@ -3,8 +3,8 @@
   "name": "easybill",
   "vendor": "easybill",
   "kind": "cloud",
-  "summary": "Aus easybill nimmst du das Rechnungsausgangsbuch als ZIP mit Einzeldokumenten und die Kontakte als CSV mit.",
+  "summary": "papierleicht holt Kunden und Rechnungen direkt aus easybill; ohne API-Zugang nimmst du das Rechnungsausgangsbuch als ZIP mit Einzeldokumenten und die Kontakte als CSV mit.",
   "ways": ["files", "customers"],
   "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
-  "sources": ["https://support.easybill.de/hc/de/articles/360001711559"]
+  "sources": ["https://support.easybill.de/hc/de/articles/360001711559", "https://api.easybill.de/rest/v1/"]
 }

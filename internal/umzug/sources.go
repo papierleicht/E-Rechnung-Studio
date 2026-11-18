@@ -32,6 +32,8 @@ type Source struct {
 	Links   []string `json:"sources"`
 	// Guide is the Markdown text of the guide.
 	Guide string `json:"guide"`
+	// API says that the app can read this program over its API.
+	API bool `json:"api"`
 }
 
 // Sources lists the guides: programs that end soonest first, "andere" last.
@@ -55,6 +57,7 @@ func Sources() ([]Source, error) {
 			return nil, err
 		}
 		s.Guide = string(guide)
+		s.API = HasAPI(s.ID)
 		if s.Links == nil {
 			s.Links = []string{}
 		}

@@ -3,7 +3,7 @@
 - Diese Anleitung gilt für die Windows-Programme Lexware faktura+auftrag und Lexware buchhaltung. Für Lexware Office im Browser gibt es eine eigene Anleitung.
 - Ab Version 2026 stellt Lexware die Datenbank auf PostgreSQL um. Laut Lexware muss die Umstellung innerhalb von 2027 erfolgen.
 - Läuft dein Abo aus, bleiben die Daten laut Lexware erhalten, du kannst sie aber nicht mehr ändern. Ob dann noch ein Export geht, ist nicht bestätigt. Exportiere deshalb vor dem Ende des Abos.
-- Excel-Dateien liest papierleicht noch nicht, Bankumsätze übernimmt die App ebenfalls noch nicht.
+- Listen liest papierleicht als CSV oder als Excel-Datei (.xlsx); ältere Excel-Dateien (.xls) speicherst du vorher als .xlsx oder CSV. Bankumsätze übernimmt die App noch nicht.
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre.
 
 ## In Lexware faktura+auftrag

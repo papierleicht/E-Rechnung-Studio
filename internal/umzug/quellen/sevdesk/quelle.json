@@ -3,8 +3,8 @@
   "name": "sevdesk",
   "vendor": "sevdesk",
   "kind": "cloud",
-  "summary": "Mit dem DATEV-Export „Buchungsdaten & Belegbilder“ nimmst du Buchungen, Geschäftspartner und Belege aus sevdesk mit.",
+  "summary": "Mit Buchhaltung Pro holt papierleicht Kunden, Rechnungen und Gutschriften direkt aus sevdesk; Buchungen und Eingangsbelege nimmst du mit dem DATEV-Export „Buchungsdaten & Belegbilder“ mit.",
   "ways": ["files", "customers"],
   "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
-  "sources": ["https://hilfe.sevdesk.de/de/articles/9373838"]
+  "sources": ["https://hilfe.sevdesk.de/de/articles/9373838", "https://api.sevdesk.de/"]
 }

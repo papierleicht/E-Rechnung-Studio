@@ -1,5 +1,6 @@
 import * as Native from "../../bindings/papierleicht.de/e-rechnung-studio/internal/app/migrationservice";
 import type {
+  APIStatus as NativeAPIStatus,
   FileImportResult as NativeFileImportResult,
   FilePreview as NativeFilePreview,
   FilePreviewItem,
@@ -42,6 +43,11 @@ export type ListPreview = Omit<
 };
 export type ListImportResult = Omit<NativeListImportResult, "failed"> & { failed: Skipped[] };
 export type LegacyDocument = Omit<NativeLegacyDocument, "files"> & { files: LegacyFile[] };
+export type APIStatus = Omit<NativeAPIStatus, "failed"> & { failed: Skipped[] };
+
+function apiStatus(result: NativeAPIStatus): APIStatus {
+  return { ...result, failed: result.failed ?? [] };
+}
 export type { LegacyYear };
 export type MoveList = "customers" | "products";
 
@@ -93,6 +99,16 @@ export const migration = {
   openFile: (id: string, sum: string) => Native.OpenArchiveFile(id, sum),
   saveFile: (id: string, sum: string, path: string) => Native.SaveArchiveFile(id, sum, path),
   saveFiles: (id: string, dir: string) => Native.SaveArchiveFiles(id, dir),
+  connectAPI: async (source: string, key: string): Promise<APIStatus> =>
+    apiStatus(await Native.ConnectAPI(source, key)),
+  apiStatus: async (): Promise<APIStatus> => apiStatus(await Native.APIStatus()),
+  cancelAPI: () => Native.CancelAPI(),
+  previewAPIList: async (mapping: Record<string, number> | null): Promise<ListPreview> =>
+    listPreview(await Native.PreviewAPIList(mapping)),
+  importAPIList: async (mapping: Record<string, number>): Promise<ListImportResult> => {
+    const result = await Native.ImportAPIList(mapping);
+    return { ...result, failed: result.failed ?? [] };
+  },
   previewExportList: async (
     paths: string[],
     table: ExportTable,
@@ -133,7 +149,9 @@ export function kindLabel(kind: string, basis = ""): string {
   if (kind === "credit-note") return "Gutschrift";
   if (kind === "invoice") return "E-Rechnung";
   if (kind === "export") return "Export";
-  return basis === "datev" ? "Beleg (Daten aus DATEV)" : "Datei";
+  if (basis === "datev") return "Beleg (Daten aus DATEV)";
+  if (basis === "api") return "Beleg (Daten aus dem Programm)";
+  return "Datei";
 }
 
 /** Days left until a program stops, or null without a deadline. */

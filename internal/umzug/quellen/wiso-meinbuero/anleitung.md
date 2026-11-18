@@ -3,7 +3,7 @@
 - WISO MeinBüro gibt es im Browser (Web) und als Programm für Windows (Desktop). Für beide steht unten ein eigener Weg.
 - Im Web ist der **Steuerberaterexport** der beste Weg. Er liefert eine ZIP-Datei mit Buchungsstapel, Stammdaten und einer inneren ZIP mit allen Belegen als PDF.
 - Für die Desktop-Version kennen wir nur ein älteres Handbuch (Version 2017). Die Menünamen können in deiner Version abweichen.
-- Eine direkte Verbindung zu MeinBüro (API) hat papierleicht noch nicht. Excel-Dateien liest die App noch nicht.
+- Eine direkte Verbindung zu MeinBüro (API) hat papierleicht noch nicht. Listen liest die App als CSV oder Excel-Datei (.xlsx).
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre.
 
 ## In WISO MeinBüro
@@ -18,7 +18,7 @@
 
 **Desktop (Windows)**
 
-1. **Kunden und Artikel:** Datei › Daten-Export. Der Assistent exportiert unter anderem Artikel, Kunden und Lieferanten. Wähle als Format TXT, wenn möglich, denn Excel-Dateien liest papierleicht noch nicht.
+1. **Kunden und Artikel:** Datei › Daten-Export. Der Assistent exportiert unter anderem Artikel, Kunden und Lieferanten. Wähle als Format TXT oder eine Excel-Datei (.xlsx), denn beides liest papierleicht.
 2. **Rechnungen als PDF:** Ist das Rechnungsarchiv eingeschaltet (Datei › Einstellungen › Grundeinstellungen), liegen die PDFs in `C:\ProgramData\Buhl Data Service GmbH\Mein Büro\Archiv`. Sonst druckst du die markierten Rechnungen mit „Microsoft Print to PDF“. Windows fragt dann jeden Dateinamen einzeln ab.
 3. **GoBD-Dateien:** Finanzen › GoBD-Ausgabedateien erzeugen. Die CSV-Dateien liegen danach in `…\Dokumente\Buhl Data Service GmbH\Mein Büro\FibuExport\`. Bewahre sie zusätzlich auf.
 

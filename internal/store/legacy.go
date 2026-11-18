@@ -63,6 +63,13 @@ func (s *Store) HasLegacyFile(sum string) (bool, error) {
 	return n > 0, err
 }
 
+// HasLegacySource tells whether a document of a source is archived.
+func (s *Store) HasLegacySource(source, sourceID string) (bool, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM legacy_documents WHERE source=? AND source_id=?`, source, sourceID).Scan(&n)
+	return n > 0, err
+}
+
 // HasLegacyExport tells whether an export with this identity is archived.
 func (s *Store) HasLegacyExport(sourceID string) (bool, error) {
 	var n int

@@ -2,7 +2,7 @@
 
 - Accountable bündelt alle Exporte unter „Exportiere deine Daten“. Für den Umzug brauchst du vor allem die Originaldokumente, die PDFs und den DATEV-Export.
 - Der Hilfeartikel von Accountable ist vom Oktober 2025. Die Menünamen können inzwischen abweichen.
-- Excel-Dateien liest papierleicht noch nicht, Bankumsätze übernimmt die App ebenfalls noch nicht. Eine direkte Verbindung zu Accountable gibt es nicht.
+- Listen liest papierleicht als CSV oder als Excel-Datei (.xlsx); ältere Excel-Dateien (.xls) speicherst du vorher als .xlsx oder CSV. Bankumsätze übernimmt die App noch nicht. Eine direkte Verbindung zu Accountable gibt es nicht.
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre.
 
 ## In Accountable

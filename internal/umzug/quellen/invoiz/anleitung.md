@@ -7,7 +7,7 @@
 ## In invoiz
 
 1. **Rechnungen als PDF sichern.** Öffne jede Rechnung, auch Gutschriften und Stornos, und lade sie als PDF herunter. Lege alle Dateien in einen Ordner, zum Beispiel `invoiz-Rechnungen`. Am besten legst du je Jahr einen Unterordner an.
-2. **Kunden und Artikel sichern.** Wenn invoiz dir eine Liste als CSV oder Excel anbietet, lade sie herunter. Excel-Dateien speicherst du vorher als CSV.
+2. **Kunden und Artikel sichern.** Wenn invoiz dir eine Liste als CSV oder Excel anbietet, lade sie herunter. papierleicht liest beides; eine ältere Excel-Datei (.xls) speicherst du vorher als .xlsx oder CSV.
 3. **Belege und Ausgaben sichern.** Lade hochgeladene Belege ebenfalls herunter und lege sie in einen eigenen Ordner, zum Beispiel `invoiz-Belege`.
 4. **Alternative über WISO MeinBüro:** invoiz bietet einen Migrationsassistenten zu WISO MeinBüro an. Ziehst du damit um, kannst du später in MeinBüro unter Buchhaltung › Steuerberaterexport eine ZIP-Datei mit allen Belegen erzeugen und diese hier übernehmen. Welche Daten der Assistent mitnimmt, beschreibt invoiz nicht.
 

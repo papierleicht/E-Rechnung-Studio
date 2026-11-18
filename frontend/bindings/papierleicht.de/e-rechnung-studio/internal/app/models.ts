@@ -24,6 +24,35 @@ import * as taxforms$0 from "../taxforms/models.js";
 import * as umzug$0 from "../umzug/models.js";
 
 /**
+ * APIStatus is the state of a move over the API of a program. The page asks
+ * for it while the run goes on in the background.
+ */
+export interface APIStatus {
+    /**
+     * State is "idle", "checking", "running", "done", "failed" or "cancelled".
+     */
+    "state": string;
+    "source": string;
+    "account": string;
+
+    /**
+     * Phase says what the run does right now, shown under the progress.
+     */
+    "phase": string;
+    "total": number;
+    "done": number;
+    "imported": number;
+    "duplicates": number;
+    "failed": umzug$0.Skipped[] | null;
+    "message": string;
+
+    /**
+     * Customers counts the customers read; they wait for the customer's review.
+     */
+    "customers": number;
+}
+
+/**
  * AnnualStatus is the state of the returns of a year (EÜR, Einkommensteuer
  * and, where due, the Umsatzsteuer-Jahreserklärung).
  */

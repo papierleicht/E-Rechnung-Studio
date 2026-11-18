@@ -18,7 +18,7 @@
 1. Klicke auf **Dateien oder ZIP** oder **Ordner übernehmen** und wähle die Rechnungs-PDFs.
 2. E-Rechnungen (ZUGFeRD, XRechnung) liest die App mit Nummer, Datum und Betrag. Einfache PDFs übernimmt sie unverändert als Datei.
 3. Mit **Übernehmen** landet alles im **Altbestand**: unverändert, durchsuchbar und in jeder Sicherung. In deine Zahlen fließt der Altbestand nicht ein.
-4. Kunden und Produkte übernimmst du mit **Kunden aus Liste** bzw. **Artikel aus Liste**. Liegen sie als Excel-Datei vor, speichere sie vorher als CSV, denn Excel-Dateien liest die App noch nicht.
+4. Kunden und Produkte übernimmst du mit **Kunden aus Liste** bzw. **Artikel aus Liste**. Die App liest CSV- und Excel-Dateien (.xlsx).
 
 ## Prüfen
 

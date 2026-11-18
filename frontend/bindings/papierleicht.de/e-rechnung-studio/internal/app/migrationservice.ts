@@ -27,10 +27,39 @@ import * as umzug$0 from "../umzug/models.js";
 import * as $models from "./models.js";
 
 /**
+ * APIStatus returns the state of the current or last run.
+ */
+export function APIStatus(): $CancellablePromise<$models.APIStatus> {
+    return $Call.ByID(172146151);
+}
+
+/**
  * Archive lists the legacy archive.
  */
 export function Archive(filter: store$0.LegacyFilter): $CancellablePromise<model$0.LegacyDocument[] | null> {
     return $Call.ByID(395255335, filter);
+}
+
+/**
+ * CancelAPI stops the current run; what is archived stays.
+ */
+export function CancelAPI(): $CancellablePromise<void> {
+    return $Call.ByID(1877007483);
+}
+
+/**
+ * ConnectAPI checks the key and starts reading the program in the
+ * background. The key stays in memory for this run only.
+ */
+export function ConnectAPI(source: string, key: string): $CancellablePromise<$models.APIStatus> {
+    return $Call.ByID(1444019609, source, key);
+}
+
+/**
+ * ImportAPIList saves the new customers read over the API.
+ */
+export function ImportAPIList(mapping: { [_ in string]?: number } | null): $CancellablePromise<$models.ListImportResult> {
+    return $Call.ByID(1616947374, mapping);
 }
 
 /**
@@ -66,6 +95,13 @@ export function OpenArchiveFile(documentID: string, sum: string): $CancellablePr
 
 export function Overview(): $CancellablePromise<$models.MigrationOverview> {
     return $Call.ByID(3503738272);
+}
+
+/**
+ * PreviewAPIList shows the customers read over the API before saving.
+ */
+export function PreviewAPIList(mapping: { [_ in string]?: number } | null): $CancellablePromise<$models.ListPreview> {
+    return $Call.ByID(1789504243, mapping);
 }
 
 /**

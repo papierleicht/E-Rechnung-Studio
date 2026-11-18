@@ -107,4 +107,9 @@ export interface Source {
      * Guide is the Markdown text of the guide.
      */
     "guide": string;
+
+    /**
+     * API says that the app can read this program over its API.
+     */
+    "api": boolean;
 }

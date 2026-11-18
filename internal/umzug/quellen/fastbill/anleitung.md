@@ -2,7 +2,7 @@
 
 - Alle Exporte findest du in FastBill im Bereich „Import & Export“: Ausgangsrechnungen, Eingangsrechnungen und Belege, Kunden und Produkte.
 - Belegbilder bekommst du über die **DATEV XML-Schnittstelle online**. Der Export im DATEV-Format enthält dagegen nur Buchungsdaten ohne Belegbilder, je Export ein Jahr.
-- Excel-Dateien liest papierleicht noch nicht. Wähle deshalb CSV, wo FastBill es anbietet. Eine direkte Verbindung zu FastBill (API) hat die App noch nicht.
+- Listen liest papierleicht als CSV oder als Excel-Datei (.xlsx); ältere Excel-Dateien (.xls) speicherst du vorher als .xlsx oder CSV. Eine direkte Verbindung zu FastBill (API) hat die App noch nicht.
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre.
 
 ## In FastBill
@@ -10,7 +10,7 @@
 1. Öffne den Bereich „Import & Export“.
 2. **Belege mit Bildern:** Erzeuge den Export „DATEV XML-Schnittstelle online“. Du erhältst eine ZIP-Datei mit XML und Belegbildern.
 3. **Kunden und Produkte:** Exportiere beide Listen als CSV.
-4. **Rechnungen:** Exportiere Ausgangsrechnungen sowie Eingangsrechnungen und Belege. Wähle CSV statt Excel.
+4. **Rechnungen:** Exportiere Ausgangsrechnungen sowie Eingangsrechnungen und Belege. Wähle CSV oder Excel (.xlsx).
 5. Wiederhole die Exporte für jeden Zeitraum, den du mitnehmen willst.
 
 ## In papierleicht

@@ -143,6 +143,9 @@ type Booking struct {
 	Text      string
 	Direction string
 	Account   string
+	// Source names where the data come from for the archive: "" for a
+	// DATEV export, "api" for the API of a program.
+	Source string
 }
 
 var guidPattern = regexp.MustCompile(`[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}`)

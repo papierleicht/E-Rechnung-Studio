@@ -23,6 +23,9 @@ type MigrationService struct {
 	invoices *InvoiceService
 	// mu keeps two imports from running at once.
 	mu sync.Mutex
+	// api is the move over the API of a program, current or last.
+	apiMu sync.Mutex
+	api   *apiRun
 }
 
 func NewMigrationService(invoices *InvoiceService) *MigrationService {
@@ -342,8 +345,8 @@ func readListFile(path string) (umzug.Table, error) {
 	if info.Size() > umzug.MaxTableSize {
 		return umzug.Table{}, errors.New("Die Liste ist größer als 20 MB.")
 	}
-	if ext := strings.ToLower(filepath.Ext(path)); ext == ".xlsx" || ext == ".xls" || ext == ".ods" {
-		return umzug.Table{}, errors.New("Excel- und Calc-Dateien liest die App noch nicht. Öffne die Liste in Excel oder LibreOffice und speichere sie als CSV.")
+	if ext := strings.ToLower(filepath.Ext(path)); ext == ".xls" || ext == ".ods" {
+		return umzug.Table{}, errors.New("Ältere Excel-Dateien (.xls) und Calc-Dateien liest die App nicht. Speichere die Liste als .xlsx oder CSV.")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
