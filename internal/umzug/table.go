@@ -23,6 +23,19 @@ type Table struct {
 	Delimiter string     `json:"delimiter"`
 	Columns   []string   `json:"columns"`
 	Rows      [][]string `json:"rows"`
+	// AccountLength is set for DATEV files: customers (Debitoren) are then
+	// told from suppliers by their account number.
+	AccountLength int `json:"-"`
+}
+
+// ReadList reads a list a customer chose: a DATEV-Format file with its own
+// header line, or any other CSV or text export.
+func ReadList(data []byte) (Table, error) {
+	if isDatev(data) {
+		f, err := ReadDatev(data)
+		return f.Table, err
+	}
+	return ReadTable(data)
 }
 
 // ReadTable reads a CSV or text export as the programs write them: UTF-8 with

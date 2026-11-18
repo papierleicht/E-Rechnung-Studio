@@ -36,6 +36,8 @@ var customerFields = []Field{
 	{"city", "Ort", false},
 	{"country", "Land", false},
 	{"buyerReference", "Leitweg-ID", false},
+	{"account", "Kontonummer", false},
+	{"vatCountry", "Land der USt-IdNr.", false},
 }
 
 var productFields = []Field{
@@ -58,12 +60,12 @@ func Fields(list string) []Field {
 // Column names the programs use, compared by headerKey, best first.
 var synonyms = map[string]map[string][]string{
 	ListCustomers: {
-		"name":           {"firma", "firmenname", "unternehmen", "firmaname", "name1", "kundenname", "kunde", "organisation", "company", "companyname", "name", "anzeigename", "displayname"},
-		"firstName":      {"vorname", "firstname", "givenname"},
-		"lastName":       {"nachname", "lastname", "familienname", "surname"},
+		"name":           {"nameadressatentypunternehmen", "firma", "firmenname", "unternehmen", "firmaname", "name1", "kundenname", "kunde", "organisation", "company", "companyname", "name", "anzeigename", "displayname"},
+		"firstName":      {"vornameadressatentypnatuerlperson", "vorname", "firstname", "givenname"},
+		"lastName":       {"nameadressatentypnatuerlperson", "nachname", "lastname", "familienname", "surname"},
 		"contactName":    {"ansprechpartner", "kontaktperson", "kontakt", "contactperson", "contact", "name2"},
 		"email":          {"email", "emailadresse", "mail", "emailaddress", "rechnungsemail"},
-		"vatId":          {"ustidnr", "ustid", "umsatzsteueridentifikationsnummer", "umsatzsteuerid", "ustidentnr", "vatid", "vatnumber", "ustidnummer"},
+		"vatId":          {"euustid", "ustidnr", "ustid", "umsatzsteueridentifikationsnummer", "umsatzsteuerid", "ustidentnr", "vatid", "vatnumber", "ustidnummer"},
 		"street":         {"strasse", "strassehausnummer", "strasseundhausnummer", "strassenr", "adresse", "anschrift", "street", "address", "addressline1", "rechnungsadresse"},
 		"houseNumber":    {"hausnummer", "hausnr", "nr", "housenumber"},
 		"additional":     {"adresszusatz", "zusatz", "addressline2", "co"},
@@ -71,6 +73,8 @@ var synonyms = map[string]map[string][]string{
 		"city":           {"ort", "stadt", "city", "wohnort"},
 		"country":        {"land", "laendercode", "country", "countrycode", "staat"},
 		"buyerReference": {"leitwegid", "leitweg", "kaeuferreferenz", "buyerreference"},
+		"account":        {"konto", "kontonummer", "debitorennummer", "personenkonto"},
+		"vatCountry":     {"euland"},
 	},
 	ListProducts: {
 		"name":          {"bezeichnung", "artikelbezeichnung", "artikelname", "name", "titel", "produkt", "produktname", "artikel", "leistung", "title", "product", "kurztext"},
@@ -171,6 +175,10 @@ func Customers(t Table, m Mapping, existing []model.Customer) []CustomerProposal
 			Name: cell(row, m, "name"), ContactName: cell(row, m, "contactName"), Email: cell(row, m, "email"),
 			VATID: strings.ToUpper(model.CompactIdentifier(cell(row, m, "vatId"))), BuyerReference: cell(row, m, "buyerReference"),
 		}
+		// DATEV keeps the country of the VAT ID in its own column.
+		if land := strings.ToUpper(cell(row, m, "vatCountry")); len(land) == 2 && c.VATID != "" && !strings.HasPrefix(c.VATID, land) {
+			c.VATID = land + c.VATID
+		}
 		person := strings.TrimSpace(cell(row, m, "firstName") + " " + cell(row, m, "lastName"))
 		if c.Name == "" {
 			c.Name = person
@@ -202,7 +210,10 @@ func Customers(t Table, m Mapping, existing []model.Customer) []CustomerProposal
 			c.Endpoint, c.EndpointScheme = c.Email, "EM"
 		}
 		p.Item = model.NormalizeCustomer(c)
+		isDebitor, isPersonal := debitor(cell(row, m, "account"), t.AccountLength)
 		switch {
+		case isPersonal && !isDebitor:
+			p.Error = "Lieferant (Kreditor): Diese Zeile wird nicht als Kunde übernommen."
 		case p.Item.Name == "":
 			p.Error = "Kein Name: Diese Zeile wird nicht übernommen."
 		case known[nameKey(p.Item.Name)] != "":

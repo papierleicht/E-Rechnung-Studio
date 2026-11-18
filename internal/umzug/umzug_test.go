@@ -72,7 +72,7 @@ func TestCollectWalksFoldersAndNestedArchives(t *testing.T) {
 		origins = append(origins, e.Origin)
 	}
 	want := []string{
-		"export/2024/RE-1.pdf", "export/2024/RE-1.xml",
+		"export/2024/RE-1.pdf", "export/2024/RE-1.xml", "export/liste.csv",
 		"export/steuerberater.zip/ausserhalb.pdf",
 		"export/steuerberater.zip/belege.zip/belege/foto.jpg",
 		"export/steuerberater.zip/rechnungen/RE-2.pdf",
@@ -80,16 +80,21 @@ func TestCollectWalksFoldersAndNestedArchives(t *testing.T) {
 	if strings.Join(origins, "|") != strings.Join(want, "|") {
 		t.Fatalf("entries\n%v\nwant\n%v", origins, want)
 	}
-	if len(c.Skipped) != 2 {
+	// Lists are collected; Analyze decides about them.
+	if len(c.Skipped) != 1 {
 		t.Fatalf("skipped %+v", c.Skipped)
 	}
-	data, err := c.Entries[3].Open()
+	data, err := c.Entries[4].Open()
 	if err != nil || string(data) != "jpg" {
 		t.Fatalf("nested file %q err=%v", data, err)
 	}
 	groups := Groups(c)
 	if len(groups) != 4 || len(groups[0].Entries) != 2 || groups[0].Entries[0].Name != "RE-1.pdf" {
 		t.Fatalf("groups %+v", groups)
+	}
+	p, err := Analyze(c)
+	if err != nil || len(p.Groups) != 4 || len(p.Skipped) != 2 {
+		t.Fatalf("plan %+v err=%v", p, err)
 	}
 }
 

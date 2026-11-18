@@ -13,8 +13,8 @@ type LegacyDocument struct {
 	// Direction is "outgoing" (own invoice), "incoming" (received) or "" when
 	// the file does not say.
 	Direction string `json:"direction"`
-	// Kind is "invoice", "credit-note" or "document" for a file without
-	// structured invoice data.
+	// Kind is "invoice", "credit-note", "document" for a file without
+	// structured invoice data, or "export" for a whole DATEV or GDPdU export.
 	Kind     string `json:"kind"`
 	Number   string `json:"number"`
 	Date     string `json:"date"`
@@ -26,6 +26,10 @@ type LegacyDocument struct {
 	// EInvoice says that the data above come from an embedded or separate
 	// ZUGFeRD/XRechnung XML, not from a guess.
 	EInvoice bool `json:"eInvoice"`
+	// Basis says where number, date and amount come from: "einvoice" (the
+	// XML of the file), "datev" (the export's record of the receipt) or ""
+	// when the file says nothing the app can read.
+	Basis string `json:"basis,omitempty"`
 	// Origin is where the file was found, e.g. "export.zip/2024/RE-1.pdf".
 	Origin     string       `json:"origin"`
 	ImportedAt string       `json:"importedAt"`

@@ -44,9 +44,12 @@ type Skipped struct {
 	Reason string `json:"reason"`
 }
 
-// Kind of a file by its extension: "pdf", "xml", "image" or "".
+// Kind of a file by its extension: "pdf", "xml", "image", "data" for lists
+// and export files, or "".
 func fileKind(name string) string {
 	switch strings.ToLower(path.Ext(name)) {
+	case ".csv", ".txt", ".tsv", ".dtd":
+		return "data"
 	case ".pdf":
 		return "pdf"
 	case ".xml":
@@ -73,6 +76,12 @@ func mimeOf(name string) string {
 		return "image/heic"
 	case ".webp":
 		return "image/webp"
+	case ".csv":
+		return "text/csv"
+	case ".txt", ".tsv":
+		return "text/plain"
+	case ".dtd":
+		return "application/xml-dtd"
 	}
 	return "application/octet-stream"
 }
@@ -147,7 +156,7 @@ func Collect(paths []string) (*Collection, error) {
 			return walkZIP(r, origin, depth+1, visit)
 		}
 		if fileKind(name) == "" {
-			c.Skipped = append(c.Skipped, Skipped{origin, "Kein Beleg (PDF, XML oder Bild)."})
+			c.Skipped = append(c.Skipped, Skipped{origin, "Kein Beleg (PDF, XML oder Bild) und kein bekannter Export."})
 			return nil
 		}
 		if size > MaxFileSize {

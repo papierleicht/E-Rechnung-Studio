@@ -93,3 +93,71 @@ func TestMigrationArchivesFilesOnceAndTakesOverLists(t *testing.T) {
 		t.Fatalf("audit %+v err=%v", report, err)
 	}
 }
+
+func TestMigrationTakesCustomersFromADatevExport(t *testing.T) {
+	invoices, err := NewInvoiceService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer invoices.Close()
+	m := NewMigrationService(invoices)
+	dir := filepath.Join(t.TempDir(), "datev")
+	os.MkdirAll(dir, 0o700)
+	partners := "\"EXTF\";700;16;\"Debitoren/Kreditoren\";5;20260105120000000;;\"RE\";\"\";\"\";1001;12345;20250101;4;;;\"\"\r\n" +
+		"\"Konto\";\"Name (Adressatentyp Unternehmen)\";\"Postleitzahl\";\"Ort\";\"Land\";\"E-Mail\"\r\n" +
+		"10001;\"Kunde Eins GmbH\";\"10115\";\"Berlin\";\"DE\";\"a@example.com\"\r\n" +
+		"70001;\"Lieferant AG\";\"\";\"\";\"DE\";\"\"\r\n"
+	if err = os.WriteFile(filepath.Join(dir, "EXTF_GP_Stamm.csv"), []byte(partners), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := m.PreviewFiles([]string{dir})
+	if err != nil || len(preview.Tables) != 1 || len(preview.Items) != 1 || preview.Items[0].Kind != "export" {
+		t.Fatalf("preview %+v err=%v", preview, err)
+	}
+	list, err := m.PreviewExportList([]string{dir}, preview.Tables[0], nil)
+	if err != nil || list.New != 1 || len(list.Customers) != 2 || list.Customers[1].Error == "" {
+		t.Fatalf("export list %+v err=%v", list, err)
+	}
+	saved, err := m.ImportExportList([]string{dir}, preview.Tables[0], list.Mapping)
+	if err != nil || saved.Created != 1 {
+		t.Fatalf("saved %+v err=%v", saved, err)
+	}
+	if r, err := m.ImportFiles("andere", []string{dir}); err != nil || r.Imported != 1 {
+		t.Fatalf("import %+v err=%v", r, err)
+	}
+	if again, _ := m.PreviewFiles([]string{dir}); again.Duplicates != 1 {
+		t.Fatalf("export not recognized as archived: %+v", again)
+	}
+	// A plain list file still opens as a list, without the DATEV header line.
+	direct, err := m.PreviewList("customers", filepath.Join(dir, "EXTF_GP_Stamm.csv"), nil)
+	if err != nil || direct.New != 0 || direct.Customers[0].Existing == "" {
+		t.Fatalf("direct %+v err=%v", direct, err)
+	}
+}
+
+func TestMigrationSavesAWholeExport(t *testing.T) {
+	invoices, err := NewInvoiceService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer invoices.Close()
+	m := NewMigrationService(invoices)
+	doc := model.LegacyDocument{Source: "andere", SourceID: "x1", Kind: "export", Number: "Prüferexport: 2025/26", Files: []model.LegacyFile{
+		{Name: "index.xml", Data: []byte("<DataSet/>")}, {Name: "../tabellen/kunden.csv", Data: []byte("a;b")},
+	}}
+	saved, _, err := invoices.store.AddLegacyDocument(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	target, err := m.SaveArchiveFiles(saved.ID, dir)
+	if err != nil || filepath.Base(target) != "Prüferexport- 2025-26" {
+		t.Fatalf("target %q err=%v", target, err)
+	}
+	if data, err := os.ReadFile(filepath.Join(target, "tabellen", "kunden.csv")); err != nil || string(data) != "a;b" {
+		t.Fatalf("file %q err=%v", data, err)
+	}
+	if _, err = m.SaveArchiveFiles(saved.ID, dir); err == nil {
+		t.Fatal("existing folder overwritten")
+	}
+}

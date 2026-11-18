@@ -63,6 +63,13 @@ func (s *Store) HasLegacyFile(sum string) (bool, error) {
 	return n > 0, err
 }
 
+// HasLegacyExport tells whether an export with this identity is archived.
+func (s *Store) HasLegacyExport(sourceID string) (bool, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM legacy_documents WHERE source_id=? AND kind='export'`, sourceID).Scan(&n)
+	return n > 0, err
+}
+
 // AddLegacyDocument archives a document with its files in one transaction. It
 // reports false without error when the document or one of its files is
 // already in the archive, so an import can run again and only adds what is new.
@@ -82,17 +89,30 @@ func (s *Store) AddLegacyDocument(d model.LegacyDocument) (model.LegacyDocument,
 	if err = tx.QueryRow(`SELECT COUNT(*) FROM legacy_documents WHERE source=? AND source_id=?`, d.Source, d.SourceID).Scan(&n); err != nil || n > 0 {
 		return d, false, err
 	}
+	// An export counts as a whole: two exports may share a file such as the
+	// DTD of a GDPdU export and still be different exports.
+	if d.Kind == "export" {
+		if err = tx.QueryRow(`SELECT COUNT(*) FROM legacy_documents WHERE source_id=?`, d.SourceID).Scan(&n); err != nil || n > 0 {
+			return d, false, err
+		}
+	}
 	sums := make([]string, len(d.Files))
 	for i := range d.Files {
 		f := &d.Files[i]
 		f.SHA256, f.Size = sumOf(f.Data), len(f.Data)
 		sums[i] = f.SHA256
+		if d.Kind == "export" {
+			continue
+		}
 		if err = tx.QueryRow(`SELECT COUNT(*) FROM legacy_files WHERE sha256=?`, f.SHA256).Scan(&n); err != nil || n > 0 {
 			return d, false, err
 		}
 	}
 	if d.ID == "" {
 		d.ID = "leg-" + sums[0][:24]
+		if d.Kind == "export" {
+			d.ID = "leg-x" + sumOf([]byte(d.SourceID))[:23]
+		}
 	}
 	if d.ImportedAt == "" {
 		d.ImportedAt = now()
@@ -197,6 +217,10 @@ func (s *Store) LegacyYears() ([]model.LegacyYear, error) {
 	}
 	totals := map[key]*sums{}
 	for _, d := range docs {
+		// Exports are files for the tax adviser, not documents of a year.
+		if d.Kind == "export" {
+			continue
+		}
 		year := noDate
 		if len(d.Date) >= 4 {
 			year = d.Date[:4]

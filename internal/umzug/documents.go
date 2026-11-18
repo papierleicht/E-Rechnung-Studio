@@ -3,6 +3,7 @@ package umzug
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"path"
 	"sort"
 	"strings"
@@ -26,13 +27,26 @@ type Own struct {
 // the same folder belong together (XRechnung exports often deliver both).
 type Group struct {
 	Entries []Entry
+	// Export is set for a whole export (DATEV, GDPdU): the folder it lies in.
+	Export string
+	// Label names an export in the archive.
+	Label string
+	// Meta holds what an export says about a receipt, used when the file
+	// itself carries no e-invoice data.
+	Meta *Booking
 }
 
-// Groups puts the entries of a collection into documents.
-func Groups(c *Collection) []Group {
+// Groups puts the documents of a collection into groups, without looking at
+// exports; Analyze does both.
+func Groups(c *Collection) []Group { return groupEntries(c.Entries) }
+
+func groupEntries(entries []Entry) []Group {
 	index := map[string]int{}
 	var groups []Group
-	for _, e := range c.Entries {
+	for _, e := range entries {
+		if fileKind(e.Name) == "data" {
+			continue
+		}
 		kind := fileKind(e.Name)
 		key := ""
 		if kind == "pdf" || kind == "xml" {
@@ -60,6 +74,9 @@ func Groups(c *Collection) []Group {
 // shown in the archive come only from e-invoice XML; a plain PDF or a photo is
 // archived as it is, without guessing number, date or amount.
 func Read(g Group, source string, own Own) (model.LegacyDocument, error) {
+	if g.Export != "" {
+		return readExport(g, source)
+	}
 	d := model.LegacyDocument{Source: source, Kind: "document", Origin: g.Entries[0].Origin}
 	var xml []byte
 	for _, e := range g.Entries {
@@ -82,15 +99,24 @@ func Read(g Group, source string, own Own) (model.LegacyDocument, error) {
 	}
 	sum := sha256.Sum256(d.Files[0].Data)
 	d.SourceID = hex.EncodeToString(sum[:])
-	if xml == nil {
-		return d, nil
+	var inv *einvoice.Invoice
+	if xml != nil {
+		inv, _ = invoicexml.Parse(xml)
 	}
-	inv, err := invoicexml.Parse(xml)
-	if err != nil || inv == nil || strings.TrimSpace(inv.InvoiceNumber) == "" {
-		// An XML that is no invoice is kept as a plain file.
+	if inv == nil || strings.TrimSpace(inv.InvoiceNumber) == "" {
+		// Without e-invoice data the export's own record of the receipt
+		// counts; an XML that is no invoice is kept as a plain file.
+		if m := g.Meta; m != nil && (m.Number != "" || m.Date != "" || m.Gross != "") {
+			d.Basis = "datev"
+			d.Number, d.Date, d.Gross, d.Partner, d.Direction = m.Number, m.Date, m.Gross, m.Text, m.Direction
+			if d.Gross != "" {
+				d.Currency = "EUR"
+			}
+		}
 		return d, nil
 	}
 	d.EInvoice = true
+	d.Basis = "einvoice"
 	d.Kind = "invoice"
 	if inv.InvoiceTypeCode == 381 {
 		d.Kind = "credit-note"
@@ -153,4 +179,29 @@ func nameKey(s string) string {
 		}
 		return -1
 	}, s)
+}
+
+// readExport archives a whole export as one document: the files a program
+// wrote for the tax adviser or the tax office, kept together and unchanged.
+func readExport(g Group, source string) (model.LegacyDocument, error) {
+	d := model.LegacyDocument{Source: source, Kind: "export", Number: g.Label, Origin: g.Export}
+	if g.Meta != nil {
+		d.Date = g.Meta.Date
+	}
+	h := sha256.New()
+	for _, e := range g.Entries {
+		data, err := e.Open()
+		if err != nil {
+			return d, err
+		}
+		sum := sha256.Sum256(data)
+		h.Write(sum[:])
+		name := strings.TrimPrefix(strings.TrimPrefix(e.Origin, g.Export), "/")
+		d.Files = append(d.Files, model.LegacyFile{Name: name, MIME: mimeOf(e.Name), Data: data, Size: len(data)})
+	}
+	if len(d.Files) == 0 {
+		return d, errors.New("Der Export enthält keine Dateien.")
+	}
+	d.SourceID = hex.EncodeToString(h.Sum(nil))
+	return d, nil
 }
