@@ -25,7 +25,7 @@ import (
 // Run starts the application with the embedded frontend build (assets, as
 // main embeds frontend/dist) and the product version from version.txt.
 // It returns when the last window closed; startup errors end the process.
-func Run(assets fs.FS, version string) {
+func Run(assets fs.FS, version string, releaseNotes fs.FS) {
 	currentVersion = strings.TrimSpace(version)
 	configureWindowInteractions()
 	dataDir, err := defaultDataDir()
@@ -67,7 +67,7 @@ func Run(assets fs.FS, version string) {
 	shopService := NewShopService(invoices)
 	migrations := NewMigrationService(invoices)
 	defer shopService.Close()
-	updates := &UpdateService{}
+	updates := &UpdateService{store: invoices.store, notes: releaseNotes}
 	setting := func(on func(model.AppSettings) bool) func() bool {
 		return func() bool {
 			v, err := invoices.store.AppSettings()
@@ -156,11 +156,11 @@ func Run(assets fs.FS, version string) {
 		}
 		providers = append(providers, &updatesign.Provider{Inner: viaServer, Repository: releaseRepository, BaseURL: server.String() + "/api/updates/files", Label: "papierleicht"})
 	}
-	releases, err := github.New(github.Config{Repository: releaseRepository})
+	releases, err := github.New(github.Config{Repository: releaseRepository, BaseURL: updateAPIURL})
 	if err != nil {
 		log.Fatal(err)
 	}
-	providers = append(providers, &updatesign.Provider{Inner: releases, Repository: releaseRepository})
+	providers = append(providers, &updatesign.Provider{Inner: releases, Repository: releaseRepository, BaseURL: updateFilesURL})
 	if err = app.Updater.Init(updater.Config{
 		CurrentVersion: currentVersion,
 		Providers:      providers,
@@ -171,6 +171,9 @@ func Run(assets fs.FS, version string) {
 	updates.app = app
 	resets.quit = app.Quit
 	updates.updater = app.Updater
+	for _, name := range []string{updater.EventDownloadProgress, updater.EventVerifying, updater.EventInstalling} {
+		app.Event.On(name, func(e *application.CustomEvent) { updates.onUpdaterEvent(e.Name, e.Data) })
+	}
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:          "papierleicht",

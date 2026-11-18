@@ -5,6 +5,7 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 
 	"papierleicht.de/e-rechnung-studio/internal/app"
 )
@@ -17,6 +18,15 @@ var assets embed.FS
 //go:embed version.txt
 var version string
 
+// The German release notes, one file per version.
+//
+//go:embed docs/versionshinweise/*.md
+var notes embed.FS
+
 func main() {
-	app.Run(assets, version)
+	releaseNotes, err := fs.Sub(notes, "docs/versionshinweise")
+	if err != nil {
+		panic(err)
+	}
+	app.Run(assets, version, releaseNotes)
 }

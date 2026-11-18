@@ -1074,10 +1074,36 @@ export interface TaxSummary {
     "tradeTaxNext": string;
 }
 
+/**
+ * UpdateProgress is the state of a running update, asked for by the update
+ * window while it downloads, verifies and installs.
+ */
+export interface UpdateProgress {
+    /**
+     * Phase is "idle", "downloading", "verifying", "installing", "ready" or "failed".
+     */
+    "phase": string;
+    "written": number;
+    "total": number;
+    "message"?: string;
+}
+
 export interface UpdateStatus {
     "currentVersion": string;
     "availableVersion"?: string;
     "updateAvailable": boolean;
+
+    /**
+     * Notes are the German release notes of the available version (Markdown),
+     * the text of its GitHub release.
+     */
+    "notes"?: string;
+
+    /**
+     * Skipped says the customer chose to skip the available version: the app
+     * does not point to it again, the settings still offer it.
+     */
+    "skipped"?: boolean;
 }
 
 /**
@@ -1117,6 +1143,14 @@ export interface VerifyResult {
     "summary": string;
     "documents": number;
     "bytes": number;
+}
+
+/**
+ * VersionNotes are the German release notes of one version, as Markdown.
+ */
+export interface VersionNotes {
+    "version": string;
+    "notes": string;
 }
 
 /**

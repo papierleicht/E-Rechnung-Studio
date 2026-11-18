@@ -10,10 +10,18 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
- * Check looks for a newer release without opening the updater window.
+ * Check looks for a newer release.
  */
 export function Check(): $CancellablePromise<$models.UpdateStatus> {
     return $Call.ByID(2073903318);
+}
+
+/**
+ * Install downloads the available version, checks its signature and prepares
+ * it; Restart then starts it. The call returns when the update is ready.
+ */
+export function Install(): $CancellablePromise<void> {
+    return $Call.ByID(1317471181);
 }
 
 /**
@@ -21,6 +29,13 @@ export function Check(): $CancellablePromise<$models.UpdateStatus> {
  */
 export function Location(): $CancellablePromise<$models.InstallLocation> {
     return $Call.ByID(4120436669);
+}
+
+/**
+ * MarkSeen remembers that the customer read the notes of this version.
+ */
+export function MarkSeen(): $CancellablePromise<void> {
+    return $Call.ByID(3573618236);
 }
 
 /**
@@ -33,13 +48,43 @@ export function MoveApp(): $CancellablePromise<void> {
 }
 
 /**
- * Open shows Wails' built-in update flow. The call returns immediately so the
- * frontend remains responsive while Wails checks, downloads, and verifies.
+ * Progress returns the state of the running update.
  */
-export function Open(): $CancellablePromise<void> {
-    return $Call.ByID(2378188022);
+export function Progress(): $CancellablePromise<$models.UpdateProgress> {
+    return $Call.ByID(538767897);
+}
+
+/**
+ * ReleaseNotes lists the release notes the app ships with, newest first.
+ */
+export function ReleaseNotes(): $CancellablePromise<$models.VersionNotes[] | null> {
+    return $Call.ByID(3237185492);
+}
+
+/**
+ * Restart ends the app and starts the installed update.
+ */
+export function Restart(): $CancellablePromise<void> {
+    return $Call.ByID(58979529);
+}
+
+/**
+ * Skip stops pointing to a version until a newer one comes.
+ */
+export function Skip(version: string): $CancellablePromise<void> {
+    return $Call.ByID(571790637, version);
 }
 
 export function Status(): $CancellablePromise<$models.UpdateStatus> {
     return $Call.ByID(3404266424);
+}
+
+/**
+ * WhatsNew returns the notes of the versions installed since the customer
+ * last saw them, newest first, or nothing. A new installation starts quietly;
+ * after an update from a version that did not remember this yet, the app
+ * shows the notes of the current version.
+ */
+export function WhatsNew(): $CancellablePromise<$models.VersionNotes[] | null> {
+    return $Call.ByID(3260606569);
 }
