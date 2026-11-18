@@ -17,7 +17,7 @@
 1. Klicke auf **Dateien oder ZIP** und wähle die ZIP-Datei aus Zervant.
 2. E-Rechnungen (ZUGFeRD, XRechnung) liest die App mit Nummer, Datum und Betrag. Einfache PDFs übernimmt sie unverändert als Datei.
 3. Mit **Übernehmen** landet alles im **Altbestand**: unverändert, durchsuchbar und in jeder Sicherung. In deine Zahlen fließt der Altbestand nicht ein.
-4. Hast du in Zervant eine Kundenliste als CSV, übernimmst du sie mit **Kunden aus Liste**. Du siehst vorher jede Zeile.
+4. Liegt eine Kundenliste mit im ZIP, erkennt die App sie und bietet danach **Kunden aus dem Export prüfen** an. Eine einzelne Kundenliste als CSV übernimmst du mit **Kunden aus Liste**. Du siehst jede Zeile, bevor etwas gespeichert wird.
 
 ## Prüfen
 

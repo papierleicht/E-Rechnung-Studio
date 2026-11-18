@@ -26,7 +26,7 @@
 3. Belege, die du als PDF oder XRechnung gespeichert hast, übernimmst du mit **Ordner übernehmen**. E-Rechnungen liest die App mit Nummer, Datum und Betrag, einfache PDFs übernimmt sie unverändert als Datei.
 4. Mit **Übernehmen** landet alles im **Altbestand**: unverändert, durchsuchbar und in jeder Sicherung. In deine Zahlen fließt der Altbestand nicht ein.
 5. Enthält ein Export Debitoren, bietet die App danach **Kunden aus dem Export prüfen** an. Du siehst jede Zeile, bevor etwas gespeichert wird.
-6. Die Textdateien aus faktura+auftrag übernimmst du mit **Kunden aus Liste** bzw. **Artikel aus Liste**. ANSI-Dateien liest die App.
+6. Die Textdateien aus faktura+auftrag übernimmst du mit **Kunden aus Liste** bzw. **Artikel aus Liste**. ANSI-Dateien liest die App. Die Spalten von Lexware (zum Beispiel Firma, Name, Vorname, HausNr, EG ID, Preis 1) ordnet sie von selbst zu, wenn du beim Export die Feldnamen mitgegeben hast. Als Preis nimmt sie „Preis 1“; ist er bei dir ein Bruttopreis (Spalte „B/N“), ändere ihn danach im Artikel.
 
 ## Prüfen
 

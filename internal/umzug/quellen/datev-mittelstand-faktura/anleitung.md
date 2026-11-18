@@ -18,7 +18,7 @@
 
 1. Klicke auf **Dateien oder ZIP** und wähle die Dokumentensammlung. E-Rechnungen (ZUGFeRD, XRechnung) liest die App mit Nummer, Datum und Betrag. Einfache PDFs übernimmt sie unverändert als Datei.
 2. Mit **Übernehmen** landen die Dateien im **Altbestand**: unverändert, durchsuchbar und in jeder Sicherung. In deine Zahlen fließt der Altbestand nicht ein.
-3. Die CSV-Dateien übernimmst du mit **Kunden aus Liste** bzw. **Artikel aus Liste**. Du siehst vorher jede Zeile und bestätigst, was übernommen wird.
+3. Wählst du die CSV-Dateien mit aus, erkennt die App Kunden- und Artikellisten an ihren Spaltennamen und bietet sie danach zur Prüfung an. Sonst übernimmst du sie mit **Kunden aus Liste** bzw. **Artikel aus Liste**. Du siehst vorher jede Zeile und bestätigst, was übernommen wird.
 
 ## Prüfen
 

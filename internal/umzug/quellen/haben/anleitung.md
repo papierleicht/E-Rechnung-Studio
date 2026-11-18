@@ -1,7 +1,8 @@
 ## Vorher wissen
 
 - Haben ist Open Source und läuft auf deinem eigenen Server. Deine Daten liegen also bei dir, solange du die Instanz betreibst.
-- Der Weg aus Haben ist der **Jahresexport** als ZIP-Datei. Er enthält PDFs, E-Rechnungen als XML, Belege, CSV-Dateien und eine Datei `index.xml` für die Betriebsprüfung.
+- Der Weg aus Haben ist der **Jahresexport** als ZIP-Datei (`Haben-<Jahr>-<Datum>.zip`). Er enthält die festgeschriebenen Rechnungen als ZUGFeRD-PDF oder XRechnung-XML, CSV-Dateien für Rechnungen, Belege, Journal und Kontakte und eine Datei `index.xml` für die Betriebsprüfung.
+- Die Kontaktliste `stammdaten/kontakte.csv` enthält alle Kontakte, auch Lieferanten, denn Haben unterscheidet die beiden nicht. Deinen Artikelkatalog gibt Haben im Jahresexport nicht heraus.
 - Wo der Jahresexport in deiner Version genau liegt, haben wir nicht an einer eigenen Instanz geprüft. Die Menünamen können abweichen.
 - Eine direkte Verbindung zu Haben (API) hat papierleicht noch nicht. Bankumsätze übernimmt die App ebenfalls noch nicht.
 - Rechnungen und Belege musst du in der Regel acht Jahre aufbewahren, Bücher und Abschlüsse zehn Jahre.
@@ -15,9 +16,9 @@
 ## In papierleicht
 
 1. Klicke auf **Dateien oder ZIP** und wähle die ZIP-Dateien. Mit **Ordner übernehmen** wählst du den ganzen Ordner.
-2. Die App erkennt den Prüfer-Export an der Datei `index.xml` und legt ihn als Ganzes ab.
+2. Die App erkennt den Prüfer-Export an der Datei `index.xml` und legt ihn als Ganzes ab. Die Rechnungen aus `rechnungen/` übernimmt sie einzeln mit Nummer, Datum und Betrag aus der E-Rechnung.
 3. Mit **Übernehmen** landet alles im **Altbestand**: unverändert, durchsuchbar und in jeder Sicherung. In deine Zahlen fließt der Altbestand nicht ein.
-4. Enthält der Export Debitoren oder eine Kundentabelle, bietet die App danach **Kunden aus dem Export prüfen** an. Du siehst jede Zeile, bevor etwas gespeichert wird.
+4. Danach bietet die App **Kunden aus dem Export prüfen** für `stammdaten/kontakte.csv` an. Du siehst jede Zeile, bevor etwas gespeichert wird. Lieferanten landen dabei ebenfalls unter Kunden; lösche sie danach unter **Kunden**. Nimm die Kontakte aus dem jüngsten Jahr, denn jedes ZIP enthält alle.
 
 ## Prüfen
 

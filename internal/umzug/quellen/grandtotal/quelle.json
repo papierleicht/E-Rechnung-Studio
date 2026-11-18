@@ -5,6 +5,6 @@
   "kind": "desktop",
   "summary": "GrandTotal legt für die Buchhaltung einen Ordner mit Rechnungs-PDFs und CSV-Listen auf dem Schreibtisch an.",
   "ways": ["files", "customers"],
-  "checked": "nach der Hersteller-Dokumentation (englische Menünamen), Stand 18.11.2026",
+  "checked": "nach der Hersteller-Dokumentation (deutsch und englisch), Stand 18.11.2026",
   "sources": []
 }

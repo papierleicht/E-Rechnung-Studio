@@ -18,7 +18,7 @@
 1. Klicke auf **Dateien oder ZIP** und wähle die ZIP-Datei aus Billomat.
 2. E-Rechnungen (ZUGFeRD, XRechnung) liest die App mit Nummer, Datum und Betrag. Einfache PDFs übernimmt sie unverändert als Datei. Einen DATEV-Export erkennt sie und legt ihn als **DATEV-Export** ab.
 3. Mit **Übernehmen** landet alles im **Altbestand**: unverändert, durchsuchbar und in jeder Sicherung. In deine Zahlen fließt der Altbestand nicht ein.
-4. Enthält das Backup eine Kundentabelle, bietet die App danach **Kunden aus dem Export prüfen** an. Eine einzelne CSV-Liste mit Kunden oder Artikeln übernimmst du mit **Kunden aus Liste** bzw. **Artikel aus Liste**.
+4. Kunden- und Artikellisten im Backup erkennt die App an ihren Spaltennamen und bietet danach **Kunden aus dem Export prüfen** bzw. **Artikel aus dem Export prüfen** an. Du siehst jede Zeile, bevor etwas gespeichert wird. Erkennt sie eine Liste nicht, wähle die Datei mit **Kunden aus Liste** bzw. **Artikel aus Liste** und ordne die Spalten selbst zu.
 
 ## Prüfen
 
