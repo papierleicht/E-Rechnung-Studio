@@ -1,0 +1,10 @@
+{
+  "id": "norman",
+  "name": "Norman",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Aus Norman nimmst du Rechnungen, den DATEV-Export und ein GoBD-Prüfungsarchiv mit Belegdateien mit.",
+  "ways": ["files"],
+  "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
+  "sources": ["https://norman.finance/de/hilfe-center/hauptbuch-pruefen-exportieren"]
+}

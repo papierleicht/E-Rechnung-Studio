@@ -1,0 +1,10 @@
+{
+  "id": "sevdesk",
+  "name": "sevdesk",
+  "vendor": "sevdesk",
+  "kind": "cloud",
+  "summary": "Mit dem DATEV-Export „Buchungsdaten & Belegbilder“ nimmst du Buchungen, Geschäftspartner und Belege aus sevdesk mit.",
+  "ways": ["files", "customers"],
+  "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
+  "sources": ["https://hilfe.sevdesk.de/de/articles/9373838"]
+}

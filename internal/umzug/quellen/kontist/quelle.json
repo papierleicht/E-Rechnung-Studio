@@ -1,0 +1,10 @@
+{
+  "id": "kontist",
+  "name": "Kontist",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Aus Kontist nimmst du den DATEV-Export mit Belegen mit, je Jahr eine Datei.",
+  "ways": ["files"],
+  "checked": "nach der englischen Hilfe, Stand 18.11.2026",
+  "sources": []
+}

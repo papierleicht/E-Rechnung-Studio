@@ -34,7 +34,7 @@ type Source struct {
 	Guide string `json:"guide"`
 }
 
-// Sources lists the guides, programs with a deadline first, "andere" last.
+// Sources lists the guides: programs that end soonest first, "andere" last.
 func Sources() ([]Source, error) {
 	dirs, err := guides.ReadDir("quellen")
 	if err != nil {
@@ -67,6 +67,9 @@ func Sources() ([]Source, error) {
 		}
 		if (a.Deadline != "") != (b.Deadline != "") {
 			return a.Deadline != ""
+		}
+		if a.Deadline != b.Deadline {
+			return a.Deadline < b.Deadline
 		}
 		return a.Name < b.Name
 	})

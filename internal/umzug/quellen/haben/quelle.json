@@ -1,0 +1,10 @@
+{
+  "id": "haben",
+  "name": "Haben",
+  "vendor": "Haben-Projekt (Open Source)",
+  "kind": "other",
+  "summary": "Haben läuft auf deinem eigenen Server und gibt je Jahr eine ZIP-Datei mit Rechnungen, Belegen und Prüfer-Export heraus.",
+  "ways": ["files"],
+  "checked": "nach der Projekt-Dokumentation, ohne eigene Instanz geprüft, Stand 18.11.2026",
+  "sources": []
+}

@@ -1,0 +1,10 @@
+{
+  "id": "collmex",
+  "name": "Collmex",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Collmex bietet einen GDPdU-Export, einen DATEV-Export und CSV-Listen; eine offizielle Anleitung haben wir nicht gefunden.",
+  "ways": ["files"],
+  "checked": "allgemeine Anleitung ohne offizielle Hilfe, Stand 18.11.2026",
+  "sources": []
+}

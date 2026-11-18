@@ -1,0 +1,11 @@
+{
+  "id": "datev-mittelstand-faktura",
+  "name": "DATEV Mittelstand Faktura",
+  "vendor": "DATEV eG",
+  "kind": "desktop",
+  "summary": "DATEV Mittelstand Faktura wird zum 31.12.2026 eingestellt, deshalb sicherst du Stammdaten und Dokumente vorher.",
+  "deadline": "2026-12-31",
+  "ways": ["files", "customers", "products"],
+  "checked": "nach den DATEV-Hilfedokumenten 1038526, 9259119, 9258450 und 1006714 und der Kündigungsmitteilung von DATEV, Stand 18.11.2026",
+  "sources": ["https://www.datev.de/web/de/berufsgruppenuebergreifend/nachrichten/rund-um-die-datev-programme/kuendigungen-und-leistungsaenderungen-von-produkten/datev-mittelstand-faktura"]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "lexware-office",
+  "name": "Lexware Office",
+  "vendor": "Lexware (Haufe Group)",
+  "kind": "cloud",
+  "summary": "Aus Lexware Office nimmst du Belege über den DATEV-Export „Buchungsstapel und Belegbilder“ und den PDF-Sammelexport mit.",
+  "ways": ["files", "customers"],
+  "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
+  "sources": [
+    "https://help.lexware.de/de-form/articles/8047301",
+    "https://help.lexware.de/de-form/articles/548270",
+    "https://help.lexware.de/de-form/articles/9263622",
+    "https://help.lexware.de/de-form/articles/548281"
+  ]
+}

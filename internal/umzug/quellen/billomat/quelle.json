@@ -1,0 +1,10 @@
+{
+  "id": "billomat",
+  "name": "Billomat",
+  "vendor": "aifinyo",
+  "kind": "cloud",
+  "summary": "Billomat gibt mit dem Komplett-Backup eine ZIP-Datei mit allen CSV- und PDF-Dateien heraus.",
+  "ways": ["files"],
+  "checked": "nach der offiziellen Hilfe (Stand des Artikels 30.10.2025), Stand 18.11.2026",
+  "sources": ["https://support.aifinyo.de/hc/de/articles/22529244940444"]
+}

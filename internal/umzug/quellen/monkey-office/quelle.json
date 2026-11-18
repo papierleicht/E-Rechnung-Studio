@@ -1,0 +1,10 @@
+{
+  "id": "monkey-office",
+  "name": "MonKey Office",
+  "vendor": "ProSaldo",
+  "kind": "desktop",
+  "summary": "MonKey Office exportiert Buchungen mit Anhängen im DATEV-Format und Adressen als Textdatei.",
+  "ways": ["files", "customers"],
+  "checked": "nach der Hersteller-Dokumentation, Stand 18.11.2026",
+  "sources": []
+}
