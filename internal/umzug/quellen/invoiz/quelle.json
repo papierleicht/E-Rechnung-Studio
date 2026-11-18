@@ -1,0 +1,11 @@
+{
+  "id": "invoiz",
+  "name": "invoiz",
+  "vendor": "Buhl Data Service",
+  "kind": "cloud",
+  "summary": "invoiz wird zum 30.11.2026 eingestellt. Sichere deine Rechnungen vorher als PDF.",
+  "deadline": "2026-11-30",
+  "ways": ["files", "customers", "products"],
+  "checked": "nach den Angaben auf invoiz.de, Stand 18.11.2026",
+  "sources": ["https://www.invoiz.de/", "https://www.meinbuero.de/wechsel-von-invoiz/"]
+}

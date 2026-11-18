@@ -1,0 +1,10 @@
+{
+  "id": "andere",
+  "name": "Anderes Programm",
+  "vendor": "",
+  "kind": "other",
+  "summary": "Rechnungen als PDF oder XML, Kunden und Artikel als CSV: das geben fast alle Programme heraus.",
+  "ways": ["files", "customers", "products"],
+  "checked": "allgemeine Anleitung, Stand 18.11.2026",
+  "sources": []
+}
