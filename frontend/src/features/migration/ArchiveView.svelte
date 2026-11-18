@@ -202,7 +202,7 @@
                   >{doc.date ? dateLabel(doc.date) : "ohne Datum"} · {kindLabel(
                     doc.kind,
                     doc.basis,
-                  )}{doc.basis
+                  )}{doc.basis || doc.eInvoice
                     ? ` · ${directionLabels[doc.direction] ?? doc.direction}`
                     : ""}{doc.kind === "export" ? ` · ${doc.files.length} Dateien` : ""} · aus
                   {doc.source}</small
@@ -210,7 +210,9 @@
               </div>
               <span class="archive-partner" title={doc.partner}>{doc.partner || "—"}</span>
               <span class="archive-amount"
-                >{doc.basis && doc.gross ? money(doc.gross, doc.currency) : ""}</span
+                >{(doc.basis || doc.eInvoice) && doc.gross
+                  ? money(doc.gross, doc.currency)
+                  : ""}</span
               >
               <div class="archive-actions">
                 {#if doc.kind === "export"}
