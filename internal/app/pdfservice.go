@@ -49,6 +49,7 @@ func (s *InvoiceService) renderInvoicePDF(xml []byte, draft model.InvoiceDraft) 
 
 // ExportInvoicePDF writes a PDF with the immutable XML atomically after file selection.
 func (s *InvoiceService) ExportInvoicePDF(id, path string) (string, error) {
+	recordUse("rechnung_pdf")
 	if !strings.EqualFold(filepath.Ext(path), ".pdf") {
 		return "", errors.New("Speichere die E-Rechnung bitte mit der Dateiendung .pdf.")
 	}
@@ -61,6 +62,7 @@ func (s *InvoiceService) ExportInvoicePDF(id, path string) (string, error) {
 
 // ExportInvoiceXML writes the immutable XML of an issued invoice.
 func (s *InvoiceService) ExportInvoiceXML(id, path string) (string, error) {
+	recordUse("rechnung_xml")
 	if !strings.EqualFold(filepath.Ext(path), ".xml") {
 		return "", errors.New("Speichere die E-Rechnung bitte mit der Dateiendung .xml.")
 	}

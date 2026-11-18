@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import type { InvoiceSummary } from "../../../bindings/papierleicht.de/e-rechnung-studio/internal/model/models";
   import type {
     PaymentBalance,
@@ -43,6 +44,7 @@
     onopen,
     onnavigate,
     disabled = false,
+    notice,
   }: {
     invoices: InvoiceSummary[];
     balances?: PaymentBalance[];
@@ -59,6 +61,8 @@
     /** The status line leads to the account page. */
     onaccount?: () => unknown;
     disabled?: boolean;
+    /** A one-time question shown right below the heading. */
+    notice?: Snippet;
   } = $props();
 
   // The last figures show right away on a revisit while they reload, so the tiles do not flicker.
@@ -159,6 +163,8 @@
   <header>
     <h1>Übersicht</h1>
   </header>
+
+  {@render notice?.()}
 
   {#if loadError}
     <div class="notice" role="alert">

@@ -117,6 +117,7 @@ func withAnchors(r model.RecurringInvoice, stored *model.RecurringInvoice) (mode
 }
 
 func (s *InvoiceService) SaveRecurringInvoice(r model.RecurringInvoice) (model.RecurringInvoice, error) {
+	recordUse("serienrechnung")
 	var stored *model.RecurringInvoice
 	if r.ID != "" {
 		plan, err := s.store.RecurringInvoice(r.ID)

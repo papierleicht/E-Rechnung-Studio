@@ -41,9 +41,11 @@ func (s *BankingService) Overview() (banking.Overview, error) {
 	return o, err
 }
 func (s *BankingService) Connect(c banking.Connection, pin string, remember bool) (banking.Operation, error) {
+	recordUse("bank_verbinden")
 	return s.service.Connect(c, pin, remember)
 }
 func (s *BankingService) Sync(accountID, pin, from, to string) (banking.Operation, error) {
+	recordUse("bank_abruf")
 	return s.service.Sync(accountID, pin, from, to)
 }
 func (s *BankingService) Status(id string) (banking.Operation, error) {

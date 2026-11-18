@@ -11,6 +11,22 @@ export interface Address {
 
 export interface AppSettings {
     "automaticUpdates": boolean;
+
+    /**
+     * ImprovementStatistics ("Bei der Verbesserung helfen") is the only
+     * statistics choice: with it on, the update check carries marks for the
+     * first check of a day, week and month, and the app counts which areas
+     * and functions are used; all without an identifier (internal/usagestats).
+     * Off unless the user turned it on.
+     */
+    "improvementStatistics": boolean;
+
+    /**
+     * StatisticsAsked is true once the user answered the question about
+     * ImprovementStatistics, in the setup or in the one-time hint shown after
+     * the update that introduced it.
+     */
+    "statisticsAsked": boolean;
     "exportDirectory": string;
     "appearance"?: string;
 

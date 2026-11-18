@@ -137,10 +137,19 @@ type Provider struct {
 	BaseURL string
 	// Client fetches the signature file; nil uses a client with a timeout.
 	Client *http.Client
+	// Label names the provider when two wrap the same kind of inner
+	// provider; the updater routes a download back by name. Empty keeps the
+	// inner provider's name.
+	Label string
 }
 
-// Name keeps the inner provider's name, so downloads route back to it.
-func (p *Provider) Name() string { return p.Inner.Name() }
+// Name is Label or the inner provider's name.
+func (p *Provider) Name() string {
+	if p.Label != "" {
+		return p.Label
+	}
+	return p.Inner.Name()
+}
 
 // Check returns the inner provider's release with the package signature as
 // the only verification. The SHA-256 checksum is not needed: the signature

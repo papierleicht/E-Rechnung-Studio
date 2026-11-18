@@ -142,6 +142,7 @@ func (s *InvoiceService) DatevExportPreview(from, to string) (DatevPreview, erro
 // original documents into the DATEV folder below the export directory.
 // Existing files are never overwritten.
 func (s *InvoiceService) ExportDatev(from, to string) (DatevExportResult, error) {
+	recordUse("datev_export")
 	s.exportMu.Lock()
 	defer s.exportMu.Unlock()
 	in, err := s.loadDatevInput(from, to)

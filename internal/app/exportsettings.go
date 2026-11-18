@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -44,7 +45,25 @@ func (s *InvoiceService) SaveAppSettings(v model.AppSettings) (model.AppSettings
 	if err != nil {
 		return v, err
 	}
-	return v, s.store.SaveAppSettings(v)
+	if err := s.store.SaveAppSettings(v); err != nil {
+		return v, err
+	}
+	forgetUsageUnlessHelping(v)
+	return v, nil
+}
+
+// forgetUsageUnlessHelping deletes the unsent counters and the dates of the
+// last marks of "Bei der Verbesserung helfen" as soon as the setting is saved
+// off.
+func forgetUsageUnlessHelping(v model.AppSettings) {
+	if !v.ImprovementStatistics {
+		if err := usage.Forget(); err != nil {
+			log.Printf("usage statistics: %v", err)
+		}
+		if err := usageMarks.Forget(); err != nil {
+			log.Printf("usage statistics: %v", err)
+		}
+	}
 }
 
 // SaveSettings validates both parts before committing either one.
@@ -69,7 +88,11 @@ func (s *InvoiceService) SaveSettings(v model.AppSettings, company *model.Compan
 		return result, err
 	}
 	result.Settings = settings
-	return result, s.store.SaveSettings(settings, company)
+	if err := s.store.SaveSettings(settings, company); err != nil {
+		return result, err
+	}
+	forgetUsageUnlessHelping(settings)
+	return result, nil
 }
 
 func (s *InvoiceService) prepareAppSettings(v model.AppSettings) (model.AppSettings, error) {
@@ -79,6 +102,10 @@ func (s *InvoiceService) prepareAppSettings(v model.AppSettings) (model.AppSetti
 	case "light", "dark":
 	default:
 		return v, errors.New("Wähle für die Darstellung System, Hell oder Dunkel.")
+	}
+	// Turning the help on in the settings answers the one-time question.
+	if v.ImprovementStatistics {
+		v.StatisticsAsked = true
 	}
 	for id := range v.Sections {
 		if !slices.Contains(model.MenuSections, id) {
@@ -117,6 +144,7 @@ func (s *InvoiceService) prepareAppSettings(v model.AppSettings) (model.AppSetti
 // ExportIssuedInvoice is safe to retry: immutable artifacts are reused and
 // existing files with different contents are never replaced.
 func (s *InvoiceService) ExportIssuedInvoice(id string) (result model.InvoiceExport, err error) {
+	recordUse("rechnung_export")
 	s.exportMu.Lock()
 	defer s.exportMu.Unlock()
 	draft, err := s.store.Invoice(id)

@@ -13,6 +13,8 @@
   import AuditAlert from "./components/AuditAlert.svelte";
   import BackupAlert from "./components/BackupAlert.svelte";
   import * as UpdateAPI from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/updateservice";
+  import StatisticsInvite from "./components/StatisticsInvite.svelte";
+  import { RecordArea } from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/usageservice";
   import * as BackupAPI from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/backupservice";
   import type {
     DeletedInvoiceResult,
@@ -227,6 +229,14 @@
   let receivedPage: { showList: () => void } | undefined = $state();
   let quotesPage: { showList: () => void } | undefined = $state();
   let needsSetup = $state(false);
+  // "Bei der Verbesserung helfen": count the opened area. The backend drops
+  // it unless the user turned the setting on.
+  $effect(() => {
+    const area = section;
+    untrack(() => {
+      if (data && !needsSetup) RecordArea(area).catch(() => {});
+    });
+  });
   let invoiceStep = $state<"overview" | "customer" | "document">("overview");
   const openQuote = $derived.by(() =>
     section === "invoices" && invoiceStep === "overview" && invoiceTab === "quotes"
@@ -548,6 +558,7 @@
     shop: string;
     migration: string;
     taxProfile: SetupTaxProfile;
+    statistics: { improvement: boolean };
   }) {
     if (!data) return;
     const saved = await run(() => API.CompleteSetup(clone(data!.company)));
@@ -559,7 +570,14 @@
       );
       // The shop answer of the setup decides whether the shop area shows.
       const sections = setupSections(data.settings.sections, choices.shop, choices.migration);
-      const settings = await run(() => API.SaveAppSettings({ ...clone(data!.settings), sections }));
+      const settings = await run(() =>
+        API.SaveAppSettings({
+          ...clone(data!.settings),
+          sections,
+          improvementStatistics: choices.statistics.improvement,
+          statisticsAsked: true,
+        }),
+      );
       if (settings) data.settings = settings;
       rememberSettings();
       needsSetup = false;
@@ -730,6 +748,31 @@
   function rememberDraft() {
     preview.cancel();
     draftBaseline = draft ? JSON.stringify(draft) : "";
+  }
+  let statisticsAnswering = $state(false);
+  /** The one-time question on the dashboard after the update that brought
+      the statistics; the setup asks new installations itself. */
+  async function answerStatistics(helping: boolean) {
+    if (!data || statisticsAnswering) return;
+    statisticsAnswering = true;
+    try {
+      const settings = await run(() =>
+        API.SaveAppSettings({
+          ...clone(data!.settings),
+          improvementStatistics: helping,
+          statisticsAsked: true,
+        }),
+      );
+      if (settings) {
+        data.settings = settings;
+        rememberSettings();
+        message = helping
+          ? "Danke! Du kannst das jederzeit unter Einstellungen → Statistik ändern."
+          : "In Ordnung. Du kannst es jederzeit unter Einstellungen → Statistik ändern.";
+      }
+    } finally {
+      statisticsAnswering = false;
+    }
   }
   function rememberSettings() {
     companyBaseline = data ? JSON.stringify(data.company) : "";
@@ -1677,7 +1720,14 @@
           }}
           balances={paymentOverview?.invoices ?? []}
           disabled={navigationLocked}
-        />
+        >
+          {#snippet notice()}
+            {#if !data?.settings.statisticsAsked}<StatisticsInvite
+                busy={statisticsAnswering}
+                onanswer={answerStatistics}
+              />{/if}
+          {/snippet}
+        </Dashboard>
       {:else if section === "taxes"}<TaxesPage initialTask={financePeriod} />
       {:else if section === "finance"}<BankingPage
           company={data.company}

@@ -164,6 +164,7 @@ func (s *InvoiceService) CompleteSetup(c model.Company) (model.Company, error) {
 }
 
 func (s *InvoiceService) SaveCustomer(c model.Customer) (model.Customer, error) {
+	recordUse("kunde_speichern")
 	if c.PaymentTermDays != nil && (*c.PaymentTermDays < 0 || *c.PaymentTermDays > 3650) {
 		return c, errors.New("Wähle ein Zahlungsziel zwischen 0 und 3650 Tagen.")
 	}
@@ -178,6 +179,7 @@ func (s *InvoiceService) SaveCustomer(c model.Customer) (model.Customer, error) 
 }
 
 func (s *InvoiceService) SaveProduct(p model.Product) (model.Product, error) {
+	recordUse("artikel_speichern")
 	p.Name = strings.TrimSpace(p.Name)
 	p.Description = strings.TrimSpace(p.Description)
 	p.Unit = strings.ToUpper(strings.TrimSpace(p.Unit))
@@ -218,6 +220,7 @@ func (s *InvoiceService) DeleteProduct(id string) error { return s.store.DeleteP
 //
 //wails:ignore
 func (s *InvoiceService) ExportBackup() (string, error) {
+	recordUse("datensicherung_export")
 	if _, err := s.PaymentBookings(); err != nil {
 		return "", err
 	}
@@ -433,6 +436,7 @@ func (s *InvoiceService) ValidateInvoice(d model.InvoiceDraft) (model.InvoiceVie
 }
 
 func (s *InvoiceService) SaveInvoice(d model.InvoiceDraft) (model.InvoiceView, error) {
+	recordUse("rechnung_speichern")
 	d.IssuerSnapshot = nil
 	d.CorrectionReason = model.NormalizeCorrectionReason(d)
 	view, err := s.view(d, false)
@@ -543,6 +547,7 @@ func (s *InvoiceService) withMailStatus(invoices []model.InvoiceSummary, err err
 func (s *InvoiceService) DeleteDraft(id string) error { return s.store.DeleteDraft(id) }
 
 func (s *InvoiceService) IssueInvoice(d model.InvoiceDraft) (model.InvoiceView, error) {
+	recordUse("rechnung_festschreiben")
 	// Bound methods may run concurrently. Keep the complete issuance workflow
 	// single-flight in addition to the store transaction so duplicate UI calls do
 	// not validate and render immutable artifacts at the same time.

@@ -75,9 +75,19 @@ type InvoiceSettings struct {
 }
 
 type AppSettings struct {
-	AutomaticUpdates bool   `json:"automaticUpdates"`
-	ExportDirectory  string `json:"exportDirectory"`
-	Appearance       string `json:"appearance,omitempty"`
+	AutomaticUpdates bool `json:"automaticUpdates"`
+	// ImprovementStatistics ("Bei der Verbesserung helfen") is the only
+	// statistics choice: with it on, the update check carries marks for the
+	// first check of a day, week and month, and the app counts which areas
+	// and functions are used; all without an identifier (internal/usagestats).
+	// Off unless the user turned it on.
+	ImprovementStatistics bool `json:"improvementStatistics"`
+	// StatisticsAsked is true once the user answered the question about
+	// ImprovementStatistics, in the setup or in the one-time hint shown after
+	// the update that introduced it.
+	StatisticsAsked bool   `json:"statisticsAsked"`
+	ExportDirectory string `json:"exportDirectory"`
+	Appearance      string `json:"appearance,omitempty"`
 	// Sections shows (true) or hides (false) optional areas of the menu,
 	// see MenuSections. A missing key keeps the default: "shops" shows only
 	// with a connected shop, "products" always, "migration" only while the

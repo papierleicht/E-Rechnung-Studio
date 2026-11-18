@@ -99,3 +99,30 @@ func TestLegacySettingsEnableAutomaticUpdates(t *testing.T) {
 		t.Fatalf("legacy defaults not applied: %+v, %v", settings, err)
 	}
 }
+
+func TestStatisticsDefaults(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "stats.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	settings, err := s.AppSettings()
+	if err != nil || settings.ImprovementStatistics || settings.StatisticsAsked {
+		t.Fatalf("new installation: %+v, %v", settings, err)
+	}
+	// Settings saved before the preferences existed keep the defaults.
+	if err := s.writeSetting("app", map[string]any{"automaticUpdates": false}); err != nil {
+		t.Fatal(err)
+	}
+	// Installations from before the update have not been asked yet.
+	if settings, err = s.AppSettings(); err != nil || settings.ImprovementStatistics || settings.StatisticsAsked {
+		t.Fatalf("legacy settings: %+v, %v", settings, err)
+	}
+	settings.ImprovementStatistics = true
+	if err := s.SaveAppSettings(settings); err != nil {
+		t.Fatal(err)
+	}
+	if settings, err = s.AppSettings(); err != nil || !settings.ImprovementStatistics {
+		t.Fatalf("saved choice lost: %+v, %v", settings, err)
+	}
+}

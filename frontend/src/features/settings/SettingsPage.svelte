@@ -1,4 +1,5 @@
 <script lang="ts">
+  import StatisticsChoices from "../../components/StatisticsChoices.svelte";
   import { tick } from "svelte";
   import type {
     Company,
@@ -215,6 +216,19 @@
             onclick={runUpdateCheck}>Jetzt nach Updates suchen</button
           >
         </div>
+      </section>
+      <section
+        class="appearance-settings update-settings statistics-settings"
+        aria-labelledby="statistics-title"
+      >
+        <div>
+          <h2 id="statistics-title">Statistik</h2>
+          <p>
+            Freiwillig und jederzeit änderbar. Mehr dazu steht in der Datenschutzerklärung auf
+            papierleicht.de.
+          </p>
+        </div>
+        <StatisticsChoices bind:improvement={settings.improvementStatistics} />
       </section>
       <section class="appearance-settings update-settings" aria-labelledby="menu-title">
         <div>
@@ -494,6 +508,11 @@
     font: inherit;
     font-weight: 650;
     text-decoration: underline;
+  }
+  .statistics-settings {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
   }
   .menu-sections {
     display: grid;

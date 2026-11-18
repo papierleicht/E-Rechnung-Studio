@@ -151,6 +151,7 @@ func (s *InvoiceService) recordReminder(prepared PreparedReminder, channel, toda
 // ExportReminderPDF creates the reminder, saves it at path and records it as
 // manually exported. If recording fails, the written file is removed again.
 func (s *InvoiceService) ExportReminderPDF(id string, level int, path string) (store.Reminder, error) {
+	recordUse("mahnung_pdf")
 	return s.exportReminderPDF(id, level, path, reminderToday())
 }
 

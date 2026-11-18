@@ -263,6 +263,7 @@ func (s *MailService) PrepareInvoiceMail(invoiceID string) (InvoiceMailDraft, er
 // SendInvoiceMail sends an issued invoice after explicit confirmation. Failed
 // attempts are recorded in the invoice's send log and returned as an error.
 func (s *MailService) SendInvoiceMail(ctx context.Context, r InvoiceMailRequest) (mail.LogEntry, error) {
+	recordUse("mail_rechnung")
 	if s.readOnly() {
 		return mail.LogEntry{}, errMailReadOnly
 	}

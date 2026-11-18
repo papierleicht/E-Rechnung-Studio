@@ -189,6 +189,7 @@ func (s *MailService) PrepareDocumentMail(documentType, id string, level int) (D
 // SendDocumentMail sends a reminder or quote after explicit confirmation. A
 // sent reminder is added to the reminder history with the e-mail channel.
 func (s *MailService) SendDocumentMail(ctx context.Context, r DocumentMailRequest) (mail.LogEntry, error) {
+	recordUse("mail_dokument")
 	if s.readOnly() {
 		return mail.LogEntry{}, errMailReadOnly
 	}

@@ -188,6 +188,7 @@ func shopSince(c shops.Connection) time.Time {
 }
 
 func (s *ShopService) Connect(c shops.Connection, credentials shops.Credentials) (shops.Connection, error) {
+	recordUse("shop_verbinden")
 	if err := s.begin(); err != nil {
 		return shops.Connection{}, err
 	}
@@ -289,6 +290,7 @@ func shopFetchError(err error) string {
 }
 
 func (s *ShopService) Sync(connectionID string) (shops.SyncResult, error) {
+	recordUse("shop_abruf")
 	if err := s.begin(); err != nil {
 		return shops.SyncResult{}, err
 	}
@@ -408,6 +410,7 @@ func (s *ShopService) Disconnect(id string) error {
 }
 
 func (s *ShopService) CreateInvoice(orderID string) (model.InvoiceDraft, error) {
+	recordUse("shop_rechnung")
 	if err := s.begin(); err != nil {
 		return model.InvoiceDraft{}, err
 	}

@@ -13,6 +13,7 @@
   import MailSettings from "./MailSettings.svelte";
   import NewsletterSignup from "../../components/NewsletterSignup.svelte";
   import SetupPlusOffer from "./SetupPlusOffer.svelte";
+  import StatisticsChoices from "../../components/StatisticsChoices.svelte";
   import { Browser } from "@wailsio/runtime";
   import StoreIcon from "@lucide/svelte/icons/store";
   import FolderInputIcon from "@lucide/svelte/icons/folder-input";
@@ -41,8 +42,14 @@
     busy: boolean;
     error?: string;
     /** shop is the provider to connect right after the start, if any;
-        taxProfile goes into the tax profile under "Steuern". */
-    oncomplete: (choices: { shop: string; migration: string; taxProfile: SetupTaxProfile }) => void;
+        taxProfile goes into the tax profile under "Steuern";
+        statistics is the choice „Bei der Verbesserung helfen“ of the last step. */
+    oncomplete: (choices: {
+      shop: string;
+      migration: string;
+      taxProfile: SetupTaxProfile;
+      statistics: { improvement: boolean };
+    }) => void;
     onrestore: () => void;
   } = $props();
   const steps = [
@@ -81,6 +88,8 @@
   });
   let plusBooked = $state<"" | SetupPlusTier>("");
   let newsletterEmail = $state("");
+  // Helping is off until chosen.
+  let statistics = $state({ improvement: false });
   let step = $state(0);
   let furthest = $state(0);
   let taxConfirmed = $state(false);
@@ -193,6 +202,7 @@
       shop: shop === "none" ? "" : shop,
       migration: moving === "none" ? "" : moving,
       taxProfile: { ...taxProfile },
+      statistics: { ...statistics },
     });
   }
 </script>
@@ -789,6 +799,13 @@
             </p>
           </section>
         </div>
+        <section class="setup-statistics" aria-labelledby="setup-statistics-title">
+          <h2 id="setup-statistics-title">Statistik</h2>
+          <p class="form-help">
+            Freiwillig und jederzeit unter Einstellungen → Allgemein änderbar.
+          </p>
+          <StatisticsChoices bind:improvement={statistics.improvement} />
+        </section>
         {#if missing.length}<aside class="wizard-note">
             <strong>Noch zu ergänzen</strong>
             <p>
@@ -1002,6 +1019,20 @@
   }
   .shop-note p {
     margin: 0;
+  }
+  .setup-statistics {
+    margin: 16px 0 0;
+    padding: 20px 22px;
+    border: 1px solid var(--theme-border);
+    border-radius: 10px;
+    background: var(--theme-surface);
+  }
+  .setup-statistics h2 {
+    margin: 0;
+    font-size: var(--ui-section-title-size);
+  }
+  .setup-statistics .form-help {
+    margin: 4px 0 14px;
   }
   .support-offer {
     display: flex;

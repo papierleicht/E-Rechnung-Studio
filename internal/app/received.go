@@ -152,6 +152,7 @@ func receivedNotice(rule, message string) model.ImportInspection {
 }
 
 func (s *InvoiceService) ImportReceivedInvoice(filename, encoded string) (model.ReceivedImport, error) {
+	recordUse("beleg_import")
 	data, kind, err := decodeReceived(filename, encoded)
 	if err != nil {
 		return model.ReceivedImport{}, err

@@ -329,6 +329,7 @@ func (s *AuditService) Entries(f store.AuditFilter) ([]store.AuditEntry, error) 
 
 // LockPeriod closes a period for good.
 func (s *AuditService) LockPeriod(from, to string) (store.PeriodLock, error) {
+	recordUse("zeitraum_sperren")
 	return s.invoices.store.LockPeriod(from, to)
 }
 
@@ -534,6 +535,7 @@ func (s *AuditService) SaveTable(path, name, from, to, query string) (int, error
 // Export writes the package for the tax office. The newest
 // Verfahrensdokumentation goes along when there is one.
 func (s *AuditService) Export(path, from, to string) (AuditExportResult, error) {
+	recordUse("gobd_export")
 	var procedure []byte
 	if version, err := s.invoices.store.ProcedureVersionText(0); err == nil {
 		company, err := s.invoices.store.Company()

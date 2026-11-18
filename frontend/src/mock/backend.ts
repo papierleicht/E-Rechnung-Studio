@@ -59,7 +59,14 @@ import { applyStress, stressMode } from "./stress";
 import appVersion from "../../../version.txt?raw";
 
 const db = structuredClone({
-  settings: { automaticUpdates: false, exportDirectory: "", appearance: "system" },
+  settings: {
+    automaticUpdates: false,
+    improvementStatistics: false,
+    // The demo never asks; it sends nothing.
+    statisticsAsked: true,
+    exportDirectory: "",
+    appearance: "system",
+  },
   company: seed.company,
   customers: seed.customers,
   products: seed.products,
@@ -2249,6 +2256,8 @@ const handlers: Record<string, Handler> = {
     throw desktopOnly("das verschlüsselte Online-Backup");
   },
 
+  // UsageService: the demo counts nothing.
+  "UsageService.RecordArea": () => {},
   // UpdateService: the demo always shows the published version.
   "UpdateService.Status": () => ({ currentVersion: appVersion.trim(), updateAvailable: false }),
   "UpdateService.Check": () => ({ currentVersion: appVersion.trim(), updateAvailable: false }),
