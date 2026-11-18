@@ -8,4 +8,4 @@
 - **Sicherheitslücke:** nicht als Issue, sondern wie in [SECURITY.md](SECURITY.md)
   beschrieben.
 - **Geschäftsanfragen, auch zu angepassten Versionen:** per E-Mail an
-  [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Gesch%C3%A4ftsanfrage%20E-Rechnung-Studio).
+  [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Gesch%C3%A4ftsanfrage%20papierleicht).

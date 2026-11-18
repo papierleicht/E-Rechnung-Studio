@@ -1,17 +1,17 @@
 <html><body>
 <h1>Verfahrensdokumentation</h1>
 <p><strong>{{.Company}}</strong>{{if .Address}}, {{.Address}}{{end}}{{if .TaxID}}, {{.TaxID}}{{end}}</p>
-<p>Version {{.Version}} vom {{.Date}}, erstellt mit E-Rechnung-Studio {{.Program}}.</p>
+<p>Version {{.Version}} vom {{.Date}}, erstellt mit papierleicht {{.Program}}.</p>
 <p>Dieses Dokument beschreibt, wie in diesem Betrieb Belege erfasst, verarbeitet, aufbewahrt und wiedergefunden werden. Es ist eine Vorlage aus den Angaben des Betriebs und dem Funktionsumfang des Programms. Die Verantwortung für die Ordnungsmäßigkeit liegt beim Betrieb. Weicht der tatsächliche Ablauf ab, ist das Dokument anzupassen, und bei jeder wesentlichen Änderung ist eine neue Version zu erstellen.</p>
 
 <h2>1. Allgemeine Beschreibung</h2>
 <h3>Zweck und Geltungsbereich</h3>
-<p>Die Dokumentation gilt für alle Rechnungen, Belege und Zahlungsinformationen, die mit E-Rechnung-Studio erstellt, empfangen oder erfasst werden. Sie gilt für die gesamte Aufbewahrungsfrist der betroffenen Unterlagen.</p>
+<p>Die Dokumentation gilt für alle Rechnungen, Belege und Zahlungsinformationen, die mit papierleicht erstellt, empfangen oder erfasst werden. Sie gilt für die gesamte Aufbewahrungsfrist der betroffenen Unterlagen.</p>
 <h3>Verantwortlichkeit</h3>
 <p>Erfassung und Prüfung der Belege: {{.Profile.Responsible}}</p>
 {{if .Profile.Advisor}}<p>Steuerliche Beratung: {{.Profile.Advisor}}</p>{{end}}
 <h3>Eingesetzte Systeme</h3>
-<p>E-Rechnung-Studio ist eine Desktop-Anwendung. Alle Daten liegen in einer Datenbank auf dem Rechner des Betriebs.</p>
+<p>papierleicht ist eine Desktop-Anwendung. Alle Daten liegen in einer Datenbank auf dem Rechner des Betriebs.</p>
 {{if .Profile.Devices}}<p>Rechner: {{.Profile.Devices}}</p>{{end}}
 {{if .Profile.OtherSystems}}<p>Weitere Systeme mit steuerlich relevanten Daten: {{.Profile.OtherSystems}}</p>{{end}}
 <h3>Aufbewahrungsfristen</h3>

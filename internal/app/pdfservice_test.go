@@ -107,7 +107,7 @@ func TestHybridPDFExportAndBackup(t *testing.T) {
 	if err != nil || !bytes.HasPrefix(generated, []byte("%PDF-")) {
 		t.Fatal("PDF was not generated while issuing", err)
 	}
-	if !bytes.Contains(generated, []byte("/Creator (papierleicht E-Rechnung-Studio)")) || !bytes.Contains(generated, []byte("<xmp:CreatorTool>papierleicht E-Rechnung-Studio</xmp:CreatorTool>")) {
+	if !bytes.Contains(generated, []byte("/Creator (papierleicht)")) || !bytes.Contains(generated, []byte("<xmp:CreatorTool>papierleicht</xmp:CreatorTool>")) {
 		t.Fatal("issued PDF does not name the product in its metadata")
 	}
 	path := filepath.Join(t.TempDir(), "invoice.pdf")

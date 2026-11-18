@@ -3,7 +3,7 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleExecutable</key>
-		<string>e-rechnung-studio</string>
+		<string>papierleicht</string>
 		<key>CFBundleGetInfoString</key>
 		<string>Local-first invoice creation and validation</string>
 		<key>CFBundleIconFile</key>
@@ -13,7 +13,7 @@
 		<key>CFBundleIdentifier</key>
 		<string>de.papierleicht.erechnungstudio</string>
 		<key>CFBundleName</key>
-		<string>E-Rechnung-Studio</string>
+		<string>papierleicht</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

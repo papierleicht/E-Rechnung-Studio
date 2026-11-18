@@ -949,7 +949,7 @@ func (s *BackupService) InspectArchive(path string) (RestorePreview, error) {
 		} `json:"settings"`
 	}
 	if json.Unmarshal(document, &doc) != nil {
-		return RestorePreview{}, errors.New("Die Datei ist keine Sicherung von E-Rechnung-Studio.")
+		return RestorePreview{}, errors.New("Die Datei ist keine Sicherung von papierleicht.")
 	}
 	preview.CreatedAt, preview.Customers, preview.Products = doc.ExportedAt, len(doc.Customers), len(doc.Products)
 	preview.Invoices, preview.Received = len(doc.Invoices), len(doc.Received)

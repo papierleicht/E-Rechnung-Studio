@@ -6,7 +6,7 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "papierleicht"
-  productName: "E-Rechnung-Studio"
+  productName: "papierleicht"
   productIdentifier: "de.papierleicht.erechnungstudio"
   description: "Offline electronic invoicing for German businesses"
   copyright: "Copyright 2026 papierleicht"

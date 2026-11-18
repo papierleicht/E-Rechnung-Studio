@@ -1506,7 +1506,7 @@
   }
 </script>
 
-<svelte:head><title>E-Rechnung-Studio</title></svelte:head>
+<svelte:head><title>papierleicht</title></svelte:head>
 {#snippet invoiceTiles()}
   <input
     id="invoice-xml"
@@ -1519,7 +1519,7 @@
 {/snippet}
 {#if data && needsSetup}
   <div class="window-toolbar setup-window-toolbar no-print" class:native-mac={nativeMac}>
-    <span>E-Rechnung-Studio · Einrichtung</span>
+    <span>papierleicht · Einrichtung</span>
   </div>
   <CompanySetup
     company={data.company}
@@ -1623,7 +1623,7 @@
           >
           <button type="button" class="secondary" onclick={closeAuditView}>Beenden</button>
         </div>{/if}
-      {#if !data}<div class="loading">E-Rechnung-Studio wird geladen …</div>
+      {#if !data}<div class="loading">papierleicht wird geladen …</div>
       {:else if section === "dashboard"}<Dashboard
           invoices={data.invoices ?? []}
           loadSummary={API.DashboardSummary}

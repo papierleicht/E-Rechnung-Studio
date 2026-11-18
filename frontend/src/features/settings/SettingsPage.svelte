@@ -462,7 +462,7 @@
       />{/if}
   </div>
   <footer class="settings-about" hidden={activeTab !== "general"}>
-    <button type="button" onclick={() => (aboutOpen = true)}>Über E-Rechnung-Studio</button>
+    <button type="button" onclick={() => (aboutOpen = true)}>Über papierleicht</button>
   </footer>
 </section>
 {#if aboutOpen}

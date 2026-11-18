@@ -4,6 +4,8 @@ frontend/dist
 frontend/dist-demo
 /e-rechnung-studio
 /e-rechnung-studio.exe
+/papierleicht
+/papierleicht.exe
 frontend/node_modules
 build/linux/appimage/build
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe

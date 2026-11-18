@@ -19,9 +19,9 @@ Unicode true
 ####
 ## The following information is taken from the wails_tools.nsh file, but they can be overwritten here.
 ####
-## !define INFO_PROJECTNAME    "my-project" # Default "e-rechnung-studio"
+## !define INFO_PROJECTNAME    "my-project" # Default "papierleicht"
 ## !define INFO_COMPANYNAME    "My Company" # Default "papierleicht"
-## !define INFO_PRODUCTNAME    "My Product Name" # Default "E-Rechnung-Studio"
+## !define INFO_PRODUCTNAME    "My Product Name" # Default "papierleicht"
 ## !define INFO_PRODUCTVERSION "1.0.0"     # Default "0.1.0"
 ## !define INFO_COPYRIGHT      "(c) Now, My Company" # Default "Copyright 2026 papierleicht"
 ###

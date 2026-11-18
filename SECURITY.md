@@ -1,11 +1,11 @@
 # Sicherheitslücken melden
 
-E-Rechnung-Studio verarbeitet Rechnungen, Bankumsätze und Steuerdaten. Hinweise
+papierleicht verarbeitet Rechnungen, Bankumsätze und Steuerdaten. Hinweise
 auf Schwachstellen sind willkommen und werden vertraulich behandelt.
 
 ## Meldung
 
-Schreib an [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Sicherheit%20E-Rechnung-Studio)
+Schreib an [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Sicherheit%20papierleicht)
 mit dem Betreff „Sicherheit“ oder melde die Lücke vertraulich über GitHub
 ([Report a vulnerability](https://github.com/papierleicht/E-Rechnung-Studio/security/advisories/new)).
 Bitte **kein öffentliches Issue** und keine Diskussion in Pull Requests, bevor

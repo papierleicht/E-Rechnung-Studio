@@ -5,13 +5,13 @@
 !include "FileFunc.nsh"
 
 !ifndef INFO_PROJECTNAME
-    !define INFO_PROJECTNAME "e-rechnung-studio"
+    !define INFO_PROJECTNAME "papierleicht"
 !endif
 !ifndef INFO_COMPANYNAME
     !define INFO_COMPANYNAME "papierleicht"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "E-Rechnung-Studio"
+    !define INFO_PRODUCTNAME "papierleicht"
 !endif
 !ifndef INFO_PRODUCTVERSION
     !define INFO_PRODUCTVERSION "1.2.0" ; x-release-please-version

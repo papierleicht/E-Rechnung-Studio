@@ -64,7 +64,7 @@ func Run(assets fs.FS, version string) {
 	resets := NewResetService(dataDir, invoices, accounts.manager, account.SystemVault{})
 
 	app := application.New(application.Options{
-		Name:        "E-Rechnung-Studio",
+		Name:        "papierleicht",
 		Description: "Offline electronic invoicing for German businesses",
 		Services: []application.Service{
 			application.NewService(invoices),
@@ -119,7 +119,7 @@ func Run(assets fs.FS, version string) {
 	updates.updater = app.Updater
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:          "E-Rechnung-Studio",
+		Title:          "papierleicht",
 		Width:          1440,
 		Height:         900,
 		MinWidth:       900,

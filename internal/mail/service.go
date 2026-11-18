@@ -260,8 +260,8 @@ func (s *Service) TestAccount(ctx context.Context, account Account, password str
 	account.BCCSelf = false
 	p, err := prepare(account, Message{
 		To:      []string{account.FromAddress},
-		Subject: "Testnachricht von E-Rechnung-Studio",
-		Text:    "Diese Testnachricht zeigt: E-Rechnung-Studio kann über dein SMTP-Konto E-Mails versenden.\n",
+		Subject: "Testnachricht von papierleicht",
+		Text:    "Diese Testnachricht zeigt: papierleicht kann über dein SMTP-Konto E-Mails versenden.\n",
 	}, s.now())
 	if err != nil {
 		return err

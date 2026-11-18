@@ -341,7 +341,7 @@
 {#if newKey || shownKey}
   <div class="key-print" use:toBody>
     <h1>Dein Schlüssel für die Sicherung</h1>
-    <p>E-Rechnung-Studio von papierleicht, erstellt am {new Date().toLocaleDateString("de-DE")}</p>
+    <p>papierleicht, erstellt am {new Date().toLocaleDateString("de-DE")}</p>
     {@render keyBlock(newKey || shownKey)}
     <p>
       Bewahre diesen Zettel sicher und getrennt von deinem Rechner auf. Mit diesem Schlüssel kommst

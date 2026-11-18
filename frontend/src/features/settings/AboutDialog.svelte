@@ -13,10 +13,7 @@
   );
 </script>
 
-<FormDialog
-  title={licenses ? "Lizenzen & Drittanbieterhinweise" : "Über E-Rechnung-Studio"}
-  {onclose}
->
+<FormDialog title={licenses ? "Lizenzen & Drittanbieterhinweise" : "Über papierleicht"} {onclose}>
   {#if licenses}
     <p>
       Lizenztexte und Hinweise zu Bibliotheken, Schriften und Validierungsdaten. Die

@@ -3,7 +3,7 @@
 # to Apple's notary service and staples the ticket. The Release workflow runs it
 # on the macOS runners; it works on a developer Mac as well.
 #
-# Usage: build/darwin/sign-and-notarize.sh bin/e-rechnung-studio.app
+# Usage: build/darwin/sign-and-notarize.sh bin/papierleicht.app
 #
 # Environment:
 #   APPLE_CERTIFICATE_P12       Base64 of the exported certificate including its

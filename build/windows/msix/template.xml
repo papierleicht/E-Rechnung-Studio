@@ -8,13 +8,13 @@
         AllowPromptForPassword="false">
     </Settings>
     <Installer
-        Path="e-rechnung-studio"
+        Path="papierleicht"
         Arguments=""
-        InstallLocation="C:\Program Files\papierleicht\E-Rechnung-Studio">
+        InstallLocation="C:\Program Files\papierleicht">
     </Installer>
     <PackageInformation
         PackageName="E-RechnungStudio"
-        PackageDisplayName="E-Rechnung-Studio"
+        PackageDisplayName="papierleicht"
         PublisherName="CN=Papierleicht"
         PublisherDisplayName="papierleicht"
         Version="0.1.0.0"
@@ -27,8 +27,8 @@
             <Application
                 Id="de.papierleicht.erechnungstudio"
                 Description="Offline invoice application"
-                DisplayName="E-Rechnung-Studio"
-                ExecutableName="e-rechnung-studio"
+                DisplayName="papierleicht"
+                ExecutableName="papierleicht"
                 EntryPoint="Windows.FullTrustApplication">
                 
             </Application>
@@ -41,13 +41,13 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>E-Rechnung-Studio</DisplayName>
+            <DisplayName>papierleicht</DisplayName>
             <PublisherDisplayName>papierleicht</PublisherDisplayName>
             <Description>Offline invoice application</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>
-    <SaveLocation PackagePath="e-rechnung-studio.msix" />
+    <SaveLocation PackagePath="papierleicht.msix" />
     <PackageIntegrity>
         <CertificatePath></CertificatePath>
     </PackageIntegrity>

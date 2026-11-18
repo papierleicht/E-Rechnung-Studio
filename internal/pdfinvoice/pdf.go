@@ -24,7 +24,7 @@ import (
 )
 
 // creatorName is the PDF metadata entry naming the software that made a document.
-const creatorName = "papierleicht E-Rechnung-Studio"
+const creatorName = "papierleicht"
 
 // Serialize rendering: the font/layout dependencies have shared caches.
 var renderMu sync.Mutex

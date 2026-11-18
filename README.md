@@ -1,4 +1,4 @@
-# E-Rechnung-Studio
+# papierleicht
 
 [![CI](https://github.com/papierleicht/E-Rechnung-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/papierleicht/E-Rechnung-Studio/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/papierleicht/E-Rechnung-Studio)](https://github.com/papierleicht/E-Rechnung-Studio/releases)
@@ -10,7 +10,8 @@
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](#mitwirken)
 [![Lizenz: MPL-2.0](https://img.shields.io/badge/Lizenz-MPL--2.0-blue)](LICENSE)
 
-**Desktop-App für macOS, Windows und Linux** von papierleicht, für
+**papierleicht** (bis Version 1.2 „E-Rechnung-Studio“) ist eine
+**Desktop-App für macOS, Windows und Linux** für
 Selbstständige und kleine Unternehmen in Deutschland: Angebote, E-Rechnungen,
 Zahlungen, Belege und Steuerwerte an einem Ort. Die App wird installiert und
 läuft lokal auf deinem Rechner, deine Daten bleiben auf deinem Gerät, und für
@@ -27,10 +28,10 @@ Wails 3 und Svelte.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/uebersicht-dunkel.png">
-  <img src="docs/screenshots/uebersicht.png" alt="Das Fenster von E-Rechnung-Studio unter macOS: links die Navigation, rechts die Übersicht mit „Neue Rechnung“, offenen Beträgen und einer Liste, was zu erledigen ist." width="100%">
+  <img src="docs/screenshots/uebersicht.png" alt="Das Fenster von papierleicht unter macOS: links die Navigation, rechts die Übersicht mit „Neue Rechnung“, offenen Beträgen und einer Liste, was zu erledigen ist." width="100%">
 </picture>
 
-<sub>E-Rechnung-Studio als Programmfenster unter macOS, mit Beispieldaten. Unter
+<sub>papierleicht als Programmfenster unter macOS, mit Beispieldaten. Unter
 Windows und Linux läuft dieselbe App im Fenster des jeweiligen Systems; sie
 folgt dem hellen oder dunklen Erscheinungsbild des Systems.</sub>
 
@@ -321,7 +322,7 @@ Issue abstimmen. Fragen und Ideen gehören in die
 ## Geschäftsanfragen
 
 Für Geschäftsanfragen, auch zu angepassten Versionen für den internen
-Gebrauch: [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Gesch%C3%A4ftsanfrage%20E-Rechnung-Studio)
+Gebrauch: [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Gesch%C3%A4ftsanfrage%20papierleicht)
 
 ## Dokumentation und Lizenz
 
