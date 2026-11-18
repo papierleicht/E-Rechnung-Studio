@@ -59,6 +59,7 @@ func Run(assets fs.FS, version string) {
 	audits := NewAuditService(invoices, accounts.manager)
 	chats := NewChatService(accounts)
 	shopService := NewShopService(invoices)
+	migrations := NewMigrationService(invoices)
 	defer shopService.Close()
 	updates := &UpdateService{}
 	resets := NewResetService(dataDir, invoices, accounts.manager, account.SystemVault{})
@@ -77,6 +78,7 @@ func Run(assets fs.FS, version string) {
 			application.NewService(shopService),
 			application.NewService(chats),
 			application.NewService(resets),
+			application.NewService(migrations),
 		},
 		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
 		Mac:    application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: true},

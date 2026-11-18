@@ -42,6 +42,7 @@ import { awaitsInputTaxDecision, countsForInputTax } from "../lib/received";
 import { receivedAttachments } from "./attachments";
 import { desktopOnly } from "./hints";
 import { inspectFile } from "./inspect";
+import { migrationHandlers } from "./migration";
 import {
   addDays,
   cents,
@@ -1287,6 +1288,7 @@ const shopHint = () => desktopOnly("die Anbindung deines Online-Shops");
 type Handler = (...args: any[]) => unknown;
 
 const handlers: Record<string, Handler> = {
+  ...migrationHandlers,
   // InvoiceService: master data and invoices
   "InvoiceService.Bootstrap": () => ({
     settings: clone(db.settings),

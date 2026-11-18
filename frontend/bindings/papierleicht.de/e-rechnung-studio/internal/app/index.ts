@@ -8,6 +8,7 @@ import * as BankingService from "./bankingservice.js";
 import * as ChatService from "./chatservice.js";
 import * as InvoiceService from "./invoiceservice.js";
 import * as MailService from "./mailservice.js";
+import * as MigrationService from "./migrationservice.js";
 import * as ResetService from "./resetservice.js";
 import * as ShopService from "./shopservice.js";
 import * as UpdateService from "./updateservice.js";
@@ -19,6 +20,7 @@ export {
     ChatService,
     InvoiceService,
     MailService,
+    MigrationService,
     ResetService,
     ShopService,
     UpdateService
@@ -51,6 +53,9 @@ export type {
     EURView,
     ExpenseSuggestion,
     ExpenseUpload,
+    FileImportResult,
+    FilePreview,
+    FilePreviewItem,
     FinanceEntry,
     FinanceFigure,
     FinanceIssue,
@@ -63,6 +68,9 @@ export type {
     InvoiceMailRequest,
     InvoiceNumbering,
     InvoiceReminderState,
+    ListImportResult,
+    ListPreview,
+    MigrationOverview,
     NumberCheck,
     NumberSeriesOption,
     NumberSeriesStart,

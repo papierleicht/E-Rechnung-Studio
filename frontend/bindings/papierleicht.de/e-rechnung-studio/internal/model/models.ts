@@ -395,6 +395,87 @@ export interface InvoiceView {
 }
 
 /**
+ * LegacyDocument is a document taken over from another program during a move
+ * ("Umzug"). It is archived exactly as delivered and never changes; it does not
+ * count in the figures of this app (sales tax, results, open items).
+ */
+export interface LegacyDocument {
+    "id": string;
+
+    /**
+     * Source is the program it came from, e.g. "invoiz" or "andere".
+     */
+    "source": string;
+
+    /**
+     * SourceID identifies the document within the source; for files it is the
+     * SHA-256 of the main file.
+     */
+    "sourceId": string;
+
+    /**
+     * Direction is "outgoing" (own invoice), "incoming" (received) or "" when
+     * the file does not say.
+     */
+    "direction": string;
+
+    /**
+     * Kind is "invoice", "credit-note" or "document" for a file without
+     * structured invoice data.
+     */
+    "kind": string;
+    "number": string;
+    "date": string;
+    "partner": string;
+    "currency": string;
+    "net": string;
+    "tax": string;
+    "gross": string;
+
+    /**
+     * EInvoice says that the data above come from an embedded or separate
+     * ZUGFeRD/XRechnung XML, not from a guess.
+     */
+    "eInvoice": boolean;
+
+    /**
+     * Origin is where the file was found, e.g. "export.zip/2024/RE-1.pdf".
+     */
+    "origin": string;
+    "importedAt": string;
+    "files": LegacyFile[] | null;
+}
+
+/**
+ * LegacyFile is one original file of a legacy document. Data is only filled
+ * when the bytes are asked for.
+ */
+export interface LegacyFile {
+    "name": string;
+    "mime": string;
+    "sha256": string;
+    "size": number;
+}
+
+/**
+ * LegacyYear sums up the archive for one calendar year and direction, so the
+ * customer can compare it with the reports of the old program.
+ */
+export interface LegacyYear {
+    "year": string;
+    "direction": string;
+    "count": number;
+
+    /**
+     * Structured counts the documents with e-invoice data; only they have amounts.
+     */
+    "structured": number;
+    "net": string;
+    "tax": string;
+    "gross": string;
+}
+
+/**
  * PrecedingInvoice is an invoice that a received document refers to (BG-3), for
  * example the invoice a correction replaces.
  */

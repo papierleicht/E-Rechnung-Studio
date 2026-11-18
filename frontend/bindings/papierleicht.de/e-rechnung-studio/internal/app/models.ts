@@ -12,10 +12,16 @@ import * as cloudbackup$0 from "../cloudbackup/models.js";
 import * as mail$0 from "../mail/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as model$0 from "../model/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as store$0 from "../store/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as taxforms$0 from "../taxforms/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as umzug$0 from "../umzug/models.js";
 
 /**
  * AnnualStatus is the state of the returns of a year (EÜR, Einkommensteuer
@@ -399,6 +405,48 @@ export interface ExpenseUpload {
 }
 
 /**
+ * FileImportResult says what an import archived.
+ */
+export interface FileImportResult {
+    "imported": number;
+    "duplicates": number;
+    "failed": umzug$0.Skipped[] | null;
+}
+
+/**
+ * FilePreview lists what an import of the chosen paths would archive.
+ */
+export interface FilePreview {
+    "items": FilePreviewItem[] | null;
+    "skipped": umzug$0.Skipped[] | null;
+    "new": number;
+    "duplicates": number;
+    "eInvoices": number;
+}
+
+/**
+ * FilePreviewItem is one document the app found, before anything is saved.
+ */
+export interface FilePreviewItem {
+    "origin": string;
+    "name": string;
+    "files": number;
+    "kind": string;
+    "direction": string;
+    "number": string;
+    "date": string;
+    "partner": string;
+    "gross": string;
+    "currency": string;
+    "eInvoice": boolean;
+
+    /**
+     * Duplicate says that the archive already holds this file.
+     */
+    "duplicate": boolean;
+}
+
+/**
  * FinanceEntry is one record behind a figure.
  */
 export interface FinanceEntry {
@@ -641,6 +689,44 @@ export interface InvoiceReminderState {
      */
     "subject": string;
     "text": string;
+}
+
+/**
+ * ListImportResult says what an import of a list saved.
+ */
+export interface ListImportResult {
+    "created": number;
+    "existing": number;
+    "failed": umzug$0.Skipped[] | null;
+}
+
+/**
+ * ListPreview shows how the rows of a customer or article list would be
+ * taken over. Without a mapping the app assigns the columns by their names.
+ */
+export interface ListPreview {
+    "list": string;
+    "fields": umzug$0.Field[] | null;
+    "columns": string[] | null;
+    "mapping": { [_ in string]?: number } | null;
+    "encoding": string;
+    "delimiter": string;
+    "customers": umzug$0.CustomerProposal[] | null;
+    "products": umzug$0.ProductProposal[] | null;
+
+    /**
+     * New counts the rows that would be saved.
+     */
+    "new": number;
+}
+
+/**
+ * MigrationOverview is what the move page shows when it opens.
+ */
+export interface MigrationOverview {
+    "sources": umzug$0.Source[] | null;
+    "years": model$0.LegacyYear[] | null;
+    "total": number;
 }
 
 /**

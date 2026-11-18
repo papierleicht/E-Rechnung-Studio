@@ -50,6 +50,7 @@
     importBackup,
     onopenbanking = () => {},
     shopConnected = false,
+    hasLegacy = false,
     checkForUpdates,
     onopenupdate = () => {},
     installLocation = { canUpdate: true, targetExists: false },
@@ -67,6 +68,8 @@
     onopenbanking?: () => void;
     /** Decides whether the shop area shows while the customer did not choose. */
     shopConnected?: boolean;
+    /** Keeps the move area shown while the legacy archive holds documents. */
+    hasLegacy?: boolean;
     chooseExportDirectory: () => void;
     exportBackup: () => void;
     importBackup: () => void;
@@ -226,7 +229,7 @@
             <label class="update-toggle" title={item.hint}>
               <input
                 type="checkbox"
-                checked={sectionVisible(item.id, settings.sections, { shopConnected })}
+                checked={sectionVisible(item.id, settings.sections, { shopConnected, hasLegacy })}
                 onchange={(event) => showSection(item.id, event.currentTarget.checked)}
               />
               {item.label} anzeigen

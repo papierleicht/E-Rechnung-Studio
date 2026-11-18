@@ -82,6 +82,9 @@
   import ShopsPage from "./features/shops/ShopsPage.svelte";
   import CommunityPage from "./features/community/CommunityPage.svelte";
   import MessagesSquareIcon from "@lucide/svelte/icons/messages-square";
+  import FolderInputIcon from "@lucide/svelte/icons/folder-input";
+  import MigrationPage from "./features/migration/MigrationPage.svelte";
+  import { migration } from "./lib/migration-api";
   import { chatUnread, watchChatUnread } from "./lib/chatUnread";
   import { sectionVisible, setupSections } from "./lib/menuSections";
   import { shops } from "./lib/shops-api";
@@ -125,6 +128,7 @@
     | "customers"
     | "products"
     | "community"
+    | "migration"
     | "settings";
   const navigation: { id: Section; label: string }[] = [
     { id: "dashboard", label: "Übersicht" },
@@ -136,15 +140,20 @@
     { id: "customers", label: "Kunden" },
     { id: "products", label: "Artikel" },
     { id: "community", label: "Chat & Markt" },
+    { id: "migration", label: "Umzug & Altbestand" },
     { id: "settings", label: "Einstellungen" },
   ];
   // Without a connected shop or an explicit choice the shop area stays hidden.
   let shopConnected = $state(false);
+  // A filled legacy archive keeps the move area in the menu.
+  let hasLegacy = $state(false);
+  let migrationSource = $state("");
   // The current section stays, so hiding it in the settings does not jump away.
   const menu = $derived(
     navigation.filter(
       (item) =>
-        item.id === section || sectionVisible(item.id, data?.settings?.sections, { shopConnected }),
+        item.id === section ||
+        sectionVisible(item.id, data?.settings?.sections, { shopConnected, hasLegacy }),
     ),
   );
   type Page = {
@@ -168,9 +177,12 @@
   let receivedBusy = $state(false);
   let paymentsBusy = $state(false);
   let shopsBusy = $state(false);
+  let migrationBusy = $state(false);
   let shopToConnect = $state("");
   let paymentOverview = $state<PaymentOverview | null>(null);
-  const navigationLocked = $derived(busy || receivedBusy || paymentsBusy || shopsBusy);
+  const navigationLocked = $derived(
+    busy || receivedBusy || paymentsBusy || shopsBusy || migrationBusy,
+  );
   // The first load has its own loading text; short operations must not flash a status box.
   let starting = $state(true);
   let showBusy = $state(false);
@@ -532,7 +544,11 @@
     invoiceStep = "customer";
     tick().then(() => scrollPageToTop());
   }
-  async function completeSetup(choices: { shop: string; taxProfile: SetupTaxProfile }) {
+  async function completeSetup(choices: {
+    shop: string;
+    migration: string;
+    taxProfile: SetupTaxProfile;
+  }) {
     if (!data) return;
     const saved = await run(() => API.CompleteSetup(clone(data!.company)));
     if (saved) {
@@ -542,11 +558,20 @@
         API.SaveFinanceSettings({ ...(await API.FinanceSettings()), ...choices.taxProfile }),
       );
       // The shop answer of the setup decides whether the shop area shows.
-      const sections = setupSections(data.settings.sections, choices.shop);
+      const sections = setupSections(data.settings.sections, choices.shop, choices.migration);
       const settings = await run(() => API.SaveAppSettings({ ...clone(data!.settings), sections }));
       if (settings) data.settings = settings;
       rememberSettings();
       needsSetup = false;
+      if (choices.migration) {
+        // Moving comes first: the old data decide what the first invoice looks like.
+        migrationSource = choices.migration;
+        navigateTo("migration");
+        message = choices.shop
+          ? "Dein Unternehmen ist eingerichtet. Übernimm jetzt deine Daten; den Shop verbindest du danach unter Shop-Bestellungen."
+          : "Dein Unternehmen ist eingerichtet. Übernimm jetzt deine Daten.";
+        return;
+      }
       if (choices.shop) {
         // The shop chosen in the setup opens its connection right away.
         shopToConnect = choices.shop;
@@ -611,6 +636,10 @@
 
   onMount(() => {
     watchChatUnread();
+    void migration.overview().then(
+      (overview) => (hasLegacy = overview.total > 0),
+      () => undefined,
+    );
     void shops.overview().then(
       (overview) => (shopConnected = (overview.connections?.length ?? 0) > 0),
       () => undefined,
@@ -1572,6 +1601,10 @@
                 size={18}
                 stroke-width="1.65"
                 aria-hidden="true"
+              />{:else if item.id === "migration"}<FolderInputIcon
+                size={18}
+                stroke-width="1.65"
+                aria-hidden="true"
               />{:else if item.id === "community"}<MessagesSquareIcon
                 size={18}
                 stroke-width="1.65"
@@ -1666,6 +1699,12 @@
               `„${label}“ trennen? Zugangsdaten werden entfernt. Importierte Bestellungen und Rechnungen bleiben erhalten.`,
               "Shop trennen",
             )}
+        />
+      {:else if section === "migration"}<MigrationPage
+          initialSource={migrationSource}
+          onarchive={(total) => (hasLegacy = total > 0)}
+          onchanged={refreshApplicationLists}
+          onbusychange={(value) => (migrationBusy = value)}
         />
       {:else if section === "community"}<CommunityPage
           postalCode={data.company.address?.postcode ?? ""}
@@ -2046,6 +2085,7 @@
           bind:company={data.company}
           bind:settings={data.settings}
           {shopConnected}
+          {hasLegacy}
           {busy}
           dirty={settingsChanged()}
           saving={settingsSaving}
