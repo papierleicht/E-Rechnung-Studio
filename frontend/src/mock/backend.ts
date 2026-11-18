@@ -61,7 +61,6 @@ import appVersion from "../../../version.txt?raw";
 const db = structuredClone({
   settings: {
     automaticUpdates: false,
-    usageStatistics: false,
     improvementStatistics: false,
     // The demo never asks; it sends nothing.
     statisticsAsked: true,

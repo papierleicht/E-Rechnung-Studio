@@ -558,7 +558,7 @@
     shop: string;
     migration: string;
     taxProfile: SetupTaxProfile;
-    statistics: { usage: boolean; improvement: boolean };
+    statistics: { improvement: boolean };
   }) {
     if (!data) return;
     const saved = await run(() => API.CompleteSetup(clone(data!.company)));
@@ -574,7 +574,6 @@
         API.SaveAppSettings({
           ...clone(data!.settings),
           sections,
-          usageStatistics: choices.statistics.usage,
           improvementStatistics: choices.statistics.improvement,
           statisticsAsked: true,
         }),

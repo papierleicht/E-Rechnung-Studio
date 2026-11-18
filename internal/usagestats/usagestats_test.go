@@ -88,17 +88,39 @@ func TestTransportSendsFirstOfPeriodMarksWithoutIdentifier(t *testing.T) {
 	}
 }
 
-func TestTransportSendsNothingWhenOff(t *testing.T) {
+// Without "Bei der Verbesserung helfen" the check names only version and
+// system and the app keeps nothing for the statistics.
+func TestTransportSendsOnlyVersionAndSystemWhenOff(t *testing.T) {
 	status := http.StatusOK
 	srv, seen := fakeServer(t, &status)
 	file := filepath.Join(t.TempDir(), FileName)
 	client := &http.Client{Transport: &Transport{Host: strings.TrimPrefix(srv.URL, "http://"), Enabled: func() bool { return false }, Version: "1.3.0", File: file}}
 	check(t, client, srv.URL+"/releases/latest")
-	if got := (*seen)[0]; got.usage != "" || got.version != "" || got.system != "" {
-		t.Fatalf("statistics sent while off: %+v", got)
+	if got := (*seen)[0]; got.usage != "" || got.version != "1.3.0" || got.system != runtime.GOOS+"/"+runtime.GOARCH {
+		t.Fatalf("check while off: %+v", got)
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("state file written while off: %v", err)
+	}
+}
+
+func TestTransportForgetDeletesTheMarks(t *testing.T) {
+	status := http.StatusOK
+	srv, _ := fakeServer(t, &status)
+	file := filepath.Join(t.TempDir(), FileName)
+	tr := &Transport{Host: strings.TrimPrefix(srv.URL, "http://"), Enabled: func() bool { return true }, Version: "1.3.0", File: file}
+	check(t, &http.Client{Transport: tr}, srv.URL+"/releases/latest")
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("marks not kept: %v", err)
+	}
+	if err := tr.Forget(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("marks left after Forget: %v", err)
+	}
+	if err := (*Transport)(nil).Forget(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -107,7 +129,7 @@ func TestTransportOnlyTalksToTheUpdateServer(t *testing.T) {
 	srv, seen := fakeServer(t, &status)
 	client := &http.Client{Transport: &Transport{Host: "lizenz.example", Enabled: func() bool { return true }, Version: "1.3.0", File: filepath.Join(t.TempDir(), FileName)}}
 	check(t, client, srv.URL+"/repos/papierleicht/E-Rechnung-Studio/releases/latest")
-	if got := (*seen)[0]; got.usage != "" {
+	if got := (*seen)[0]; got.usage != "" || got.version != "" || got.system != "" {
 		t.Fatalf("statistics sent to another host: %+v", got)
 	}
 }

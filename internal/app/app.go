@@ -128,9 +128,11 @@ func Run(assets fs.FS, version string) {
 	// Until 1.2 the repository was papierleicht/E-Rechnung-Studio; GitHub
 	// redirects that name, so older versions still find these releases.
 	// The check asks papierleicht's server first, which answers with GitHub's
-	// release and carries the anonymous usage statistics (internal/usagestats);
-	// GitHub itself is asked only when that server cannot be reached. The
-	// packages always download from GitHub.
+	// release and counts the check by app version and system; with "Bei der
+	// Verbesserung helfen" on, it also carries marks for the first check of a
+	// day, week and month (internal/usagestats). GitHub itself is asked only
+	// when that server cannot be reached. The packages come from GitHub, on
+	// this path through a redirect of the server that counts the update.
 	const releaseRepository = "papierleicht/papierleicht-app"
 	updateKey, err := updatesign.ParsePublicKey(updatesign.PublicKey)
 	if err != nil {
@@ -138,16 +140,16 @@ func Run(assets fs.FS, version string) {
 	}
 	var providers []updater.Provider
 	if server, err := url.Parse(serverURL); err == nil && server.Host != "" {
-		stats := &usagestats.Transport{
+		usageMarks = &usagestats.Transport{
 			Host:    server.Host,
-			Enabled: setting(func(v model.AppSettings) bool { return v.UsageStatistics }),
+			Enabled: setting(func(v model.AppSettings) bool { return v.ImprovementStatistics }),
 			Version: currentVersion,
 			File:    filepath.Join(dataDir, usagestats.FileName),
 		}
 		viaServer, err := github.New(github.Config{
 			Repository: releaseRepository,
 			BaseURL:    server.String() + "/api/updates/github",
-			HTTPClient: &http.Client{Timeout: 30 * time.Second, Transport: stats},
+			HTTPClient: &http.Client{Timeout: 30 * time.Second, Transport: usageMarks},
 		})
 		if err != nil {
 			log.Fatal(err)

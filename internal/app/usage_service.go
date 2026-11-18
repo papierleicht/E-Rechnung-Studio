@@ -15,6 +15,11 @@ import (
 // sets it up; until then, and in tests, recordUse does nothing.
 var usage *usagestats.Recorder
 
+// usageMarks adds version and system to the update check and, with "Bei der
+// Verbesserung helfen" on, the first-of-period marks. Run sets it up when an
+// update server is configured.
+var usageMarks *usagestats.Transport
+
 // recordUse counts one use of a function, see usagestats.Recorder. Names are
 // short lower-case words; the report shows them as "funktion:<name>".
 func recordUse(name string) { usage.Record("funktion:" + name) }

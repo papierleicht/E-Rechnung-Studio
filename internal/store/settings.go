@@ -50,7 +50,6 @@ func (s *Store) writeSetting(key string, value any) error {
 
 func (s *Store) AppSettings() (v model.AppSettings, err error) {
 	v.AutomaticUpdates = true
-	v.UsageStatistics = true
 	err = s.readSetting("app", &v)
 	return
 }

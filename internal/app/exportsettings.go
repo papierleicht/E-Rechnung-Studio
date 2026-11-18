@@ -52,11 +52,15 @@ func (s *InvoiceService) SaveAppSettings(v model.AppSettings) (model.AppSettings
 	return v, nil
 }
 
-// forgetUsageUnlessHelping deletes the unsent counters of "Bei der
-// Verbesserung helfen" as soon as the setting is saved off.
+// forgetUsageUnlessHelping deletes the unsent counters and the dates of the
+// last marks of "Bei der Verbesserung helfen" as soon as the setting is saved
+// off.
 func forgetUsageUnlessHelping(v model.AppSettings) {
 	if !v.ImprovementStatistics {
 		if err := usage.Forget(); err != nil {
+			log.Printf("usage statistics: %v", err)
+		}
+		if err := usageMarks.Forget(); err != nil {
 			log.Printf("usage statistics: %v", err)
 		}
 	}

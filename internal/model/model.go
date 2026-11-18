@@ -76,11 +76,11 @@ type InvoiceSettings struct {
 
 type AppSettings struct {
 	AutomaticUpdates bool `json:"automaticUpdates"`
-	// UsageStatistics adds the anonymous usage statistics to the update
-	// check (internal/usagestats); on unless the user turned it off.
-	UsageStatistics bool `json:"usageStatistics"`
-	// ImprovementStatistics counts which areas and functions are used and
-	// reports them without an identifier; off unless the user turned it on.
+	// ImprovementStatistics ("Bei der Verbesserung helfen") is the only
+	// statistics choice: with it on, the update check carries marks for the
+	// first check of a day, week and month, and the app counts which areas
+	// and functions are used; all without an identifier (internal/usagestats).
+	// Off unless the user turned it on.
 	ImprovementStatistics bool `json:"improvementStatistics"`
 	// StatisticsAsked is true once the user answered the question about
 	// ImprovementStatistics, in the setup or in the one-time hint shown after

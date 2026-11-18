@@ -43,12 +43,12 @@
     error?: string;
     /** shop is the provider to connect right after the start, if any;
         taxProfile goes into the tax profile under "Steuern";
-        statistics are the two choices of the last offers. */
+        statistics is the choice „Bei der Verbesserung helfen“ of the last step. */
     oncomplete: (choices: {
       shop: string;
       migration: string;
       taxProfile: SetupTaxProfile;
-      statistics: { usage: boolean; improvement: boolean };
+      statistics: { improvement: boolean };
     }) => void;
     onrestore: () => void;
   } = $props();
@@ -88,8 +88,8 @@
   });
   let plusBooked = $state<"" | SetupPlusTier>("");
   let newsletterEmail = $state("");
-  // The anonymous count is on, helping with details is off until chosen.
-  let statistics = $state({ usage: true, improvement: false });
+  // Helping is off until chosen.
+  let statistics = $state({ improvement: false });
   let step = $state(0);
   let furthest = $state(0);
   let taxConfirmed = $state(false);
@@ -804,10 +804,7 @@
           <p class="form-help">
             Freiwillig und jederzeit unter Einstellungen → Allgemein änderbar.
           </p>
-          <StatisticsChoices
-            bind:usage={statistics.usage}
-            bind:improvement={statistics.improvement}
-          />
+          <StatisticsChoices bind:improvement={statistics.improvement} />
         </section>
         {#if missing.length}<aside class="wizard-note">
             <strong>Noch zu ergänzen</strong>

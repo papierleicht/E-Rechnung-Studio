@@ -1,15 +1,17 @@
-// Package usagestats adds the anonymous usage statistics to the update check.
+// Package usagestats adds the usage statistics to the update check.
 //
-// With the user's setting on, the request for the latest release carries the
-// app version, the operating system, the month this installation was first
-// counted and marks for "first check today / this week / this month". The
-// server adds them to daily counters, which gives the number of active
-// installations per day, week and month without any identifier: nothing in
-// the request tells two checks of one installation apart from checks of two.
+// The request for the latest release always names the app version and the
+// operating system, so the update server can count checks by version and
+// system. Nothing is stored for that on the device.
 //
-// The installation keeps only the dates it last sent each mark in a small
-// file in the data folder. With the setting off nothing is added and the file
-// is left alone.
+// With "Bei der Verbesserung helfen" on, the request also carries the month
+// this installation was first counted and marks for "first check today / this
+// week / this month". The server adds them to daily counters, which gives the
+// exact number of helping installations per day, week and month without any
+// identifier: nothing in the request tells two checks of one installation
+// apart from checks of two. For the marks the installation keeps the dates it
+// last sent each one in a small file in the data folder; with the setting off
+// the file is neither read nor written, and Forget deletes it.
 package usagestats
 
 import (
@@ -51,7 +53,7 @@ type Transport struct {
 	Base http.RoundTripper
 	// Host is the update server's host, e.g. "lizenz.papierleicht.de".
 	Host string
-	// Enabled reports the user's setting at the time of the check.
+	// Enabled reports "Bei der Verbesserung helfen" at the time of the check.
 	Enabled func() bool
 	// Version is the app version.
 	Version string
@@ -73,7 +75,13 @@ func (t *Transport) base() http.RoundTripper {
 // RoundTrip implements http.RoundTripper. The marks count as sent only when
 // the server answered; after an error the next check sends them again.
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.URL.Host != t.Host || !strings.HasSuffix(req.URL.Path, "/releases/latest") || t.Enabled == nil || !t.Enabled() {
+	if req.URL.Host != t.Host || !strings.HasSuffix(req.URL.Path, "/releases/latest") {
+		return t.base().RoundTrip(req)
+	}
+	req = req.Clone(req.Context())
+	req.Header.Set(HeaderVersion, t.Version)
+	req.Header.Set(HeaderSystem, runtime.GOOS+"/"+runtime.GOARCH)
+	if t.Enabled == nil || !t.Enabled() {
 		return t.base().RoundTrip(req)
 	}
 	t.mu.Lock()
@@ -84,10 +92,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	old := t.load()
 	next, marks := advance(old, now)
-	req = req.Clone(req.Context())
 	req.Header.Set(HeaderUsage, "v=1; neu="+strings.Join(marks, ",")+"; seit="+next.Since)
-	req.Header.Set(HeaderVersion, t.Version)
-	req.Header.Set(HeaderSystem, runtime.GOOS+"/"+runtime.GOARCH)
 	resp, err := t.base().RoundTrip(req)
 	if err == nil && (resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound) && next != old {
 		// A lost write only means a mark is sent once more.
@@ -142,4 +147,18 @@ func (t *Transport) save(s state) error {
 		return err
 	}
 	return os.Rename(tmp, filepath.Clean(t.File))
+}
+
+// Forget deletes the dates of the last marks, so turning the help off leaves
+// nothing of it on the device. A nil Transport does nothing.
+func (t *Transport) Forget() error {
+	if t == nil || t.File == "" {
+		return nil
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if err := os.Remove(t.File); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }

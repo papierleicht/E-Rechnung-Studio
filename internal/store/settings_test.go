@@ -107,7 +107,7 @@ func TestStatisticsDefaults(t *testing.T) {
 	}
 	defer s.Close()
 	settings, err := s.AppSettings()
-	if err != nil || !settings.UsageStatistics || settings.ImprovementStatistics || settings.StatisticsAsked {
+	if err != nil || settings.ImprovementStatistics || settings.StatisticsAsked {
 		t.Fatalf("new installation: %+v, %v", settings, err)
 	}
 	// Settings saved before the preferences existed keep the defaults.
@@ -115,14 +115,14 @@ func TestStatisticsDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Installations from before the update have not been asked yet.
-	if settings, err = s.AppSettings(); err != nil || !settings.UsageStatistics || settings.ImprovementStatistics || settings.StatisticsAsked {
+	if settings, err = s.AppSettings(); err != nil || settings.ImprovementStatistics || settings.StatisticsAsked {
 		t.Fatalf("legacy settings: %+v, %v", settings, err)
 	}
-	settings.UsageStatistics, settings.ImprovementStatistics = false, true
+	settings.ImprovementStatistics = true
 	if err := s.SaveAppSettings(settings); err != nil {
 		t.Fatal(err)
 	}
-	if settings, err = s.AppSettings(); err != nil || settings.UsageStatistics || !settings.ImprovementStatistics {
+	if settings, err = s.AppSettings(); err != nil || !settings.ImprovementStatistics {
 		t.Fatalf("saved choice lost: %+v, %v", settings, err)
 	}
 }

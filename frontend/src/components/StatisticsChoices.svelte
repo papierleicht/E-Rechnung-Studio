@@ -1,37 +1,22 @@
 <script lang="ts">
-  /** The two statistics choices, in the settings and in the setup.
-      usage: anonymous count of active installations with the update check (on by default).
-      improvement: which areas and functions are used (off until chosen). */
+  /** The one statistics choice, in the settings and in the setup:
+      "Bei der Verbesserung helfen" (off until chosen). What the update check
+      counts without it is described in the privacy policy. */
   let {
-    usage = $bindable(),
     improvement = $bindable(),
   }: {
-    usage: boolean;
     improvement: boolean;
   } = $props();
 </script>
 
 <div class="statistics-choices">
   <label class="statistics-choice">
-    <input type="checkbox" bind:checked={usage} />
-    <span>
-      <strong>Anonyme Nutzungsstatistik senden</strong>
-      <span class="statistics-help">
-        Bei der Update-Suche schickt die App ihre Version, das Betriebssystem und ob sie heute,
-        diese Woche oder diesen Monat zum ersten Mal sucht. So sieht papierleicht, wie viele
-        Installationen aktiv sind. Die App sendet dabei keine Kennung und keine deiner Daten.
-      </span>
-    </span>
-  </label>
-  <label class="statistics-choice">
     <input type="checkbox" bind:checked={improvement} />
     <span>
       <strong>Bei der Verbesserung helfen</strong>
       <span class="statistics-help">
-        Die App zählt, welche Bereiche du öffnest und welche Funktionen du nutzt, zum Beispiel
-        „Rechnung festschreiben“ oder „Bankabruf“. Einmal am Tag schickt sie nur diese Summen,
-        ebenfalls ohne Kennung. Rechnungen, Kunden, Beträge und Namen verlassen dein Gerät nie.
-        Schaltest du es aus, löscht die App die noch nicht gesendeten Zähler.
+        Die App zählt ohne Kennung, welche Bereiche und Funktionen du nutzt, und schickt einmal am
+        Tag nur diese Summen. Deine Rechnungen, Kunden und Beträge verlassen dein Gerät nie.
       </span>
     </span>
   </label>

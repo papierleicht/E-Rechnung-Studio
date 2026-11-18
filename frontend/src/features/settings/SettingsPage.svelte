@@ -224,14 +224,11 @@
         <div>
           <h2 id="statistics-title">Statistik</h2>
           <p>
-            Beides ist freiwillig und lässt sich jederzeit ändern. Mehr dazu steht in der
-            Datenschutzerklärung auf papierleicht.de.
+            Freiwillig und jederzeit änderbar. Mehr dazu steht in der Datenschutzerklärung auf
+            papierleicht.de.
           </p>
         </div>
-        <StatisticsChoices
-          bind:usage={settings.usageStatistics}
-          bind:improvement={settings.improvementStatistics}
-        />
+        <StatisticsChoices bind:improvement={settings.improvementStatistics} />
       </section>
       <section class="appearance-settings update-settings" aria-labelledby="menu-title">
         <div>

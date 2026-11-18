@@ -15,15 +15,14 @@
 <section class="statistics-invite" aria-labelledby="statistics-invite-title">
   <span class="statistics-invite-icon" aria-hidden="true"><HandHeartIcon size={20} /></span>
   <div class="statistics-invite-body">
-    <h2 id="statistics-invite-title">Hilfst du mit, E-Rechnung-Studio besser zu machen?</h2>
+    <h2 id="statistics-invite-title">Hilfst du mit, papierleicht besser zu machen?</h2>
     <p>
       Wenn du zustimmst, zählt die App, welche Bereiche du öffnest und welche Funktionen du nutzt,
       und schickt einmal am Tag nur diese Summen, ohne Kennung. Rechnungen, Kunden, Beträge und
       Namen verlassen dein Gerät nie. So sehen wir, was gebraucht wird und wo die App hakt.
     </p>
     <p class="statistics-invite-note">
-      Neu ist außerdem: Bei der Update-Suche zählt die App anonym mit, wie viele Installationen
-      aktiv sind. Beides kannst du jederzeit unter Einstellungen → Allgemein → Statistik ändern.
+      Du kannst das jederzeit unter Einstellungen → Allgemein → Statistik ändern.
     </p>
     <div class="statistics-invite-actions">
       <button type="button" class="secondary" disabled={busy} onclick={() => onanswer(true)}
