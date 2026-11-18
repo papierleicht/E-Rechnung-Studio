@@ -288,8 +288,7 @@ func listFile(e Entry) (ExportTable, bool) {
 	if kind == "" {
 		return ExportTable{}, false
 	}
-	label := strings.TrimSuffix(path.Base(e.Origin), path.Ext(e.Origin))
-	return ExportTable{Format: "list", List: kind, Origin: e.Origin, Label: label, Rows: len(t.Rows)}, true
+	return ExportTable{Format: "list", List: kind, Origin: e.Origin, Label: path.Base(e.Origin), Rows: len(t.Rows)}, true
 }
 
 // documentColumns are column names that only invoice, receipt and booking

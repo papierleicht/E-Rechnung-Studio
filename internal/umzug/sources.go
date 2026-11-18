@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"sort"
+	"sync"
 )
 
 // Every source has a folder in quellen/ with quelle.json and anleitung.md.
@@ -91,4 +92,54 @@ func SourceByID(id string) (Source, bool) {
 		}
 	}
 	return Source{}, false
+}
+
+// preset holds the column names a program writes into its lists, by list and
+// field, as quelle.json lists them under "columns". They add to the names
+// GuessMapping knows, so a list from that program maps without help.
+type preset struct {
+	Columns map[string]map[string][]string `json:"columns"`
+}
+
+var loadPresets sync.Once
+
+// addPresets adds the column names of all sources to the synonyms.
+func addPresets() {
+	loadPresets.Do(func() {
+		dirs, err := guides.ReadDir("quellen")
+		if err != nil {
+			return
+		}
+		for _, d := range dirs {
+			raw, err := guides.ReadFile(path.Join("quellen", d.Name(), "quelle.json"))
+			if err != nil {
+				continue
+			}
+			var p preset
+			if json.Unmarshal(raw, &p) != nil {
+				continue
+			}
+			for list, fields := range p.Columns {
+				known := synonyms[list]
+				if known == nil {
+					continue
+				}
+				for field, names := range fields {
+					if _, ok := known[field]; !ok {
+						continue
+					}
+				names:
+					for _, name := range names {
+						key := headerKey(name)
+						for _, have := range known[field] {
+							if have == key {
+								continue names
+							}
+						}
+						known[field] = append(known[field], key)
+					}
+				}
+			}
+		}
+	})
 }

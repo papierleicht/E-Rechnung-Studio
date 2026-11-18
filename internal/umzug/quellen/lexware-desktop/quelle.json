@@ -6,5 +6,15 @@
   "summary": "Aus den Windows-Programmen von Lexware nimmst du Kunden und Artikel als Textdatei, den DATEV-Export und den Export für die Betriebsprüfung mit.",
   "ways": ["files", "customers", "products"],
   "checked": "nach dem Handbuch 2025 und den Lexware-FAQ 000012126, 000012132, 000030929 und 000002657, Stand 18.11.2026",
-  "sources": []
+  "sources": [],
+  "columns": {
+    "customers": {
+      "lastName": ["Name"],
+      "vatId": ["EG ID"],
+      "country": ["Länderkürzel"]
+    },
+    "products": {
+      "unitPrice": ["Preis 1"]
+    }
+  }
 }

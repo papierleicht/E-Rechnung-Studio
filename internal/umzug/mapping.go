@@ -91,6 +91,7 @@ type Mapping map[string]int
 
 // GuessMapping assigns columns by their names. The customer can change it.
 func GuessMapping(list string, columns []string) Mapping {
+	addPresets()
 	keys := make([]string, len(columns))
 	for i, c := range columns {
 		keys[i] = headerKey(c)

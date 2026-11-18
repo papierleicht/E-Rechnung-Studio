@@ -221,7 +221,7 @@ func TestListsInsideAnExport(t *testing.T) {
 		byList[table.List] = table
 	}
 	customers, products := byList[ListCustomers], byList[ListProducts]
-	if customers.Format != "list" || customers.Label != "clients" || customers.Rows != 1 || products.Label != "articles" || products.Rows != 2 {
+	if customers.Format != "list" || customers.Label != "clients.csv" || customers.Rows != 1 || products.Label != "articles.xlsx" || products.Rows != 2 {
 		t.Fatalf("tables %+v", p.Tables)
 	}
 	table, err := LoadExportTable(c, products)
@@ -248,5 +248,62 @@ func TestListKind(t *testing.T) {
 		if got := ListKind(tc.columns); got != tc.want {
 			t.Errorf("%v: %q, want %q", tc.columns, got, tc.want)
 		}
+	}
+}
+
+// The yearly ZIP of Haben as its export code writes it.
+func TestHabenYearlyExport(t *testing.T) {
+	journal := gdpdu.Table{File: "buchungen/journal.csv", Name: "Journal", From: "2025-01-01", To: "2025-12-31", Columns: []gdpdu.Column{{Name: "Datum", Kind: gdpdu.Date}, {Name: "Betrag", Kind: gdpdu.Number, Accuracy: 2}}, Rows: [][]string{{"01.02.2025", "10,00"}}}
+	index, err := gdpdu.Index(gdpdu.Supplier{Name: "Haben"}, "Haben 2025", []gdpdu.Table{journal})
+	if err != nil {
+		t.Fatal(err)
+	}
+	contacts := "\ufeffKundennummer;Name;Straße;PLZ;Ort;Land;E-Mail;Telefon;USt-IdNr.;IBAN;Leitweg-ID;Rechnungsformat;Version;Archiviert;Angelegt;Geändert;ID\r\n" +
+		"K-1;Beispiel Kunde;Hauptstr. 1;10115;Berlin;DE;a@kunde.example;'+49 30 1;;;;zugferd;1;nein;2025-01-02;2025-01-02;c1\r\n"
+	invoices := "\ufeffNummer;Art;Datum;Fällig;Leistung von;Leistung bis;Kunde;Netto;USt;Brutto;Währung;Kurs (1 EUR =);Format;Festgeschrieben;SHA-256 PDF;SHA-256 XML;Storno/Korrektur von;Datei PDF;Datei XML;ID\r\n" +
+		"RE-1;Rechnung;2025-03-01;2025-03-15;;;Beispiel Kunde;100,00;19,00;119,00;EUR;;XRechnung (CII);ja;;;;;RE-1.xml;i1\r\n"
+	archive := zipOf(t, map[string][]byte{
+		"LIESMICH.txt":              []byte("Archiv von Haben"),
+		"index.xml":                 index,
+		gdpdu.DTDName:               gdpdu.DTD,
+		"buchungen/journal.csv":     journal.CSV(),
+		"rechnungen/rechnungen.csv": []byte(invoices),
+		"rechnungen/RE-1.xml":       testXML(t, "cii.xml"),
+		"stammdaten/kontakte.csv":   []byte(contacts),
+		"stammdaten/firma.json":     []byte(`{"name":"Muster"}`),
+	})
+	path := filepath.Join(t.TempDir(), "Haben-2025-2026-01-05.zip")
+	write(t, path, archive)
+	c, err := Collect([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	p, err := Analyze(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Tables) != 1 || p.Tables[0].List != ListCustomers || p.Tables[0].Label != "kontakte.csv" {
+		t.Fatalf("tables %+v", p.Tables)
+	}
+	var invoice, export bool
+	for _, g := range p.Groups {
+		d, err := Read(g, "haben", Own{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		invoice = invoice || (d.EInvoice && d.Kind == "invoice")
+		export = export || (d.Kind == "export" && d.Date == "2025-12-31")
+	}
+	if !invoice || !export {
+		t.Fatalf("groups %+v", p.Groups)
+	}
+	table, err := LoadExportTable(c, p.Tables[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := Customers(table, GuessMapping(ListCustomers, table.Columns), nil)
+	if len(rows) != 1 || rows[0].Item.Name != "Beispiel Kunde" || rows[0].Item.Address.City != "Berlin" {
+		t.Fatalf("customers %+v", rows)
 	}
 }

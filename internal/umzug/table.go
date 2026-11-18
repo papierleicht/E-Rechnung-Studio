@@ -98,7 +98,7 @@ func ReadTable(data []byte) (Table, error) {
 		row := make([]string, len(t.Columns))
 		for i := range row {
 			if i < len(rec) {
-				row[i] = strings.TrimSpace(rec[i])
+				row[i] = unguard(strings.TrimSpace(rec[i]))
 			}
 		}
 		t.Rows = append(t.Rows, row)
@@ -107,6 +107,16 @@ func ReadTable(data []byte) (Table, error) {
 		return t, errors.New("Die Liste enthält nur Spaltennamen.")
 	}
 	return t, nil
+}
+
+// unguard removes the apostrophe that programs put before a cell starting
+// with =, +, - or @, so a spreadsheet does not run it as a formula
+// (Haben does this, for example "'-5 % Rabatt" or "'+49 30 …").
+func unguard(cell string) string {
+	if len(cell) > 1 && cell[0] == '\'' && strings.ContainsRune("=+-@", rune(cell[1])) {
+		return cell[1:]
+	}
+	return cell
 }
 
 func blank(rec []string) bool {

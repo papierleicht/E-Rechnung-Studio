@@ -3,6 +3,7 @@ package umzug
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -282,5 +283,107 @@ func TestEverySourceHasAGuide(t *testing.T) {
 	}
 	if _, ok := SourceByID("fakturama"); !ok {
 		t.Fatal("fakturama missing")
+	}
+}
+
+func TestExportHeadersOfThePrograms(t *testing.T) {
+	for _, tc := range []struct {
+		name, list, header, row string
+		check                   func(t *testing.T, table Table, m Mapping)
+	}{
+		{"Haben kontakte.csv", ListCustomers,
+			"Kundennummer;Name;Straße;PLZ;Ort;Land;E-Mail;Telefon;USt-IdNr.;IBAN;Leitweg-ID;Rechnungsformat;Version;Archiviert;Angelegt;Geändert;ID",
+			"K-1;'=Muster GmbH;Hauptstr. 1;10115;Berlin;DE;a@muster.example;'+49 30 1;DE123456789;;04011000-1234512345-06;xrechnung;1;nein;2025-01-02;2025-01-02;c1",
+			func(t *testing.T, table Table, m Mapping) {
+				c := Customers(table, m, nil)[0].Item
+				if c.Name != "=Muster GmbH" || c.BuyerReference != "04011000-1234512345-06" || c.VATID != "DE123456789" || c.Address.Country != "DE" {
+					t.Errorf("customer %+v", c)
+				}
+			}},
+		{"Lexware faktura+auftrag Kunden", ListCustomers,
+			"Kundennummer;Debitorenkonto;Anrede;Name;Matchcode;Vorname;Firma;Zusatz;Ansprechpartner;Straße;HausNr;Postleitzahl;Ort;Land;Länderkürzel;Telefon;EMAIL;EG ID",
+			"10001;10001;Frau;Muster;MUSTER;Erika;;Hinterhaus;;Weg;2;80331;München;Deutschland;DE;089 1;erika@example.org;\n10002;10002;;;FIRMA;;Firma AG;;Herr Beispiel;Hauptstr.;1;10115;Berlin;Österreich;AT;;;ATU12345678",
+			func(t *testing.T, table Table, m Mapping) {
+				rows := Customers(table, m, nil)
+				a, b := rows[0].Item, rows[1].Item
+				if a.Name != "Erika Muster" || a.Address.Street != "Weg 2" || a.Address.Additional != "Hinterhaus" || a.Email != "erika@example.org" {
+					t.Errorf("person %+v", a)
+				}
+				if b.Name != "Firma AG" || b.ContactName != "Herr Beispiel" || b.VATID != "ATU12345678" || b.Address.Country != "AT" {
+					t.Errorf("company %+v", b)
+				}
+			}},
+		{"Lexware faktura+auftrag Artikel", ListProducts,
+			"Artikelnummer;Bezeichnung;Text;Einheit;Preis 1;Preis 2;Preis 3;B/N;Warengruppe",
+			"A-1;Beratung;Stundensatz;Std;95,00;90,00;85,00;N;Dienstleistung",
+			func(t *testing.T, table Table, m Mapping) {
+				p := Products(table, m, nil)[0]
+				if p.Item.ArticleNumber != "A-1" || p.Item.UnitPrice != "95" || p.Item.Unit != "HUR" || p.Item.Description != "Stundensatz" {
+					t.Errorf("product %+v", p)
+				}
+			}},
+		{"Papierkram Kontakte", ListCustomers,
+			"Art des Kontakts,Kundennummer,Name,Straße,PLZ,Stadt,Land,Website,E-Mail,Telefon,Fax,Bankname,Kontonummer,BIC,IBAN,SEPA Mandat,Notizen,UStID",
+			"Kunde,1,Muster GmbH,Hauptstr. 1,10115,Berlin,Deutschland,,a@muster.example,,,,,,,,,DE123456789",
+			func(t *testing.T, table Table, m Mapping) {
+				c := Customers(table, m, nil)[0].Item
+				if c.Name != "Muster GmbH" || c.Address.City != "Berlin" || c.VATID != "DE123456789" {
+					t.Errorf("customer %+v", c)
+				}
+			}},
+		{"Papierkram Produkte", ListProducts,
+			"Name;Artikelnummer;Beschreibung;Typ;Netto-Preis;Einheitbezeichnung Einzel;Einheitbezeichnung Mehrfach;USt.-Satz",
+			"Beratung;A-1;Stundensatz;Dienstleistung;95,50;Stunde;Stunden;0.19",
+			func(t *testing.T, table Table, m Mapping) {
+				p := Products(table, m, nil)[0]
+				if p.Item.UnitPrice != "95.5" || p.Item.TaxRate != "19" || p.Item.Unit != "HUR" || p.Error != "" {
+					t.Errorf("product %+v", p)
+				}
+			}},
+		{"Billomat Artikel (API-Namen)", ListProducts,
+			"article_number;title;description;sales_price",
+			"A-1;Beratung;Stundensatz;95.00",
+			func(t *testing.T, table Table, m Mapping) {
+				p := Products(table, m, nil)[0]
+				if p.Item.ArticleNumber != "A-1" || p.Item.Name != "Beratung" || p.Error != "" {
+					t.Errorf("product %+v", p)
+				}
+			}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			table, err := ReadTable([]byte(tc.header + "\n" + tc.row + "\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if kind := ListKind(table.Columns); kind != tc.list {
+				t.Fatalf("list kind %q", kind)
+			}
+			tc.check(t, table, GuessMapping(tc.list, table.Columns))
+		})
+	}
+}
+
+func TestPresetsNameKnownFields(t *testing.T) {
+	dirs, _ := guides.ReadDir("quellen")
+	for _, d := range dirs {
+		raw, _ := guides.ReadFile("quellen/" + d.Name() + "/quelle.json")
+		var p preset
+		if err := json.Unmarshal(raw, &p); err != nil {
+			t.Fatalf("%s: %v", d.Name(), err)
+		}
+		for list, fields := range p.Columns {
+			if list != ListCustomers && list != ListProducts {
+				t.Errorf("%s: unknown list %q", d.Name(), list)
+			}
+			for field := range fields {
+				found := false
+				for _, f := range Fields(list) {
+					found = found || f.ID == field
+				}
+				if !found {
+					t.Errorf("%s: unknown field %s.%s", d.Name(), list, field)
+				}
+			}
+		}
 	}
 }
