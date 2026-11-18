@@ -32,6 +32,7 @@ func (s *InvoiceService) PreviewQuote(q model.Quote) (model.QuoteView, error) {
 }
 
 func (s *InvoiceService) SaveQuote(q model.Quote) (model.QuoteView, error) {
+	recordUse("angebot_speichern")
 	view, err := s.quoteView(q)
 	if err != nil {
 		return view, err
@@ -147,6 +148,7 @@ func (s *InvoiceService) QuoteDocumentHTML(q model.Quote) (string, error) {
 
 // ExportQuotePDF writes the PDF of a sent quote atomically after file selection.
 func (s *InvoiceService) ExportQuotePDF(id, path string) (string, error) {
+	recordUse("angebot_pdf")
 	if !strings.EqualFold(filepath.Ext(path), ".pdf") {
 		return "", errors.New("Speichere das Angebot bitte mit der Dateiendung .pdf.")
 	}

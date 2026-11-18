@@ -446,6 +446,7 @@ func (s *BackupService) runContext() (context.Context, context.CancelFunc) {
 
 // BackupNow encrypts and uploads what changed.
 func (s *BackupService) BackupNow() (CloudBackupStatus, error) {
+	recordUse("cloud_backup")
 	if err := s.requireAvailable(); err != nil {
 		return s.BackupStatus(), err
 	}
@@ -904,6 +905,7 @@ func (s *BackupService) logExport(summary string, at time.Time) {
 
 // ExportArchive writes the current data to a backup file. It needs no plan.
 func (s *BackupService) ExportArchive(path string) (ArchiveResult, error) {
+	recordUse("archiv_export")
 	s.runMu.Lock()
 	defer s.runMu.Unlock()
 	s.setRunning(true)

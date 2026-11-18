@@ -169,6 +169,7 @@ func (s *InvoiceService) PreviewPaymentCSV(account, text string) ([]PaymentBooki
 	return out, nil
 }
 func (s *InvoiceService) ImportPaymentCSV(account, text string) (int, error) {
+	recordUse("zahlungen_csv")
 	rows, err := s.PreviewPaymentCSV(account, text)
 	if err != nil {
 		return 0, err

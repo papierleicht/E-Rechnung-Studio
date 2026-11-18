@@ -12,6 +12,7 @@ import * as MigrationService from "./migrationservice.js";
 import * as ResetService from "./resetservice.js";
 import * as ShopService from "./shopservice.js";
 import * as UpdateService from "./updateservice.js";
+import * as UsageService from "./usageservice.js";
 export {
     AccountService,
     AuditService,
@@ -23,7 +24,8 @@ export {
     MigrationService,
     ResetService,
     ShopService,
-    UpdateService
+    UpdateService,
+    UsageService
 };
 
 export type {

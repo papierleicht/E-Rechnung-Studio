@@ -294,6 +294,7 @@ func (s *InvoiceService) PreviewInstallments(id, rate, first string) (store.Inst
 	return s.store.PreviewInstallments(id, rate, first)
 }
 func (s *InvoiceService) SaveInstallmentPlan(p store.InstallmentPlan) error {
+	recordUse("ratenplan")
 	if p.InvoiceID == "" {
 		return errors.New("Wähle eine Kundenrechnung aus.")
 	}

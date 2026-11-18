@@ -200,3 +200,16 @@ func TestUpToDateNeedsNoSignature(t *testing.T) {
 		t.Fatalf("current version reported as update: %+v %v", rel, err)
 	}
 }
+
+func TestProviderLabelKeepsTwoSourcesApart(t *testing.T) {
+	inner, err := github.New(github.Config{Repository: "papierleicht/E-Rechnung-Studio"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := (&Provider{Inner: inner}).Name(); got != "github" {
+		t.Fatalf("name without label %q", got)
+	}
+	if got := (&Provider{Inner: inner, Label: "papierleicht"}).Name(); got != "papierleicht" {
+		t.Fatalf("name with label %q", got)
+	}
+}

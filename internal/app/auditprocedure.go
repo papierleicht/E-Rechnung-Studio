@@ -140,6 +140,7 @@ func (s *AuditService) procedureBody(version int) (string, error) {
 // CreateProcedure writes a new version. Old versions stay stored, so the
 // history of the description remains traceable (GoBD Rz. 154).
 func (s *AuditService) CreateProcedure() (store.ProcedureVersion, error) {
+	recordUse("verfahrensdoku")
 	versions, err := s.invoices.store.ProcedureVersions()
 	if err != nil {
 		return store.ProcedureVersion{}, err

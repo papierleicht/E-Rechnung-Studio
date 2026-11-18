@@ -10,6 +10,7 @@ import (
 // CreateCorrectionDraft creates a separate credit note referencing the original.
 // The original remains issued; only issuing the new document makes the correction final.
 func (s *InvoiceService) CreateCorrectionDraft(id string) (model.InvoiceView, error) {
+	recordUse("rechnung_korrektur")
 	original, err := s.store.Invoice(id)
 	if err != nil {
 		return model.InvoiceView{}, err

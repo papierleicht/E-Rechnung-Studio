@@ -75,9 +75,15 @@ type InvoiceSettings struct {
 }
 
 type AppSettings struct {
-	AutomaticUpdates bool   `json:"automaticUpdates"`
-	ExportDirectory  string `json:"exportDirectory"`
-	Appearance       string `json:"appearance,omitempty"`
+	AutomaticUpdates bool `json:"automaticUpdates"`
+	// UsageStatistics adds the anonymous usage statistics to the update
+	// check (internal/usagestats); on unless the user turned it off.
+	UsageStatistics bool `json:"usageStatistics"`
+	// ImprovementStatistics counts which areas and functions are used and
+	// reports them without an identifier; off unless the user turned it on.
+	ImprovementStatistics bool   `json:"improvementStatistics"`
+	ExportDirectory       string `json:"exportDirectory"`
+	Appearance            string `json:"appearance,omitempty"`
 	// Sections shows (true) or hides (false) optional areas of the menu,
 	// see MenuSections. A missing key keeps the default: "shops" shows only
 	// with a connected shop, "products" always, "migration" only while the

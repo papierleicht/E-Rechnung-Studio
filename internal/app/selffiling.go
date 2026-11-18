@@ -42,6 +42,7 @@ type ExpenseUpload struct {
 }
 
 func (s *InvoiceService) SaveExpense(u ExpenseUpload) (store.Expense, error) {
+	recordUse("ausgabe_speichern")
 	e := u.Expense
 	e.Attachment = nil
 	if u.File != "" {

@@ -8,11 +8,12 @@ type SettingsSnapshot struct {
 	Company  Company     `json:"company"`
 }
 
-// UnmarshalJSON enables automatic checks for legacy settings and backups that
-// predate the preference, while preserving an explicitly saved false value.
+// UnmarshalJSON enables automatic checks and the anonymous usage statistics
+// for legacy settings and backups that predate the preferences, while
+// preserving an explicitly saved false value.
 func (s *AppSettings) UnmarshalJSON(data []byte) error {
 	type plain AppSettings
-	value := plain{AutomaticUpdates: true}
+	value := plain{AutomaticUpdates: true, UsageStatistics: true}
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}

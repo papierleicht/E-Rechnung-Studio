@@ -11,6 +11,18 @@ export interface Address {
 
 export interface AppSettings {
     "automaticUpdates": boolean;
+
+    /**
+     * UsageStatistics adds the anonymous usage statistics to the update
+     * check (internal/usagestats); on unless the user turned it off.
+     */
+    "usageStatistics": boolean;
+
+    /**
+     * ImprovementStatistics counts which areas and functions are used and
+     * reports them without an identifier; off unless the user turned it on.
+     */
+    "improvementStatistics": boolean;
     "exportDirectory": string;
     "appearance"?: string;
 

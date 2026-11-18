@@ -13,6 +13,7 @@
   import AuditAlert from "./components/AuditAlert.svelte";
   import BackupAlert from "./components/BackupAlert.svelte";
   import * as UpdateAPI from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/updateservice";
+  import { RecordArea } from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/usageservice";
   import * as BackupAPI from "../bindings/papierleicht.de/e-rechnung-studio/internal/app/backupservice";
   import type {
     DeletedInvoiceResult,
@@ -227,6 +228,14 @@
   let receivedPage: { showList: () => void } | undefined = $state();
   let quotesPage: { showList: () => void } | undefined = $state();
   let needsSetup = $state(false);
+  // "Bei der Verbesserung helfen": count the opened area. The backend drops
+  // it unless the user turned the setting on.
+  $effect(() => {
+    const area = section;
+    untrack(() => {
+      if (data && !needsSetup) RecordArea(area).catch(() => {});
+    });
+  });
   let invoiceStep = $state<"overview" | "customer" | "document">("overview");
   const openQuote = $derived.by(() =>
     section === "invoices" && invoiceStep === "overview" && invoiceTab === "quotes"
@@ -548,6 +557,7 @@
     shop: string;
     migration: string;
     taxProfile: SetupTaxProfile;
+    statistics: { usage: boolean; improvement: boolean };
   }) {
     if (!data) return;
     const saved = await run(() => API.CompleteSetup(clone(data!.company)));
@@ -559,7 +569,14 @@
       );
       // The shop answer of the setup decides whether the shop area shows.
       const sections = setupSections(data.settings.sections, choices.shop, choices.migration);
-      const settings = await run(() => API.SaveAppSettings({ ...clone(data!.settings), sections }));
+      const settings = await run(() =>
+        API.SaveAppSettings({
+          ...clone(data!.settings),
+          sections,
+          usageStatistics: choices.statistics.usage,
+          improvementStatistics: choices.statistics.improvement,
+        }),
+      );
       if (settings) data.settings = settings;
       rememberSettings();
       needsSetup = false;

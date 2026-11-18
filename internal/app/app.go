@@ -6,14 +6,20 @@ package app
 import (
 	"io/fs"
 	"log"
+	"net/http"
+	"net/url"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/updater"
 	"github.com/wailsapp/wails/v3/pkg/updater/providers/github"
 	"papierleicht.de/e-rechnung-studio/internal/account"
+	"papierleicht.de/e-rechnung-studio/internal/model"
 	"papierleicht.de/e-rechnung-studio/internal/updatesign"
+	"papierleicht.de/e-rechnung-studio/internal/usagestats"
 )
 
 // Run starts the application with the embedded frontend build (assets, as
@@ -62,6 +68,24 @@ func Run(assets fs.FS, version string) {
 	migrations := NewMigrationService(invoices)
 	defer shopService.Close()
 	updates := &UpdateService{}
+	setting := func(on func(model.AppSettings) bool) func() bool {
+		return func() bool {
+			v, err := invoices.store.AppSettings()
+			return err == nil && on(v)
+		}
+	}
+	usage = &usagestats.Recorder{
+		File:    filepath.Join(dataDir, usagestats.DetailsFileName),
+		Enabled: setting(func(v model.AppSettings) bool { return v.ImprovementStatistics }),
+		Version: currentVersion,
+	}
+	// The update check and the usage report go to the account server.
+	serverURL, _, _ := accountConfig()
+	serverURL = strings.TrimRight(serverURL, "/")
+	if serverURL != "" {
+		usage.URL = serverURL + "/api/updates/usage"
+	}
+	usageService := &UsageService{recorder: usage}
 	resets := NewResetService(dataDir, invoices, accounts.manager, account.SystemVault{})
 
 	app := application.New(application.Options{
@@ -79,6 +103,7 @@ func Run(assets fs.FS, version string) {
 			application.NewService(chats),
 			application.NewService(resets),
 			application.NewService(migrations),
+			application.NewService(usageService),
 		},
 		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
 		Mac:    application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: true},
@@ -102,18 +127,41 @@ func Run(assets fs.FS, version string) {
 	// that matches the public key built into the app (internal/updatesign).
 	// Until 1.2 the repository was papierleicht/E-Rechnung-Studio; GitHub
 	// redirects that name, so older versions still find these releases.
+	// The check asks papierleicht's server first, which answers with GitHub's
+	// release and carries the anonymous usage statistics (internal/usagestats);
+	// GitHub itself is asked only when that server cannot be reached. The
+	// packages always download from GitHub.
 	const releaseRepository = "papierleicht/papierleicht-app"
-	releases, err := github.New(github.Config{Repository: releaseRepository})
-	if err != nil {
-		log.Fatal(err)
-	}
 	updateKey, err := updatesign.ParsePublicKey(updatesign.PublicKey)
 	if err != nil {
 		log.Fatal(err)
 	}
+	var providers []updater.Provider
+	if server, err := url.Parse(serverURL); err == nil && server.Host != "" {
+		stats := &usagestats.Transport{
+			Host:    server.Host,
+			Enabled: setting(func(v model.AppSettings) bool { return v.UsageStatistics }),
+			Version: currentVersion,
+			File:    filepath.Join(dataDir, usagestats.FileName),
+		}
+		viaServer, err := github.New(github.Config{
+			Repository: releaseRepository,
+			BaseURL:    server.String() + "/api/updates/github",
+			HTTPClient: &http.Client{Timeout: 30 * time.Second, Transport: stats},
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		providers = append(providers, &updatesign.Provider{Inner: viaServer, Repository: releaseRepository, BaseURL: server.String() + "/api/updates/files", Label: "papierleicht"})
+	}
+	releases, err := github.New(github.Config{Repository: releaseRepository})
+	if err != nil {
+		log.Fatal(err)
+	}
+	providers = append(providers, &updatesign.Provider{Inner: releases, Repository: releaseRepository})
 	if err = app.Updater.Init(updater.Config{
 		CurrentVersion: currentVersion,
-		Providers:      []updater.Provider{&updatesign.Provider{Inner: releases, Repository: releaseRepository}},
+		Providers:      providers,
 		PublicKey:      updateKey,
 	}); err != nil {
 		log.Fatal(err)

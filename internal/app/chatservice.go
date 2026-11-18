@@ -56,6 +56,7 @@ func (s *ChatService) Unread(since int) (account.ChatUnread, error) {
 }
 
 func (s *ChatService) Send(body string) (account.ChatMessage, error) {
+	recordUse("chat_nachricht")
 	c, cancel := accountContext()
 	defer cancel()
 	return s.manager.SendChatMessage(c, body)
