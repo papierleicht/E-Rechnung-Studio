@@ -3,7 +3,7 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "e-rechnung-studio"
+name: "papierleicht"
 arch: ${GOARCH}
 platform: "linux"
 version: "1.2.0" # x-release-please-version
@@ -17,24 +17,24 @@ license: "MPL-2.0"
 release: "1"
 
 contents:
-  - src: "./bin/e-rechnung-studio"
-    dst: "/usr/local/bin/e-rechnung-studio"
+  - src: "./bin/papierleicht"
+    dst: "/usr/local/bin/papierleicht"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/e-rechnung-studio.png"
-  - src: "./build/linux/e-rechnung-studio.desktop"
-    dst: "/usr/share/applications/e-rechnung-studio.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/papierleicht.png"
+  - src: "./build/linux/papierleicht.desktop"
+    dst: "/usr/share/applications/papierleicht.desktop"
   - src: "./LICENSE"
-    dst: "/usr/share/doc/e-rechnung-studio/LICENSE"
+    dst: "/usr/share/doc/papierleicht/LICENSE"
   - src: "./docs/third-party-notices.md"
-    dst: "/usr/share/doc/e-rechnung-studio/third-party-notices.md"
+    dst: "/usr/share/doc/papierleicht/third-party-notices.md"
   - src: "./docs/pdf-licenses"
-    dst: "/usr/share/doc/e-rechnung-studio/pdf-licenses"
+    dst: "/usr/share/doc/papierleicht/pdf-licenses"
     type: tree
   - src: "./docs/xml-licenses"
-    dst: "/usr/share/doc/e-rechnung-studio/xml-licenses"
+    dst: "/usr/share/doc/papierleicht/xml-licenses"
     type: tree
   - src: "./docs/ui-licenses"
-    dst: "/usr/share/doc/e-rechnung-studio/ui-licenses"
+    dst: "/usr/share/doc/papierleicht/ui-licenses"
     type: tree
 
 # Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)

@@ -103,8 +103,8 @@
       </div>
     </div>
     <p class="newsletter-lead">
-      Erfahre zuerst, was E-Rechnung-Studio Neues kann und was sich in der Community tut. Wir
-      schreiben nur, wenn es wirklich etwas zu berichten gibt.
+      Erfahre zuerst, was papierleicht Neues kann und was sich in der Community tut. Wir schreiben
+      nur, wenn es wirklich etwas zu berichten gibt.
     </p>
     <ul class="newsletter-benefits">
       {#each benefits as benefit}
@@ -142,10 +142,9 @@
     </div>
     {#if error}<p class="newsletter-error" role="alert">{error}</p>{/if}
     <p class="newsletter-consent" id={`newsletter-consent-${source}`}>
-      Mit „Kostenlos abonnieren“ willigst du ein, dass papierleicht dir Neuigkeiten zu
-      E-Rechnung-Studio und einen Überblick aus Chat &amp; Markt per E-Mail schickt. Du bekommst
-      zuerst eine E-Mail zur Bestätigung. Abmelden kannst du dich jederzeit mit einem Klick in jeder
-      E-Mail.
+      Mit „Kostenlos abonnieren“ willigst du ein, dass papierleicht dir Neuigkeiten zu papierleicht
+      und einen Überblick aus Chat &amp; Markt per E-Mail schickt. Du bekommst zuerst eine E-Mail
+      zur Bestätigung. Abmelden kannst du dich jederzeit mit einem Klick in jeder E-Mail.
       <button type="button" class="text" onclick={openPrivacy}>Datenschutz</button>
     </p>
   {:else if requested}

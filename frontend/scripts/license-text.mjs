@@ -7,7 +7,7 @@ const catalog = JSON.parse(
   readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../src/lib/license-catalog.json"), "utf8"),
 );
 const rule = "=".repeat(78);
-const out = ["E-Rechnung-Studio: Lizenzen und Drittanbieterhinweise", `${catalog.length} Einträge`, ""];
+const out = ["papierleicht: Lizenzen und Drittanbieterhinweise", `${catalog.length} Einträge`, ""];
 let group = "";
 for (const entry of catalog) {
   if (entry.group !== group) {

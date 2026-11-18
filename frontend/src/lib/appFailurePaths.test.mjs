@@ -335,7 +335,7 @@ test("unreadable backup reports an error, releases busy state and never calls re
     restoreLoss: () => "",
     BackupAPI: {
       InspectArchive: async () => {
-        throw Error("Die Datei ist keine Sicherung von E-Rechnung-Studio.");
+        throw Error("Die Datei ist keine Sicherung von papierleicht.");
       },
       ImportArchive: async () => {
         restored = true;
@@ -345,7 +345,7 @@ test("unreadable backup reports an error, releases busy state and never calls re
   await context.importBackup();
   assert.equal(restored, false);
   assert.equal(context.busy, false);
-  assert.match(context.error, /keine Sicherung von E-Rechnung-Studio/);
+  assert.match(context.error, /keine Sicherung von papierleicht/);
 });
 
 test("failed old preview cannot clear another invoice opened meanwhile", async () => {

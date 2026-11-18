@@ -26,14 +26,14 @@ const (
 	maxArchiveDocument = 1 << 30
 )
 
-const archiveReadmeText = `Sicherung aus E-Rechnung-Studio
+const archiveReadmeText = `Sicherung aus papierleicht
 ================================
 
 sicherung.json   Alle Daten: Rechnungen, Kunden, Artikel, Zahlungen, Einstellungen.
 dokumente/       Alle Dateien in ihrem Originalformat. Der Dateiname ist die
                  SHA-256-Prüfsumme des Inhalts, damit jede Datei nachprüfbar bleibt.
 
-Wiederherstellen: E-Rechnung-Studio öffnen, Einstellungen, Datensicherung,
+Wiederherstellen: papierleicht öffnen, Einstellungen, Datensicherung,
 "Sicherung importieren". Die App prüft dabei jede Datei gegen ihre Prüfsumme.
 
 Diese Datei ist nicht verschlüsselt. Bewahre sie so sicher auf wie deine Belege.
@@ -120,7 +120,7 @@ type backupArchive struct {
 func openArchive(name string) (*backupArchive, error) {
 	r, err := zip.OpenReader(name)
 	if err != nil {
-		return nil, errors.New("Die Datei ist keine Sicherung von E-Rechnung-Studio.")
+		return nil, errors.New("Die Datei ist keine Sicherung von papierleicht.")
 	}
 	a := &backupArchive{zip: r, files: map[string]*zip.File{}}
 	for _, f := range r.File {
@@ -137,7 +137,7 @@ func openArchive(name string) (*backupArchive, error) {
 	}
 	if a.document == nil {
 		r.Close()
-		return nil, errors.New("Die Datei ist keine Sicherung von E-Rechnung-Studio.")
+		return nil, errors.New("Die Datei ist keine Sicherung von papierleicht.")
 	}
 	return a, nil
 }

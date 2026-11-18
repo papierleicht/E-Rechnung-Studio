@@ -15,17 +15,8 @@
   font-weight: 700;
   margin-bottom: 24px;
 }
-.welcome-brand > span {
-  display: grid;
-  place-items: center;
-  background: var(--theme-primary);
-  color: var(--theme-on-primary);
-  border-radius: 10px;
-  width: 40px;
-  height: 40px;
-  font:
-    700 18px Georgia,
-    serif;
+.welcome-brand .papierleicht-logo {
+  width: 180px;
 }
 .welcome-page h1 {
   margin: 8px 0 12px;

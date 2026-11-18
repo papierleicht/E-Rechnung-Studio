@@ -172,9 +172,9 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
-          build/darwin/sign-and-notarize.sh bin/e-rechnung-studio.app
+          build/darwin/sign-and-notarize.sh bin/papierleicht.app
           mkdir -p release-assets
-          ditto -c -k --sequesterRsrc --keepParent bin/e-rechnung-studio.app release-assets/e-rechnung-studio-darwin-${{ matrix.arch }}.zip
+          ditto -c -k --sequesterRsrc --keepParent bin/papierleicht.app release-assets/e-rechnung-studio-darwin-${{ matrix.arch }}.zip
       - name: Build Windows app
         if: matrix.platform == 'windows'
         # Only the executable: the updater replaces the running program with the
@@ -183,7 +183,7 @@ jobs:
         run: |
           wails3 task windows:build ARCH=${{ matrix.arch }}
           mkdir -p release-assets
-          python -m zipfile -c release-assets/e-rechnung-studio-windows-${{ matrix.arch }}.zip bin/e-rechnung-studio.exe
+          python -m zipfile -c release-assets/e-rechnung-studio-windows-${{ matrix.arch }}.zip bin/papierleicht.exe
       - name: Build Linux AppImage
         if: matrix.platform == 'linux'
         env:

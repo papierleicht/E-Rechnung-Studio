@@ -27,7 +27,7 @@ func recommendedTarget(current string) (string, bool) {
 	if base == "" {
 		return "", false
 	}
-	return filepath.Join(base, "Programs", "E-Rechnung-Studio", filepath.Base(current)), true
+	return filepath.Join(base, "Programs", "papierleicht", filepath.Base(current)), true
 }
 
 func copyApp(src, dst string) error { return copyExecutable(src, dst) }
@@ -39,7 +39,7 @@ func relaunchAfterExit(target string, pid int) error {
 	if appData == "" {
 		return errors.New("APPDATA is not set")
 	}
-	link := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "E-Rechnung-Studio.lnk")
+	link := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "papierleicht.lnk")
 	script := `Wait-Process -Id $env:ERS_PID -Timeout 60 -ErrorAction SilentlyContinue; ` +
 		`try { $s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:ERS_LINK); ` +
 		`$s.TargetPath = $env:ERS_TARGET; $s.WorkingDirectory = Split-Path $env:ERS_TARGET; $s.Save() } catch {}; ` +

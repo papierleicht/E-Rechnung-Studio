@@ -31,7 +31,7 @@ Religion, sexueller Orientierung oder Sprache.
 ## Melden
 
 Verstöße bitte an
-[kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Verhaltenskodex%20E-Rechnung-Studio)
+[kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Verhaltenskodex%20papierleicht)
 mit dem Betreff „Verhaltenskodex“. Meldungen werden vertraulich behandelt; wer
 etwas meldet, muss keine Nachteile befürchten. Sicherheitslücken bitte wie in
 [SECURITY.md](SECURITY.md) beschrieben melden.

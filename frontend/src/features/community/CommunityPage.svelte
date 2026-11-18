@@ -146,7 +146,7 @@
   }
 
   function mail() {
-    const subject = encodeURIComponent("Frage zu E-Rechnung-Studio");
+    const subject = encodeURIComponent("Frage zu papierleicht");
     const body = encodeURIComponent(
       `\n\n\n---\nApp-Version: ${version || "unbekannt"}\nSystem: ${navigator.platform}`,
     );

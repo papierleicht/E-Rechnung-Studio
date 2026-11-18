@@ -1,6 +1,6 @@
 # Repository instructions
 
-E-Rechnung-Studio is one desktop product (Go/Wails + Svelte). Follow these rules
+papierleicht (until 1.2 named E-Rechnung-Studio) is one desktop product (Go/Wails + Svelte). Follow these rules
 when preparing commits or pull requests. The layout of the code is described in
 the README under "Projektstruktur".
 

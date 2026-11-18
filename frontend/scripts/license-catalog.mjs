@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const entries = [{
-  name: "E-Rechnung-Studio",
+  name: "papierleicht",
   version: "",
   group: "Anwendung",
   text: "Copyright 2026 papierleicht.\n\nApplies to the original application code. Third-party components retain their respective licenses.\n\n" + readFileSync(resolve(root, "LICENSE"), "utf8"),

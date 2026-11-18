@@ -550,7 +550,7 @@ func (s *InvoiceService) writeAuditPackage(target, from, to string, procedure, r
 		return result, err
 	}
 	location := strings.TrimSpace(company.Address.Postcode + " " + company.Address.City)
-	index, err := gdpdu.Index(gdpdu.Supplier{Name: company.Name, Location: location, Comment: fmt.Sprintf("Datenüberlassung nach GoBD, E-Rechnung-Studio %s", currentVersion)}, "Datenüberlassung "+gdpdu.Day(from)+" bis "+gdpdu.Day(to), tables)
+	index, err := gdpdu.Index(gdpdu.Supplier{Name: company.Name, Location: location, Comment: fmt.Sprintf("Datenüberlassung nach GoBD, papierleicht %s", currentVersion)}, "Datenüberlassung "+gdpdu.Day(from)+" bis "+gdpdu.Day(to), tables)
 	if err != nil {
 		return result, err
 	}
@@ -604,7 +604,7 @@ const auditReadme = `Datenüberlassung für die Außenprüfung (GoBD Rz. 167)
 
 Unternehmen:      %s
 Zeitraum:         %s bis %s
-Programm:         E-Rechnung-Studio %s
+Programm:         papierleicht %s
 Erstellt:         %s
 Dokumente:        %d
 

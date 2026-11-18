@@ -1,6 +1,6 @@
 # Namen, Logos und Infrastruktur
 
-Der Quellcode von E-Rechnung-Studio steht unter der [MPL-2.0](LICENSE). Diese
+Der Quellcode von papierleicht steht unter der [MPL-2.0](LICENSE). Diese
 Lizenz überträgt ausdrücklich keine Rechte an Marken, Namen oder Logos
 (MPL-2.0, Abschnitt 2.1). Diese Datei beschreibt, was mit den Kennzeichen des
 Projekts erlaubt ist und was nicht.
@@ -10,7 +10,8 @@ Projekts erlaubt ist und was nicht.
 Inhaber der Kennzeichen ist der Betreiber von papierleicht. Dazu gehören:
 
 - die Namen **papierleicht** und **Papierleicht** in jeder Schreibweise,
-- der Produktname **E-Rechnung-Studio** (auch E-Rechnung Studio und E-Rechnungs-Studio),
+- der Produktname **papierleicht** für die App und **papierleicht-server**,
+- der frühere Produktname **E-Rechnung-Studio** (auch E-Rechnung Studio und E-Rechnungs-Studio),
 - das Papierfeder-Logo und das App-Symbol, insbesondere die Dateien
   `frontend/src/brand/logo-light.svg`, `logo-dark.svg`, `brand-icon.svg`,
   `app-icon.svg` sowie `PapierleichtLogo.svelte` und `Icon.svelte`,
@@ -24,9 +25,8 @@ Bezeichnung eines anderen Produkts zu verwenden.
 
 - Das Projekt beim Namen nennen, darüber berichten, es verlinken und in
   Artikeln, Vorträgen oder Vergleichen erwähnen.
-- Sachlich darauf hinweisen, dass eine eigene Software auf E-Rechnung-Studio
-  basiert oder damit zusammenarbeitet, zum Beispiel „basiert auf
-  E-Rechnung-Studio von papierleicht“.
+- Sachlich darauf hinweisen, dass eine eigene Software auf papierleicht basiert
+  oder damit zusammenarbeitet, zum Beispiel „basiert auf papierleicht“.
 - Unveränderte offizielle Release-Pakete unter ihrem Namen weitergeben, etwa
   in Paketquellen, solange Quelle und Version erkennbar bleiben.
 - Das Logo in Verweisen auf das Projekt zeigen, zum Beispiel neben einem Link
@@ -46,7 +46,7 @@ Bezeichnung eines anderen Produkts zu verwenden.
 - Das Logo verändern, mit anderen Zeichen kombinieren oder als Grundlage für
   ein eigenes Logo verwenden.
 
-Anfragen an [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Markennutzung%20E-Rechnung-Studio).
+Anfragen an [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Markennutzung%20papierleicht).
 
 ## Forks und eigene Builds
 
@@ -56,7 +56,7 @@ eigenes Logo. Dazu gehört:
 1. Die Dateien in `frontend/src/brand/` durch eigene ersetzen, ebenso die
    Symbole und Namen in `build/` (App-Bundle, Installer, Fenstertitel).
 2. Den Namen in der App, in der Dokumentation und in Release-Paketen ersetzen.
-   Der Hinweis „basiert auf E-Rechnung-Studio“ bleibt erlaubt und erwünscht.
+   Der Hinweis „basiert auf papierleicht“ bleibt erlaubt und erwünscht.
 3. Die Lizenz- und Urheberhinweise des Quellcodes erhalten (MPL-2.0,
    Abschnitt 3.4). Das Entfernen der Kennzeichen ändert nichts an der
    Pflicht, die Quelle des Codes zu nennen.

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import Icon from "../../components/Icon.svelte";
+  import PapierleichtLogo from "../../components/PapierleichtLogo.svelte";
   import ElectronicAddress from "../../components/ElectronicAddress.svelte";
   import { taxLabel, paymentChoices } from "../../lib/tax";
   import { chooseSetupTax, setupMissing } from "../../lib/onboarding";
@@ -179,7 +180,7 @@
 </script>
 
 <main class="welcome-page setup-wizard">
-  <div class="welcome-brand"><span>ERS</span> E-Rechnung-Studio</div>
+  <div class="welcome-brand"><PapierleichtLogo /></div>
   <nav aria-label="Einrichtungsschritte">
     <ol class="wizard-progress">
       {#each steps as label, index}
@@ -578,9 +579,8 @@
           </aside>{/if}
       {:else if step === plusStep}
         <p>
-          E-Rechnung-Studio ist kostenlos und bleibt es. Mit Plus nimmt dir die App zusätzlich
-          Arbeit ab und schützt dein Änderungsprotokoll von außen. Du kannst diesen Schritt
-          überspringen.
+          papierleicht ist kostenlos und bleibt es. Mit Plus nimmt dir die App zusätzlich Arbeit ab
+          und schützt dein Änderungsprotokoll von außen. Du kannst diesen Schritt überspringen.
         </p>
         <SetupPlusOffer bind:booked={plusBooked} />
       {:else if step === newsStep}
