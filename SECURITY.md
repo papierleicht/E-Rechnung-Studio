@@ -7,7 +7,7 @@ auf Schwachstellen sind willkommen und werden vertraulich behandelt.
 
 Schreib an [kontakt@papierleicht.de](mailto:kontakt@papierleicht.de?subject=Sicherheit%20papierleicht)
 mit dem Betreff „Sicherheit“ oder melde die Lücke vertraulich über GitHub
-([Report a vulnerability](https://github.com/papierleicht/E-Rechnung-Studio/security/advisories/new)).
+([Report a vulnerability](https://github.com/papierleicht/papierleicht-app/security/advisories/new)).
 Bitte **kein öffentliches Issue** und keine Diskussion in Pull Requests, bevor
 eine Korrektur verfügbar ist.
 

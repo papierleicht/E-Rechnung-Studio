@@ -1,9 +1,9 @@
 # Hilfe und Anfragen
 
 - **Fragen zur Bedienung und Ideen:** in den
-  [Discussions](https://github.com/papierleicht/E-Rechnung-Studio/discussions),
+  [Discussions](https://github.com/papierleicht/papierleicht-app/discussions),
   ohne echte Rechnungen, Kundendaten oder Bankzugänge.
-- **Fehler oder Funktionswunsch:** als [Issue](https://github.com/papierleicht/E-Rechnung-Studio/issues/new/choose)
+- **Fehler oder Funktionswunsch:** als [Issue](https://github.com/papierleicht/papierleicht-app/issues/new/choose)
   anlegen, ohne echte Rechnungen, Kundendaten oder Bankzugänge.
 - **Sicherheitslücke:** nicht als Issue, sondern wie in [SECURITY.md](SECURITY.md)
   beschrieben.

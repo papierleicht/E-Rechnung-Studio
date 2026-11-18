@@ -15,7 +15,7 @@ jobs:
   downloads:
     name: Download count
     # Forks and development copies have no badge to update.
-    if: github.repository == 'papierleicht/E-Rechnung-Studio'
+    if: github.repository == 'papierleicht/papierleicht-app'
     runs-on: ubuntu-latest
     permissions:
       # Writes the badges branch, which holds nothing but downloads.json.

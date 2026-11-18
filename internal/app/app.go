@@ -98,7 +98,9 @@ func Run(assets fs.FS, version string) {
 	})
 	// Updates come from GitHub Releases and install only with a signature
 	// that matches the public key built into the app (internal/updatesign).
-	const releaseRepository = "papierleicht/E-Rechnung-Studio"
+	// Until 1.2 the repository was papierleicht/E-Rechnung-Studio; GitHub
+	// redirects that name, so older versions still find these releases.
+	const releaseRepository = "papierleicht/papierleicht-app"
 	releases, err := github.New(github.Config{Repository: releaseRepository})
 	if err != nil {
 		log.Fatal(err)

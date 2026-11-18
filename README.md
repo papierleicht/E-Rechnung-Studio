@@ -1,12 +1,12 @@
 # papierleicht
 
-[![CI](https://github.com/papierleicht/E-Rechnung-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/papierleicht/E-Rechnung-Studio/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/papierleicht/E-Rechnung-Studio)](https://github.com/papierleicht/E-Rechnung-Studio/releases)
-[![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpapierleicht%2FE-Rechnung-Studio%2Fbadges%2Fdownloads.json)](https://github.com/papierleicht/E-Rechnung-Studio/releases)
-[![Stars](https://img.shields.io/github/stars/papierleicht/E-Rechnung-Studio?style=flat)](https://github.com/papierleicht/E-Rechnung-Studio/stargazers)
+[![CI](https://github.com/papierleicht/papierleicht-app/actions/workflows/ci.yml/badge.svg)](https://github.com/papierleicht/papierleicht-app/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/papierleicht/papierleicht-app)](https://github.com/papierleicht/papierleicht-app/releases)
+[![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpapierleicht%2Fpapierleicht-app%2Fbadges%2Fdownloads.json)](https://github.com/papierleicht/papierleicht-app/releases)
+[![Stars](https://img.shields.io/github/stars/papierleicht/papierleicht-app?style=flat)](https://github.com/papierleicht/papierleicht-app/stargazers)
 [![Plattformen: macOS, Windows, Linux](https://img.shields.io/badge/Plattformen-macOS%20%7C%20Windows%20%7C%20Linux-informational)](#installieren)
-[![Go-Version](https://img.shields.io/github/go-mod/go-version/papierleicht/E-Rechnung-Studio)](go.mod)
-[![Letzter Commit](https://img.shields.io/github/last-commit/papierleicht/E-Rechnung-Studio)](https://github.com/papierleicht/E-Rechnung-Studio/commits/main)
+[![Go-Version](https://img.shields.io/github/go-mod/go-version/papierleicht/papierleicht-app)](go.mod)
+[![Letzter Commit](https://img.shields.io/github/last-commit/papierleicht/papierleicht-app)](https://github.com/papierleicht/papierleicht-app/commits/main)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](#mitwirken)
 [![Lizenz: MPL-2.0](https://img.shields.io/badge/Lizenz-MPL--2.0-blue)](LICENSE)
 
@@ -18,11 +18,11 @@ läuft lokal auf deinem Rechner, deine Daten bleiben auf deinem Gerät, und für
 die tägliche Arbeit brauchst du weder Internet noch Konto. Entwickelt mit Go,
 Wails 3 und Svelte.
 
-**[Herunterladen](https://github.com/papierleicht/E-Rechnung-Studio/releases/latest)** ·
+**[Herunterladen](https://github.com/papierleicht/papierleicht-app/releases/latest)** ·
 [Demo im Browser](https://papierleicht.de/?utm_source=github&utm_medium=readme&utm_content=linkzeile-demo#demo) ·
 [Videos](https://www.youtube.com/@papierleicht) ·
 [Website](https://papierleicht.de/?utm_source=github&utm_medium=readme&utm_content=linkzeile-website) ·
-[Releases](https://github.com/papierleicht/E-Rechnung-Studio/releases) ·
+[Releases](https://github.com/papierleicht/papierleicht-app/releases) ·
 [Changelog](CHANGELOG.md) ·
 [Sicherheitslücken melden](SECURITY.md)
 
@@ -162,7 +162,7 @@ auf dem [YouTube-Kanal @papierleicht](https://www.youtube.com/@papierleicht)):
 ## Installieren
 
 Veröffentlichte Desktop-Pakete stehen unter
-[Releases](https://github.com/papierleicht/E-Rechnung-Studio/releases). Die
+[Releases](https://github.com/papierleicht/papierleicht-app/releases). Die
 Release-Pipeline baut macOS (App-Bundle als ZIP), Windows (ZIP mit der
 ausführbaren Datei) und Linux (AppImage), jeweils für Intel/AMD (`amd64`) und
 ARM (`arm64`). Die Lizenztexte der Drittanbieter stehen in der App unter „Über“
@@ -186,7 +186,7 @@ Release-Workflow dieses Repositorys die Pakete gebaut hat:
 
 ```sh
 shasum -a 256 -c SHA256SUMS --ignore-missing
-gh attestation verify e-rechnung-studio-darwin-arm64.zip -R papierleicht/E-Rechnung-Studio
+gh attestation verify e-rechnung-studio-darwin-arm64.zip -R papierleicht/papierleicht-app
 ```
 
 ## Aus dem Quellcode bauen
@@ -208,8 +208,8 @@ enthalten; benachbarte Checkouts werden nicht benötigt.
 ### Entwicklungsmodus
 
 ```sh
-git clone https://github.com/papierleicht/E-Rechnung-Studio.git
-cd E-Rechnung-Studio
+git clone https://github.com/papierleicht/papierleicht-app.git
+cd papierleicht-app
 npm ci --prefix frontend
 make dev
 ```
@@ -296,7 +296,7 @@ oder nicht unterstützt, `1` für Ausführungsfehler.
 Issues und Pull Requests sind auf Deutsch oder Englisch willkommen. Größere
 Änderungen (neue Funktionen, Datenformate, Steuerlogik) bitte vorher in einem
 Issue abstimmen. Fragen und Ideen gehören in die
-[Discussions](https://github.com/papierleicht/E-Rechnung-Studio/discussions). Beiträge stehen unter der [MPL-2.0](LICENSE) des Projekts.
+[Discussions](https://github.com/papierleicht/papierleicht-app/discussions). Beiträge stehen unter der [MPL-2.0](LICENSE) des Projekts.
 
 - Commit- und PR-Titel folgen [Conventional Commits](https://www.conventionalcommits.org/):
   `type(scope): description` mit einem der Typen `feat`, `fix`, `deps`, `perf`,

@@ -17,7 +17,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/updater/providers/github"
 )
 
-const repo = "papierleicht/E-Rechnung-Studio"
+const repo = "papierleicht/papierleicht-app"
 
 func newKey(t *testing.T) (ed25519.PublicKey, ed25519.PrivateKey) {
 	t.Helper()
@@ -98,7 +98,7 @@ func fakeGitHub(t *testing.T, tag string, files map[string][]byte) *httptest.Ser
 				id++
 				assets = append(assets, asset{ID: id, Name: name, Size: int64(len(data)), URL: server.URL + "/assets/" + name})
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": tag, "name": "E-Rechnung-Studio " + tag, "assets": assets})
+			_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": tag, "name": "papierleicht " + tag, "assets": assets})
 		case strings.HasPrefix(r.URL.Path, "/assets/"):
 			data, ok := files[strings.TrimPrefix(r.URL.Path, "/assets/")]
 			if !ok {
