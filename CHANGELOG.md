@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0](https://github.com/papierleicht/papierleicht-app/compare/v1.2.0...v1.3.0) (2026-11-18)
+
+
+### Features
+
+* **migration:** bring invoices, receipts and customers over from other programs ([#20](https://github.com/papierleicht/papierleicht-app/issues/20)) ([53c0e4a](https://github.com/papierleicht/papierleicht-app/commit/53c0e4a97821a01cf978a41df1615b532c63c41f))
+* rename the app to papierleicht ([#19](https://github.com/papierleicht/papierleicht-app/issues/19)) ([33ad723](https://github.com/papierleicht/papierleicht-app/commit/33ad7232fd2679a483f00850f38a41aa17d27916))
+* **updates:** ask papierleicht for updates, with one choice for the statistics ([#21](https://github.com/papierleicht/papierleicht-app/issues/21)) ([440a796](https://github.com/papierleicht/papierleicht-app/commit/440a796d8f15724671d3edd6ef2c9e9077a4f3a5))
+* **updates:** show what is new in German before and after an update ([#22](https://github.com/papierleicht/papierleicht-app/issues/22)) ([c2bc26f](https://github.com/papierleicht/papierleicht-app/commit/c2bc26ffda641285f281f93fc3c9e6d928558a84))
+
+
+### Bug Fixes
+
+* no busy box flashing in the corner when the app starts ([#18](https://github.com/papierleicht/papierleicht-app/issues/18)) ([184f55b](https://github.com/papierleicht/papierleicht-app/commit/184f55b8279e8a950f33b5fb1bd81cf400a984d5))
+
 ## [1.2.0](https://github.com/papierleicht/E-Rechnung-Studio/compare/v1.1.1...v1.2.0) (2026-11-15)
 
 
