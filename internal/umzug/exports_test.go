@@ -133,7 +133,7 @@ func TestGdpduExport(t *testing.T) {
 		{Name: "Kundennummer", Kind: gdpdu.Text}, {Name: "Firma", Kind: gdpdu.Text}, {Name: "Straße", Kind: gdpdu.Text},
 		{Name: "PLZ", Kind: gdpdu.Text}, {Name: "Ort", Kind: gdpdu.Text},
 	}, Rows: [][]string{{"1", "Müller GmbH", "Hauptstr. 1", "10115", "Berlin"}, {"2", "Schmidt KG", "Weg 3", "50667", "Köln"}}}
-	journal := gdpdu.Table{File: "journal.csv", Name: "Journal", Columns: []gdpdu.Column{{Name: "Datum", Kind: gdpdu.Date}, {Name: "Betrag", Kind: gdpdu.Number, Accuracy: 2}}, Rows: [][]string{{"01.02.2025", "10,00"}}}
+	journal := gdpdu.Table{File: "journal.csv", Name: "Journal", From: "2025-01-01", To: "2025-12-31", Columns: []gdpdu.Column{{Name: "Datum", Kind: gdpdu.Date}, {Name: "Betrag", Kind: gdpdu.Number, Accuracy: 2}}, Rows: [][]string{{"01.02.2025", "10,00"}}}
 	index, err := gdpdu.Index(gdpdu.Supplier{Name: "Test"}, "Jahr 2025", []gdpdu.Table{customers, journal})
 	if err != nil {
 		t.Fatal(err)
@@ -162,7 +162,7 @@ func TestGdpduExport(t *testing.T) {
 			export = d
 		}
 	}
-	if export.Number != "Prüferexport (GDPdU) Jahr 2025" || len(export.Files) != 4 {
+	if export.Number != "Prüferexport (GDPdU) Jahr 2025" || len(export.Files) != 4 || export.Date != "2025-12-31" {
 		t.Fatalf("export %+v", export)
 	}
 	if len(p.Tables) != 1 || p.Tables[0].Rows != 2 || p.Tables[0].Table != "Kunden" {

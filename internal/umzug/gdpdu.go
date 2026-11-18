@@ -8,6 +8,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/text/encoding/charmap"
 )
@@ -33,6 +34,29 @@ type gdpduTable struct {
 type gdpduIndex struct {
 	Media  string
 	Tables []gdpduTable
+	// Until is the last day the tables cover, as YYYY-MM-DD, from their
+	// Validity ranges.
+	Until string
+}
+
+// validityDay reads the end of a Validity range in the formats the
+// description standard allows.
+func validityDay(value, format string) string {
+	layouts := []string{"02.01.2006", "2006-01-02", "20060102", "02.01.06"}
+	switch strings.ToUpper(strings.TrimSpace(format)) {
+	case "YYYY-MM-DD":
+		layouts = []string{"2006-01-02"}
+	case "YYYYMMDD":
+		layouts = []string{"20060102"}
+	case "DD.MM.YYYY":
+		layouts = []string{"02.01.2006"}
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, strings.TrimSpace(value)); err == nil {
+			return t.Format("2006-01-02")
+		}
+	}
+	return ""
 }
 
 // readIndex reads an index.xml by element names, so DTD versions and
@@ -43,6 +67,7 @@ func readIndex(data []byte) (gdpduIndex, error) {
 	var stack []string
 	var table *gdpduTable
 	var text strings.Builder
+	var until, untilFormat string
 	parent := func(n int) string {
 		if len(stack) > n {
 			return stack[len(stack)-1-n]
@@ -92,6 +117,15 @@ func readIndex(data []byte) (gdpduIndex, error) {
 				table.Name = value
 			case name == "Description" && parent(1) == "Table":
 				table.Description = value
+			case name == "To" && parent(1) == "Range" && parent(2) == "Validity":
+				until = value
+			case name == "Format" && parent(1) == "Validity":
+				untilFormat = value
+			case name == "Validity":
+				if day := validityDay(until, untilFormat); day > idx.Until {
+					idx.Until = day
+				}
+				until, untilFormat = "", ""
 			case name == "From" && parent(1) == "Range" && parent(2) == "Table":
 				if n, err := strconv.Atoi(value); err == nil && n > 0 {
 					table.From = n

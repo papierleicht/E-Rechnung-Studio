@@ -143,6 +143,9 @@ func Analyze(c *Collection) (*Plan, error) {
 			label += " " + idx.Media
 		}
 		addToBundle(dir, label, e)
+		if b := bundles[dir+"\x00"+label]; idx.Until > b.date {
+			b.date = idx.Until
+		}
 		for _, other := range c.Entries {
 			if path.Dir(other.Origin) == dir && strings.EqualFold(path.Ext(other.Origin), ".dtd") {
 				addToBundle(dir, label, other)
