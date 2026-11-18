@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "papierleicht"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "1.2.0" ; x-release-please-version
+    !define INFO_PRODUCTVERSION "1.3.0" ; x-release-please-version
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright 2026 papierleicht"
