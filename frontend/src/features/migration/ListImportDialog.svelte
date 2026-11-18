@@ -53,6 +53,17 @@
     else next[field] = Number(value);
     onremap(next);
   }
+  const mapped = $derived(preview.fields.filter((f) => preview.mapping[f.id] !== undefined));
+  const missingRequired = $derived(
+    preview.fields.some((f) => f.required && preview.mapping[f.id] === undefined),
+  );
+  // The mapping starts as one line when the app recognized what it needs;
+  // it opens by itself when a required column is missing.
+  let editing = $state(false);
+  const showMapping = $derived(editing || missingRequired);
+  function columnName(at: number) {
+    return preview.columns[at] || `Spalte ${at + 1}`;
+  }
   const stateLabel: Record<string, string> = {
     new: "Neu",
     existing: "Vorhanden",
@@ -68,27 +79,49 @@
   {onclose}
   onsubmit={onconfirm}
 >
-  <fieldset class="move-mapping">
-    <legend>Spalten zuordnen</legend>
-    <p class="move-note">
-      Die App hat die Spalten nach ihren Namen zugeordnet. Passt etwas nicht, wähle die richtige
-      Spalte.
-    </p>
-    <div class="move-mapping-grid">
-      {#each preview.fields as field (field.id)}
-        <label
-          ><span>{field.label}{field.required ? " *" : ""}</span><select
-            value={preview.mapping[field.id] === undefined ? "" : String(preview.mapping[field.id])}
-            onchange={(event) => choose(field.id, event.currentTarget.value)}
-            ><option value="">— nicht übernehmen —</option
-            >{#each preview.columns as column, index}<option value={String(index)}
-                >{column || `Spalte ${index + 1}`}</option
-              >{/each}</select
-          ></label
+  {#if !showMapping}
+    <div class="move-mapping-summary">
+      <div>
+        <strong>{mapped.length} von {preview.fields.length} Feldern zugeordnet</strong>
+        <small
+          >{mapped
+            .map((f) => `${f.label} ← ${columnName(preview.mapping[f.id])}`)
+            .join(" · ")}</small
         >
-      {/each}
+      </div>
+      <button type="button" class="secondary" onclick={() => (editing = true)}>Ändern</button>
     </div>
-  </fieldset>
+  {:else}
+    <fieldset class="move-mapping">
+      <legend>Spalten zuordnen</legend>
+      <p class="move-note">
+        {missingRequired
+          ? "Ordne mindestens die Pflichtfelder (*) einer Spalte zu."
+          : "Die App hat die Spalten nach ihren Namen zugeordnet. Passt etwas nicht, wähle die richtige Spalte."}
+      </p>
+      <div class="move-mapping-grid">
+        {#each preview.fields as field (field.id)}
+          <label
+            ><span>{field.label}{field.required ? " *" : ""}</span><select
+              value={preview.mapping[field.id] === undefined
+                ? ""
+                : String(preview.mapping[field.id])}
+              onchange={(event) => choose(field.id, event.currentTarget.value)}
+              ><option value="">— nicht übernehmen —</option
+              >{#each preview.columns as column, index}<option value={String(index)}
+                  >{column || `Spalte ${index + 1}`}</option
+                >{/each}</select
+            ></label
+          >
+        {/each}
+      </div>
+      {#if editing && !missingRequired}
+        <button type="button" class="text move-mapping-done" onclick={() => (editing = false)}
+          >Fertig</button
+        >
+      {/if}
+    </fieldset>
+  {/if}
 
   <ul class="move-counts" aria-label="Ergebnis der Prüfung">
     <li><strong>{preview.new}</strong> neu</li>
@@ -153,9 +186,41 @@
     font-size: 13px;
     padding: 0;
   }
+  .move-mapping-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--theme-border);
+    border-radius: 8px;
+  }
+  .move-mapping-summary > div {
+    display: grid;
+    gap: 2px;
+    flex: 1 1 18rem;
+    min-width: 0;
+    font-size: 13px;
+  }
+  .move-mapping-summary small {
+    color: var(--theme-muted);
+    font-size: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .move-mapping-summary button {
+    margin-left: auto;
+  }
+  .move-mapping-done {
+    margin-top: 8px;
+  }
   .move-mapping-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(11rem, 100%), 1fr));
     gap: 8px 12px;
     margin-top: 8px;
   }

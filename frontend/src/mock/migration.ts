@@ -25,6 +25,7 @@ function sources() {
   return list.sort((a, b) => {
     if ((a.id === "andere") !== (b.id === "andere")) return a.id === "andere" ? 1 : -1;
     if (!!a.deadline !== !!b.deadline) return a.deadline ? -1 : 1;
+    if (a.deadline !== b.deadline) return (a.deadline ?? "") < (b.deadline ?? "") ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
 }
@@ -51,6 +52,7 @@ const documents = [
     tax: "275.50",
     gross: "1725.50",
     eInvoice: true,
+    basis: "einvoice",
     origin: "invoiz-Rechnungen/2025/RE-2025-118.pdf",
     importedAt: "2026-11-18T10:00:00Z",
     files: [file("RE-2025-118.pdf")],
@@ -69,9 +71,47 @@ const documents = [
     tax: "22.80",
     gross: "142.80",
     eInvoice: true,
+    basis: "einvoice",
     origin: "invoiz-Rechnungen/2025/GS-2025-004.pdf",
     importedAt: "2026-11-18T10:00:00Z",
     files: [file("GS-2025-004.pdf")],
+  },
+  {
+    id: "leg-demo-4",
+    source: "sevdesk",
+    sourceId: "4",
+    direction: "incoming",
+    kind: "document",
+    number: "ER-2025-088",
+    date: "2025-06-02",
+    partner: "Papierhandel Süd",
+    currency: "EUR",
+    net: "",
+    tax: "",
+    gross: "59.50",
+    eInvoice: false,
+    basis: "datev",
+    origin: "sevdesk-export.zip/DATEV_Rechnungseingang_2025.zip/beleg-88.pdf",
+    importedAt: "2026-11-18T10:00:00Z",
+    files: [file("beleg-88.pdf")],
+  },
+  {
+    id: "leg-demo-5",
+    source: "sevdesk",
+    sourceId: "5",
+    direction: "",
+    kind: "export",
+    number: "DATEV-Buchungsstapel 01.01.2025 – 31.12.2025",
+    date: "2025-12-31",
+    partner: "",
+    currency: "",
+    net: "",
+    tax: "",
+    gross: "",
+    eInvoice: false,
+    origin: "sevdesk-export.zip",
+    importedAt: "2026-11-18T10:00:00Z",
+    files: [file("EXTF_Buchungsstapel_2025.csv"), file("EXTF_GP_Stamm_2025.csv")],
   },
   {
     id: "leg-demo-3",
@@ -104,6 +144,15 @@ const years = [
     gross: "1582.70",
   },
   {
+    year: "2025",
+    direction: "incoming",
+    count: 1,
+    structured: 0,
+    net: "0.00",
+    tax: "0.00",
+    gross: "0.00",
+  },
+  {
     year: "ohne Datum",
     direction: "",
     count: 1,
@@ -117,7 +166,11 @@ const years = [
 type Filter = { year?: string; direction?: string; query?: string };
 
 export const migrationHandlers = {
-  "MigrationService.Overview": () => ({ sources: sources(), years, total: documents.length }),
+  "MigrationService.Overview": () => ({
+    sources: sources(),
+    years,
+    total: documents.filter((doc) => doc.kind !== "export").length,
+  }),
   "MigrationService.Archive": (filter: Filter) => {
     const query = (filter?.query ?? "").trim().toLowerCase();
     return documents.filter(
@@ -141,6 +194,15 @@ export const migrationHandlers = {
   },
   "MigrationService.ImportList": () => {
     throw desktopOnly("der Umzug");
+  },
+  "MigrationService.PreviewExportList": () => {
+    throw desktopOnly("der Umzug");
+  },
+  "MigrationService.ImportExportList": () => {
+    throw desktopOnly("der Umzug");
+  },
+  "MigrationService.SaveArchiveFiles": () => {
+    throw desktopOnly("das Speichern von Dateien");
   },
   "MigrationService.OpenArchiveFile": () => {
     throw desktopOnly("das Öffnen von Dateien");

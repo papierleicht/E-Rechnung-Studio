@@ -22,6 +22,29 @@ export interface CustomerProposal {
 }
 
 /**
+ * ExportTable points to a customer list inside an export, so it can be read
+ * again when the customer opens it.
+ */
+export interface ExportTable {
+    /**
+     * Format is "datev" or "gdpdu".
+     */
+    "format": string;
+
+    /**
+     * Origin is the DATEV file or the index.xml.
+     */
+    "origin": string;
+
+    /**
+     * Table is the name of a GDPdU table.
+     */
+    "table": string;
+    "label": string;
+    "rows": number;
+}
+
+/**
  * Field is a target the columns of a list can be assigned to.
  */
 export interface Field {

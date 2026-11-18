@@ -33,6 +33,7 @@
   let documents = $state<LegacyDocument[]>([]);
   let loading = $state(false);
   let error = $state("");
+  let notice = $state("");
   const yearOptions = $derived(
     [...new Set(years.map((y) => y.year))].filter((y) => /^\d{4}$/.test(y)),
   );
@@ -74,13 +75,36 @@
     }
   }
 
+  // A whole export goes into a new folder inside the one the customer picks.
+  async function saveAll(doc: LegacyDocument) {
+    onbusychange(true);
+    error = "";
+    notice = "";
+    try {
+      const picked = await Dialogs.OpenFile({
+        Title: "Ordner für den Export wählen",
+        CanChooseFiles: false,
+        CanChooseDirectories: true,
+        CanCreateDirectories: true,
+        AllowsMultipleSelection: false,
+      });
+      const dir = Array.isArray(picked) ? picked[0] : picked;
+      if (dir) notice = `Gespeichert in ${await migration.saveFiles(doc.id, dir)}`;
+    } catch (cause) {
+      if (!isFileDialogCancellation(cause))
+        error = serviceErrorMessage(cause, "Der Export ließ sich nicht speichern.");
+    } finally {
+      onbusychange(false);
+    }
+  }
+
   async function save(doc: LegacyDocument, sum: string, name: string) {
     onbusychange(true);
     error = "";
     try {
       const path = await Dialogs.SaveFile({
         Title: "Kopie speichern",
-        Filename: name,
+        Filename: name.split("/").pop() ?? name,
         CanCreateDirectories: true,
       });
       if (path) await migration.saveFile(doc.id, sum, path);
@@ -165,6 +189,7 @@
         >
       </div>
       {#if error}<p class="archive-error" role="alert">{error}</p>{/if}
+      {#if notice}<p class="archive-notice" role="status">{notice}</p>{/if}
       {#if loading && !documents.length}
         <p class="archive-note" role="status">Wird geladen …</p>
       {:else if documents.length}
@@ -176,32 +201,41 @@
                 <small
                   >{doc.date ? dateLabel(doc.date) : "ohne Datum"} · {kindLabel(
                     doc.kind,
-                  )}{doc.eInvoice ? ` · ${directionLabels[doc.direction] ?? doc.direction}` : ""} · aus
+                    doc.basis,
+                  )}{doc.basis
+                    ? ` · ${directionLabels[doc.direction] ?? doc.direction}`
+                    : ""}{doc.kind === "export" ? ` · ${doc.files.length} Dateien` : ""} · aus
                   {doc.source}</small
                 >
               </div>
               <span class="archive-partner" title={doc.partner}>{doc.partner || "—"}</span>
               <span class="archive-amount"
-                >{doc.eInvoice ? money(doc.gross, doc.currency) : ""}</span
+                >{doc.basis && doc.gross ? money(doc.gross, doc.currency) : ""}</span
               >
               <div class="archive-actions">
-                {#each doc.files as file (file.sha256)}
-                  <button
-                    class="secondary"
-                    disabled={busy}
-                    title={`${file.name} öffnen`}
-                    onclick={() => open(doc, file.sha256)}
-                    >{doc.files.length > 1
-                      ? file.name.split(".").pop()?.toUpperCase()
-                      : "Öffnen"}</button
+                {#if doc.kind === "export"}
+                  <button class="secondary" disabled={busy} onclick={() => saveAll(doc)}
+                    >Export speichern</button
                   >
-                {/each}
-                <button
-                  class="text"
-                  disabled={busy}
-                  onclick={() => save(doc, doc.files[0].sha256, doc.files[0].name)}
-                  >Kopie speichern</button
-                >
+                {:else}
+                  {#each doc.files as file (file.sha256)}
+                    <button
+                      class="secondary"
+                      disabled={busy}
+                      title={`${file.name} öffnen`}
+                      onclick={() => open(doc, file.sha256)}
+                      >{doc.files.length > 1
+                        ? file.name.split(".").pop()?.toUpperCase()
+                        : "Öffnen"}</button
+                    >
+                  {/each}
+                  <button
+                    class="text"
+                    disabled={busy}
+                    onclick={() => save(doc, doc.files[0].sha256, doc.files[0].name)}
+                    >Kopie speichern</button
+                  >
+                {/if}
               </div>
             </li>
           {/each}
@@ -221,6 +255,7 @@
 <style>
   .archive {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 22px;
     min-width: 0;
   }
@@ -310,6 +345,15 @@
     background: var(--theme-error-bg);
     color: var(--theme-error-text);
     font-size: 12px;
+  }
+  .archive-notice {
+    margin: 0 0 10px;
+    padding: 10px;
+    border-radius: 6px;
+    background: var(--theme-success-bg);
+    color: var(--theme-success-text);
+    font-size: 12px;
+    overflow-wrap: anywhere;
   }
   .archive-list {
     margin: 0;

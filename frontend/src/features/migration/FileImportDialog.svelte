@@ -59,8 +59,10 @@
               <td
                 >{item.duplicate
                   ? "schon vorhanden"
-                  : kindLabel(item.kind)}{#if item.eInvoice}<small
+                  : kindLabel(item.kind, item.basis)}{#if item.basis}<small
                     >{directionLabels[item.direction] ?? item.direction}</small
+                  >{:else if item.kind === "export"}<small
+                    >{item.files === 1 ? "1 Datei" : `${item.files} Dateien`}</small
                   >{/if}</td
               >
               <td class="move-partner" title={item.partner}>{item.partner || "—"}</td>
@@ -78,6 +80,17 @@
   {:else}
     <p class="move-note">In der Auswahl gibt es keine PDF-, XML- oder Bilddateien.</p>
   {/if}
+  {#if preview.tables.length}
+    <ul class="move-tables" aria-label="Kunden im Export">
+      {#each preview.tables as table (table.origin + table.table)}
+        <li>
+          <strong>{table.label}</strong>: {table.rows === 1 ? "1 Kunde" : `${table.rows} Kunden`}.
+          Nach dem Übernehmen kannst du sie mit „Kunden aus dem Export prüfen“ ansehen und
+          übernehmen.
+        </li>
+      {/each}
+    </ul>
+  {/if}
   {#if preview.skipped.length}
     <button type="button" class="text move-toggle" onclick={() => (showSkipped = !showSkipped)}
       >{showSkipped ? "Übersprungene ausblenden" : "Übersprungene Dateien zeigen"}</button
@@ -93,8 +106,9 @@
     {/if}
   {/if}
   <p class="move-note">
-    Nummer, Datum und Betrag liest die App nur aus E-Rechnungen (ZUGFeRD, XRechnung). Einfache PDFs
-    und Fotos übernimmt sie als Datei, ohne etwas zu raten.
+    Nummer, Datum und Betrag liest die App aus E-Rechnungen (ZUGFeRD, XRechnung) und aus den Daten
+    eines DATEV-Exports. Einfache PDFs und Fotos übernimmt sie als Datei, ohne etwas zu raten.
+    Exporte für Steuerberatung und Betriebsprüfung legt sie als Ganzes ab.
   </p>
 
   {#snippet footer()}
@@ -188,6 +202,15 @@
   .move-note {
     margin: 10px 0 0;
     color: var(--theme-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .move-tables {
+    margin: 12px 0 0;
+    padding: 10px 12px 10px 28px;
+    border-radius: 8px;
+    background: var(--theme-info-bg);
+    color: var(--theme-info-text);
     font-size: 12px;
     line-height: 1.5;
   }

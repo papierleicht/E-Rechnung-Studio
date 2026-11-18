@@ -419,6 +419,11 @@ export interface FileImportResult {
 export interface FilePreview {
     "items": FilePreviewItem[] | null;
     "skipped": umzug$0.Skipped[] | null;
+
+    /**
+     * Tables are customer lists found inside exports.
+     */
+    "tables": umzug$0.ExportTable[] | null;
     "new": number;
     "duplicates": number;
     "eInvoices": number;
@@ -439,6 +444,11 @@ export interface FilePreviewItem {
     "gross": string;
     "currency": string;
     "eInvoice": boolean;
+
+    /**
+     * Basis is "einvoice", "datev" or "" (see model.LegacyDocument).
+     */
+    "basis": string;
 
     /**
      * Duplicate says that the archive already holds this file.

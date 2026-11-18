@@ -602,18 +602,20 @@
           bisherigen Programm mit. Die App zeigt dir Schritt für Schritt, was du dort exportierst.
         </p>
         <div class="wizard-choices move-choices">
-          {#each sources as source (source.id)}
-            <label class:selected={moving === source.id}>
-              <input
-                type="radio"
-                name="moving"
-                checked={moving === source.id}
-                onchange={() => (moving = source.id)}
-              />
-              <span><strong>{source.name}</strong><small>{source.summary}</small></span>
-            </label>
-          {/each}
-          <label class="move-none" class:selected={moving === "none"}>
+          <label class:selected={!!moving && moving !== "none"}>
+            <input
+              type="radio"
+              name="moving"
+              checked={!!moving && moving !== "none"}
+              onchange={() => (moving = sources[0]?.id ?? "andere")}
+            />
+            <span
+              ><strong>Ja, ich ziehe um</strong><small
+                >Wähle dein bisheriges Programm. Die Anleitung öffnet sich nach dem Start.</small
+              ></span
+            >
+          </label>
+          <label class:selected={moving === "none"}>
             <input
               type="radio"
               name="moving"
@@ -628,6 +630,17 @@
             >
           </label>
         </div>
+        {#if moving && moving !== "none"}
+          <label class="move-program"
+            ><span>Bisheriges Programm</span><select bind:value={moving}
+              >{#each sources as source (source.id)}<option value={source.id}
+                  >{source.name}{source.deadline
+                    ? ` – endet am ${source.deadline.split("-").reverse().join(".")}`
+                    : ""}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
         {#if moving && moving !== "none"}<aside class="wizard-note shop-note" aria-live="polite">
             <FolderInputIcon size={20} aria-hidden="true" />
             <p>
@@ -972,8 +985,15 @@
   .move-choices {
     grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
   }
-  .move-choices .move-none {
-    grid-column: 1 / -1;
+  .move-program {
+    display: grid;
+    gap: 4px;
+    max-width: 24rem;
+    margin-top: 12px;
+    font-size: 13px;
+  }
+  .move-program span {
+    font-weight: 600;
   }
   .shop-note {
     display: flex;

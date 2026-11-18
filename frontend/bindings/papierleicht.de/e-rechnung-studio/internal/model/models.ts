@@ -17,7 +17,8 @@ export interface AppSettings {
     /**
      * Sections shows (true) or hides (false) optional areas of the menu,
      * see MenuSections. A missing key keeps the default: "shops" shows only
-     * with a connected shop, "products" always.
+     * with a connected shop, "products" always, "migration" only while the
+     * legacy archive holds documents.
      */
     "sections"?: { [_ in string]?: boolean } | null;
 }
@@ -420,8 +421,8 @@ export interface LegacyDocument {
     "direction": string;
 
     /**
-     * Kind is "invoice", "credit-note" or "document" for a file without
-     * structured invoice data.
+     * Kind is "invoice", "credit-note", "document" for a file without
+     * structured invoice data, or "export" for a whole DATEV or GDPdU export.
      */
     "kind": string;
     "number": string;
@@ -437,6 +438,13 @@ export interface LegacyDocument {
      * ZUGFeRD/XRechnung XML, not from a guess.
      */
     "eInvoice": boolean;
+
+    /**
+     * Basis says where number, date and amount come from: "einvoice" (the
+     * XML of the file), "datev" (the export's record of the receipt) or ""
+     * when the file says nothing the app can read.
+     */
+    "basis"?: string;
 
     /**
      * Origin is where the file was found, e.g. "export.zip/2024/RE-1.pdf".

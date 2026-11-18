@@ -3,6 +3,7 @@
 
 export type {
     CustomerProposal,
+    ExportTable,
     Field,
     ProductProposal,
     Skipped,

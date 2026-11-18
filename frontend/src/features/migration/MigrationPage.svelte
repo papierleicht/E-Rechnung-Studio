@@ -14,6 +14,7 @@
   import {
     daysLeft,
     migration,
+    type ExportTable,
     type FilePreview,
     type LegacyYear,
     type ListPreview,
@@ -53,11 +54,29 @@
 
   let filePaths = $state<string[]>([]);
   let filePreview = $state<FilePreview | null>(null);
-  let listPath = $state("");
+  // Where the open list comes from: a file the customer chose or a table
+  // inside an export that was just taken over.
+  type ListSource =
+    | { kind: "file"; path: string; name: string }
+    | { kind: "export"; paths: string[]; table: ExportTable; name: string };
+  let listSource = $state<ListSource | null>(null);
+  // Customer lists found in the export taken over last.
+  let exportTables = $state<{ paths: string[]; tables: ExportTable[] }>({ paths: [], tables: [] });
   let listPreview = $state<ListPreview | null>(null);
   let dialogError = $state("");
 
   const selected = $derived(sources.find((source) => source.id === selectedId) ?? null);
+  let sourceQuery = $state("");
+  // The selected program and "Anderes Programm" always stay in the list.
+  const shownSources = $derived(
+    sources.filter(
+      (source) =>
+        !sourceQuery.trim() ||
+        source.id === selectedId ||
+        source.id === "andere" ||
+        source.name.toLowerCase().includes(sourceQuery.trim().toLowerCase()),
+    ),
+  );
 
   $effect(() => onbusychange(busy));
 
@@ -134,6 +153,7 @@
     dialogError = "";
     try {
       const result = await migration.importFiles(selected.id, filePaths);
+      exportTables = { paths: filePaths, tables: filePreview?.tables ?? [] };
       filePreview = null;
       notice =
         `${result.imported === 1 ? "1 Dokument" : `${result.imported} Dokumente`} im Altbestand abgelegt.` +
@@ -173,9 +193,25 @@
     if (!path) return;
     const preview = await run(() => migration.previewList(list, path, null));
     if (!preview) return;
-    listPath = path;
+    listSource = { kind: "file", path, name: fileName(path) };
     dialogError = "";
     listPreview = preview;
+  }
+
+  async function openExportTable(table: ExportTable) {
+    const paths = exportTables.paths;
+    const preview = await run(() => migration.previewExportList(paths, table, null));
+    if (!preview) return;
+    listSource = { kind: "export", paths, table, name: table.label };
+    dialogError = "";
+    listPreview = preview;
+  }
+
+  function readListAgain(mapping: Record<string, number>): Promise<ListPreview> {
+    const source = listSource!;
+    return source.kind === "file"
+      ? migration.previewList(listPreview!.list as MoveList, source.path, mapping)
+      : migration.previewExportList(source.paths, source.table, mapping);
   }
 
   async function remap(mapping: Record<string, number>) {
@@ -183,7 +219,7 @@
     busy = true;
     dialogError = "";
     try {
-      listPreview = await migration.previewList(listPreview.list as MoveList, listPath, mapping);
+      listPreview = await readListAgain(mapping);
     } catch (cause) {
       dialogError = serviceErrorMessage(cause, "Die Liste ließ sich nicht neu lesen.");
     } finally {
@@ -197,7 +233,16 @@
     busy = true;
     dialogError = "";
     try {
-      const result = await migration.importList(list, listPath, listPreview.mapping);
+      const source = listSource!;
+      const result =
+        source.kind === "file"
+          ? await migration.importList(list, source.path, listPreview.mapping)
+          : await migration.importExportList(source.paths, source.table, listPreview.mapping);
+      if (source.kind === "export")
+        exportTables = {
+          ...exportTables,
+          tables: exportTables.tables.filter((t) => t !== source.table),
+        };
       listPreview = null;
       const noun = list === "customers" ? "Kunden" : "Artikel";
       notice =
@@ -249,6 +294,20 @@
 <section class="move-workspace" aria-busy={busy || loading}>
   {#if error}<p class="move-feedback move-error" role="alert">{error}</p>{/if}
   {#if notice}<p class="move-feedback move-success" role="status">{notice}</p>{/if}
+  {#if exportTables.tables.length && tab === "move"}
+    <div class="move-feedback move-offer">
+      <p>Im Export stecken Kunden. Sieh dir jede Zeile an, bevor sie übernommen werden.</p>
+      <div class="move-offer-actions">
+        {#each exportTables.tables as table (table.origin + table.table)}
+          <button class="secondary" disabled={busy} onclick={() => openExportTable(table)}
+            >{exportTables.tables.length === 1
+              ? "Kunden aus dem Export prüfen"
+              : `Kunden prüfen: ${table.label}`}</button
+          >
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   {#if tab === "move"}
     {#if loading}
@@ -257,7 +316,16 @@
       <div class="move-layout">
         <nav class="move-sources" aria-label="Bisheriges Programm">
           <p class="move-sources-title">Woher kommst du?</p>
-          {#each sources as source (source.id)}
+          {#if sources.length > 8}
+            <input
+              class="invoice-search move-source-search"
+              type="search"
+              aria-label="Programm suchen"
+              placeholder="Programm suchen"
+              bind:value={sourceQuery}
+            />
+          {/if}
+          {#each shownSources as source (source.id)}
             <button
               type="button"
               class="move-source"
@@ -272,8 +340,8 @@
             </button>
           {/each}
           <p class="move-sources-more">
-            Weitere Programme wie Lexware Office, sevDesk und DATEV-Exporte folgen. Bis dahin hilft
-            „Anderes Programm“.
+            Dein Programm fehlt? „Anderes Programm“ hilft mit allem, was sich als PDF, XML, CSV,
+            DATEV- oder Prüferexport speichern lässt.
           </p>
         </nav>
 
@@ -311,10 +379,10 @@
               {/if}
             </div>
             <GuideView text={selected.guide} checked={selected.checked} />
-            {#if selected.vendor && selected.id !== "andere"}
+            {#if selected.id !== "andere"}
               <p class="move-trademark">
-                {selected.name} ist eine Marke von {selected.vendor}. papierleicht steht mit dem
-                Anbieter in keiner Verbindung.
+                {selected.name} ist eine Marke des jeweiligen Inhabers. papierleicht steht mit dem Anbieter
+                in keiner Verbindung.
               </p>
             {/if}
           </article>
@@ -339,7 +407,7 @@
 {#if listPreview}
   <ListImportDialog
     preview={listPreview}
-    fileName={fileName(listPath)}
+    fileName={listSource?.name ?? ""}
     {busy}
     error={dialogError}
     onremap={remap}
@@ -351,6 +419,7 @@
 <style>
   .move-workspace {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     min-width: 0;
   }
@@ -372,6 +441,24 @@
     color: var(--theme-success-text);
     border: 1px solid var(--theme-success-border);
   }
+  .move-offer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    background: var(--theme-info-bg);
+    color: var(--theme-info-text);
+    border: 1px solid var(--theme-info-border);
+  }
+  .move-offer p {
+    margin: 0;
+    flex: 1 1 18rem;
+  }
+  .move-offer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
   .move-muted {
     color: var(--theme-muted);
     font-size: 13px;
@@ -392,6 +479,11 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--theme-muted);
+  }
+  .move-source-search {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 2px;
   }
   .move-source {
     display: grid;
@@ -506,6 +598,7 @@
       grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
     }
     .move-sources-title,
+    .move-source-search,
     .move-sources-more {
       grid-column: 1 / -1;
     }

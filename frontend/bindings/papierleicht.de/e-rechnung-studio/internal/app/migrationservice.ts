@@ -18,6 +18,9 @@ import * as model$0 from "../model/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as store$0 from "../store/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as umzug$0 from "../umzug/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -28,6 +31,13 @@ import * as $models from "./models.js";
  */
 export function Archive(filter: store$0.LegacyFilter): $CancellablePromise<model$0.LegacyDocument[] | null> {
     return $Call.ByID(395255335, filter);
+}
+
+/**
+ * ImportExportList saves the new customers of a list inside an export.
+ */
+export function ImportExportList(paths: string[] | null, table: umzug$0.ExportTable, mapping: { [_ in string]?: number } | null): $CancellablePromise<$models.ListImportResult> {
+    return $Call.ByID(2380928980, paths, table, mapping);
 }
 
 /**
@@ -59,6 +69,13 @@ export function Overview(): $CancellablePromise<$models.MigrationOverview> {
 }
 
 /**
+ * PreviewExportList reads a customer list from inside an export without saving.
+ */
+export function PreviewExportList(paths: string[] | null, table: umzug$0.ExportTable, mapping: { [_ in string]?: number } | null): $CancellablePromise<$models.ListPreview> {
+    return $Call.ByID(436365935, paths, table, mapping);
+}
+
+/**
  * PreviewFiles reads the chosen files, folders and ZIP archives without saving.
  */
 export function PreviewFiles(paths: string[] | null): $CancellablePromise<$models.FilePreview> {
@@ -77,4 +94,12 @@ export function PreviewList(list: string, path: string, mapping: { [_ in string]
  */
 export function SaveArchiveFile(documentID: string, sum: string, path: string): $CancellablePromise<void> {
     return $Call.ByID(1465040894, documentID, sum, path);
+}
+
+/**
+ * SaveArchiveFiles writes all files of a legacy document, e.g. a whole
+ * export, into a new folder inside the chosen one and returns its path.
+ */
+export function SaveArchiveFiles(documentID: string, dir: string): $CancellablePromise<string> {
+    return $Call.ByID(71535351, documentID, dir);
 }
