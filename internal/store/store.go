@@ -98,6 +98,10 @@ type backupDocument struct {
 	// stay in the keychain.
 	ShopConnections []shops.Connection `json:"shopConnections,omitempty"`
 	ShopOrders      []shops.Order      `json:"shopOrders,omitempty"`
+	// LegacyDocuments and LegacyFiles exist from version 10. A restore only
+	// adds them; the legacy archive never loses a document.
+	LegacyDocuments []backupLegacyDocument `json:"legacyDocuments,omitempty"`
+	LegacyFiles     []backupLegacyFile     `json:"legacyFiles,omitempty"`
 }
 
 func Open(path string) (*Store, error) {
@@ -175,7 +179,7 @@ PRAGMA user_version=1;`)
 	if err = upgradeExpenseFiles(s.db); err != nil {
 		return err
 	}
-	if _, err = s.db.Exec(auditTables + lockTables); err != nil {
+	if _, err = s.db.Exec(auditTables + lockTables + legacyTables); err != nil {
 		return err
 	}
 	if err = migrateExpenseFiles(s.db); err != nil {
@@ -739,7 +743,10 @@ func readDocument(q sqlRunner, c *blobCollector) (backupDocument, error) {
 	if doc.ShopOrders, err = shopOrders(q, ""); err != nil {
 		return doc, err
 	}
-	doc.Version = 9
+	if doc.LegacyDocuments, doc.LegacyFiles, err = backupLegacy(q, c); err != nil {
+		return doc, err
+	}
+	doc.Version = 10
 	return doc, nil
 }
 
@@ -796,7 +803,7 @@ func (s *Store) restore(data []byte, open BlobOpener, event BackupEvent) error {
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return fmt.Errorf("Die Datensicherung konnte nicht gelesen werden: %w", err)
 	}
-	if doc.Format != "e-rechnung-studio-backup" || doc.Version < 1 || doc.Version > 9 {
+	if doc.Format != "e-rechnung-studio-backup" || doc.Version < 1 || doc.Version > 10 {
 		return errors.New("Das Format oder die Version der Datensicherung wird nicht unterstützt.")
 	}
 	tx, err := s.db.Begin()
@@ -900,6 +907,9 @@ func (s *Store) restore(data []byte, open BlobOpener, event BackupEvent) error {
 		return err
 	}
 	if err = restoreShops(tx, doc.ShopConnections, doc.ShopOrders); err != nil {
+		return err
+	}
+	if err = restoreLegacy(tx, doc.LegacyDocuments, doc.LegacyFiles, open); err != nil {
 		return err
 	}
 	if err = s.migratePaymentsIn(tx); err != nil {

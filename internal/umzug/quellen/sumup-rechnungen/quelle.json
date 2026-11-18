@@ -1,0 +1,10 @@
+{
+  "id": "sumup-rechnungen",
+  "name": "SumUp Rechnungen",
+  "vendor": "SumUp",
+  "kind": "cloud",
+  "summary": "SumUp Rechnungen exportiert Rechnungspositionen, Kunden, Produkte und Angebote; ob die PDFs dabei sind, ist nicht bestätigt.",
+  "ways": ["files", "customers", "products"],
+  "checked": "nach der englischen Hilfe, Stand 18.11.2026",
+  "sources": []
+}

@@ -17,7 +17,8 @@ export interface AppSettings {
     /**
      * Sections shows (true) or hides (false) optional areas of the menu,
      * see MenuSections. A missing key keeps the default: "shops" shows only
-     * with a connected shop, "products" always.
+     * with a connected shop, "products" always, "migration" only while the
+     * legacy archive holds documents.
      */
     "sections"?: { [_ in string]?: boolean } | null;
 }
@@ -392,6 +393,94 @@ export interface InvoiceView {
     "validation": ValidationResult;
     "xml"?: string;
     "previewHtml": string;
+}
+
+/**
+ * LegacyDocument is a document taken over from another program during a move
+ * ("Umzug"). It is archived exactly as delivered and never changes; it does not
+ * count in the figures of this app (sales tax, results, open items).
+ */
+export interface LegacyDocument {
+    "id": string;
+
+    /**
+     * Source is the program it came from, e.g. "invoiz" or "andere".
+     */
+    "source": string;
+
+    /**
+     * SourceID identifies the document within the source; for files it is the
+     * SHA-256 of the main file.
+     */
+    "sourceId": string;
+
+    /**
+     * Direction is "outgoing" (own invoice), "incoming" (received) or "" when
+     * the file does not say.
+     */
+    "direction": string;
+
+    /**
+     * Kind is "invoice", "credit-note", "document" for a file without
+     * structured invoice data, or "export" for a whole DATEV or GDPdU export.
+     */
+    "kind": string;
+    "number": string;
+    "date": string;
+    "partner": string;
+    "currency": string;
+    "net": string;
+    "tax": string;
+    "gross": string;
+
+    /**
+     * EInvoice says that the data above come from an embedded or separate
+     * ZUGFeRD/XRechnung XML, not from a guess.
+     */
+    "eInvoice": boolean;
+
+    /**
+     * Basis says where number, date and amount come from: "einvoice" (the
+     * XML of the file), "datev" (the export's record of the receipt) or ""
+     * when the file says nothing the app can read.
+     */
+    "basis"?: string;
+
+    /**
+     * Origin is where the file was found, e.g. "export.zip/2024/RE-1.pdf".
+     */
+    "origin": string;
+    "importedAt": string;
+    "files": LegacyFile[] | null;
+}
+
+/**
+ * LegacyFile is one original file of a legacy document. Data is only filled
+ * when the bytes are asked for.
+ */
+export interface LegacyFile {
+    "name": string;
+    "mime": string;
+    "sha256": string;
+    "size": number;
+}
+
+/**
+ * LegacyYear sums up the archive for one calendar year and direction, so the
+ * customer can compare it with the reports of the old program.
+ */
+export interface LegacyYear {
+    "year": string;
+    "direction": string;
+    "count": number;
+
+    /**
+     * Structured counts the documents with e-invoice data; only they have amounts.
+     */
+    "structured": number;
+    "net": string;
+    "tax": string;
+    "gross": string;
 }
 
 /**

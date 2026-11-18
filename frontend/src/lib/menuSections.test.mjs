@@ -16,11 +16,26 @@ test("other areas show unless hidden", () => {
   assert.equal(sectionVisible("invoices", { invoices: false }, { shopConnected: false }), true);
   assert.deepEqual(
     optionalSections.map((s) => s.id),
-    ["shops", "products"],
+    ["shops", "products", "migration"],
+  );
+});
+
+test("the move area shows for movers and while the archive holds documents", () => {
+  assert.equal(sectionVisible("migration", null, { shopConnected: false }), false);
+  assert.equal(sectionVisible("migration", {}, { shopConnected: false, hasLegacy: true }), true);
+  assert.equal(sectionVisible("migration", { migration: true }, { shopConnected: false }), true);
+  assert.equal(
+    sectionVisible("migration", { migration: false }, { shopConnected: false, hasLegacy: true }),
+    false,
   );
 });
 
 test("the setup shows the shop area only for a chosen shop", () => {
   assert.deepEqual(setupSections(null, "shopify"), { shops: true });
   assert.deepEqual(setupSections({ products: false }, ""), { products: false, shops: false });
+});
+
+test("the setup shows the move area only for someone moving", () => {
+  assert.deepEqual(setupSections(null, "", "invoiz"), { shops: false, migration: true });
+  assert.deepEqual(setupSections({ migration: true }, "", ""), { shops: false, migration: false });
 });

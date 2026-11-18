@@ -1,0 +1,10 @@
+{
+  "id": "wiso-meinbuero",
+  "name": "WISO MeinBüro",
+  "vendor": "Buhl Data Service",
+  "kind": "cloud",
+  "summary": "Der Steuerberaterexport von WISO MeinBüro liefert eine ZIP-Datei mit Buchungen, Stammdaten und allen Belegen als PDF.",
+  "ways": ["files", "customers", "products"],
+  "checked": "Web nach der offiziellen Hilfe, Desktop nach dem Handbuch V2017, Stand 18.11.2026",
+  "sources": ["https://handbuch.meinbuero.de/mb/steuerberaterexport"]
+}

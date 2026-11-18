@@ -1,0 +1,10 @@
+{
+  "id": "kontolino",
+  "name": "Kontolino",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Kontolino gibt je Geschäftsjahr einen DATEV-Export mit Belegdateien und eine Datenüberlassung für die Betriebsprüfung heraus.",
+  "ways": ["files"],
+  "checked": "nach dem offiziellen Handbuch, Stand 18.11.2026",
+  "sources": ["https://kontolino.de/arbeitshilfen/h/handbuch/import-export/"]
+}

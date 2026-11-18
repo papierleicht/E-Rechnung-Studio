@@ -15,6 +15,9 @@
   import SetupPlusOffer from "./SetupPlusOffer.svelte";
   import { Browser } from "@wailsio/runtime";
   import StoreIcon from "@lucide/svelte/icons/store";
+  import FolderInputIcon from "@lucide/svelte/icons/folder-input";
+  import { onMount } from "svelte";
+  import { migration as migrationAPI, type Source } from "../../lib/migration-api";
   import LifeBuoyIcon from "@lucide/svelte/icons/life-buoy";
   import CheckIcon from "@lucide/svelte/icons/check";
   import { shopProviders, shopProviderByID } from "../../lib/shopProviders";
@@ -39,7 +42,7 @@
     error?: string;
     /** shop is the provider to connect right after the start, if any;
         taxProfile goes into the tax profile under "Steuern". */
-    oncomplete: (choices: { shop: string; taxProfile: SetupTaxProfile }) => void;
+    oncomplete: (choices: { shop: string; migration: string; taxProfile: SetupTaxProfile }) => void;
     onrestore: () => void;
   } = $props();
   const steps = [
@@ -50,6 +53,7 @@
     "Zahlung",
     "E-Mail",
     "Shop",
+    "Umzug",
     "Plus",
     "Newsletter",
     "Prüfen",
@@ -59,12 +63,22 @@
   const paymentStep = 4;
   const mailStep = 5;
   const shopStep = 6;
-  const plusStep = 7;
-  const newsStep = 8;
+  const migrationStep = 7;
+  const plusStep = 8;
+  const newsStep = 9;
   const last = steps.length - 1;
   let mailSaved = $state(false);
   // "" while unanswered, "none" without a shop, otherwise the provider ID.
   let shop = $state("");
+  // "" while unanswered, "none" for a fresh start, otherwise the program.
+  let moving = $state("");
+  let sources = $state<Source[]>([]);
+  onMount(() => {
+    migrationAPI.overview().then(
+      (overview) => (sources = overview.sources),
+      () => undefined,
+    );
+  });
   let plusBooked = $state<"" | SetupPlusTier>("");
   let newsletterEmail = $state("");
   let step = $state(0);
@@ -175,7 +189,11 @@
       return;
     }
     company.paymentMeansCode = payment;
-    oncomplete({ shop: shop === "none" ? "" : shop, taxProfile: { ...taxProfile } });
+    oncomplete({
+      shop: shop === "none" ? "" : shop,
+      migration: moving === "none" ? "" : moving,
+      taxProfile: { ...taxProfile },
+    });
   }
 </script>
 
@@ -215,6 +233,7 @@
           "Wie sollen deine Kunden bezahlen?",
           "Wie verschickst du Rechnungen per E-Mail?",
           "Verkaufst du über einen Online-Shop?",
+          "Ziehst du von einem anderen Programm um?",
           "Möchtest du mehr automatisieren?",
           "Neuigkeiten und Hilfe",
           "Stimmt alles?",
@@ -577,6 +596,59 @@
               durch die Einrichtung.
             </p>
           </aside>{/if}
+      {:else if step === migrationStep}
+        <p>
+          Kostenlos in jeder Version: Bring Rechnungen, Belege, Kunden und Artikel aus deinem
+          bisherigen Programm mit. Die App zeigt dir Schritt für Schritt, was du dort exportierst.
+        </p>
+        <div class="wizard-choices move-choices">
+          <label class:selected={!!moving && moving !== "none"}>
+            <input
+              type="radio"
+              name="moving"
+              checked={!!moving && moving !== "none"}
+              onchange={() => (moving = sources[0]?.id ?? "andere")}
+            />
+            <span
+              ><strong>Ja, ich ziehe um</strong><small
+                >Wähle dein bisheriges Programm. Die Anleitung öffnet sich nach dem Start.</small
+              ></span
+            >
+          </label>
+          <label class:selected={moving === "none"}>
+            <input
+              type="radio"
+              name="moving"
+              checked={moving === "none"}
+              onchange={() => (moving = "none")}
+            />
+            <span
+              ><strong>Nein, ich fange neu an</strong><small
+                >Den Umzug kannst du später unter Einstellungen → Allgemein → Bereiche im Menü
+                einblenden.</small
+              ></span
+            >
+          </label>
+        </div>
+        {#if moving && moving !== "none"}
+          <label class="move-program"
+            ><span>Bisheriges Programm</span><select bind:value={moving}
+              >{#each sources as source (source.id)}<option value={source.id}
+                  >{source.name}{source.deadline
+                    ? ` – endet am ${source.deadline.split("-").reverse().join(".")}`
+                    : ""}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
+        {#if moving && moving !== "none"}<aside class="wizard-note shop-note" aria-live="polite">
+            <FolderInputIcon size={20} aria-hidden="true" />
+            <p>
+              Direkt nach dem Start öffnen wir die Anleitung für {sources.find(
+                (source) => source.id === moving,
+              )?.name}. Dort übernimmst du Rechnungen, Belege, Kunden und Artikel.
+            </p>
+          </aside>{/if}
       {:else if step === plusStep}
         <p>
           papierleicht ist kostenlos und bleibt es. Mit Plus nimmt dir die App zusätzlich Arbeit ab
@@ -706,9 +778,10 @@
               >
             </h2>
             <p>
-              Shop: {setupShopSummary(shop, (id) => shopProviderByID(id)?.label)}<br />Tarif: {setupPlanSummary(
-                plusBooked,
-              )}<br />Newsletter: {newsletterEmail
+              Shop: {setupShopSummary(shop, (id) => shopProviderByID(id)?.label)}<br />Umzug: {moving &&
+              moving !== "none"
+                ? `aus ${sources.find((source) => source.id === moving)?.name ?? moving}`
+                : "Nein"}<br />Tarif: {setupPlanSummary(plusBooked)}<br />Newsletter: {newsletterEmail
                 ? `Bestätigung an ${newsletterEmail} geschickt`
                 : plusBooked
                   ? "Auf der Buchungsseite möglich"
@@ -766,6 +839,7 @@
                 ? "Profil speichern & starten"
                 : (step === mailStep && !mailSaved) ||
                     (step === shopStep && !shop) ||
+                    (step === migrationStep && !moving) ||
                     (step === plusStep && !plusBooked) ||
                     (step === newsStep && !newsletterEmail)
                   ? "Überspringen"
@@ -907,6 +981,19 @@
   .shop-choices .shop-none {
     grid-column: 1 / -1;
     align-items: flex-start;
+  }
+  .move-choices {
+    grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  }
+  .move-program {
+    display: grid;
+    gap: 4px;
+    max-width: 24rem;
+    margin-top: 12px;
+    font-size: 13px;
+  }
+  .move-program span {
+    font-weight: 600;
   }
   .shop-note {
     display: flex;

@@ -1,0 +1,10 @@
+{
+  "id": "fakturama",
+  "name": "Fakturama",
+  "vendor": "Fakturama-Projekt (Open Source)",
+  "kind": "desktop",
+  "summary": "Rechnungen liegen bei Fakturama schon als PDF mit ZUGFeRD im Arbeitsverzeichnis.",
+  "ways": ["files", "customers", "products"],
+  "checked": "nach der offiziellen Hilfe zu Version 2.2.1, Stand 18.11.2026",
+  "sources": ["https://help.fakturama.net/webhelp/"]
+}

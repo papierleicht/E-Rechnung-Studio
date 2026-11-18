@@ -1,0 +1,10 @@
+{
+  "id": "orgamax",
+  "name": "orgaMAX",
+  "vendor": "Deltra Business Software",
+  "kind": "desktop",
+  "summary": "Aus orgaMAX nimmst du Kunden und Artikel über den Daten-Export als Excel-Datei mit, die Rechnungen als PDF.",
+  "ways": ["files", "customers", "products"],
+  "checked": "nach der Hersteller-Anleitung „Datenexport mit orgaMAX“ (ab Version 17), Stand 18.11.2026",
+  "sources": []
+}

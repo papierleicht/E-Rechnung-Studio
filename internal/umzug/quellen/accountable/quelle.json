@@ -1,0 +1,10 @@
+{
+  "id": "accountable",
+  "name": "Accountable",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Accountable gibt Originaldokumente, PDFs und einen DATEV-Export über „Exportiere deine Daten“ als ZIP heraus.",
+  "ways": ["files"],
+  "checked": "nach der offiziellen Hilfe (Stand des Artikels 08.10.2025), Stand 18.11.2026",
+  "sources": ["https://intercom.help/accountableapp/de/articles/2625762"]
+}

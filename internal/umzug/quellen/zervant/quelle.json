@@ -1,0 +1,10 @@
+{
+  "id": "zervant",
+  "name": "Zervant",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Zervant gibt deine Rechnungen über den Verkaufsbericht als ZIP mit PDFs heraus, die Rechnungsliste als CSV.",
+  "ways": ["files"],
+  "checked": "nach der englischen Hilfe, Stand 18.11.2026",
+  "sources": []
+}

@@ -15,6 +15,7 @@ export type {
     FinanceSettings,
     Installment,
     InstallmentPlan,
+    LegacyFilter,
     NumberUse,
     Payment,
     PaymentBalance,

@@ -202,7 +202,7 @@ func TestQuoteBackupRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(backup, `"version": 9`) || !strings.Contains(backup, `"quotes"`) {
+	if !strings.Contains(backup, `"version": 10`) || !strings.Contains(backup, `"quotes"`) {
 		t.Fatal("backup does not contain quotes")
 	}
 	target, err := Open(filepath.Join(t.TempDir(), "target.db"))
@@ -233,7 +233,7 @@ func TestQuoteBackupRoundTrip(t *testing.T) {
 		t.Fatalf("next number after restore: %s %v", next.Number, err)
 	}
 	// Older backups have no quotes and replace the current ones completely.
-	old := strings.Replace(backup, `"version": 9`, `"version": 3`, 1)
+	old := strings.Replace(backup, `"version": 10`, `"version": 3`, 1)
 	old = old[:strings.Index(old, `"quotes"`)]
 	old = strings.TrimRight(old, " \n,") + "\n}"
 	if err = target.RestoreBackup(old); err != nil {

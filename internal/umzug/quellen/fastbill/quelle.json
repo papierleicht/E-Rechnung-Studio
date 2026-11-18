@@ -1,0 +1,10 @@
+{
+  "id": "fastbill",
+  "name": "FastBill",
+  "vendor": "FastBill",
+  "kind": "cloud",
+  "summary": "FastBill exportiert Rechnungen, Belege, Kunden und Produkte unter „Import & Export“, dazu ein DATEV-Paket mit Belegbildern.",
+  "ways": ["files", "customers", "products"],
+  "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
+  "sources": ["https://support.fastbill.com/hc/de/articles/201715727"]
+}

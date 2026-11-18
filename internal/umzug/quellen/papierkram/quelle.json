@@ -1,0 +1,15 @@
+{
+  "id": "papierkram",
+  "name": "Papierkram",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Papierkram gibt je Geschäftsjahr einen Komplett-Export als ZIP heraus; der Download ist sieben Tage verfügbar.",
+  "ways": ["files"],
+  "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
+  "sources": ["https://papierkram.de/hilfe/datenexport/"],
+  "columns": {
+    "products": {
+      "unit": ["Einheitbezeichnung Einzel"]
+    }
+  }
+}

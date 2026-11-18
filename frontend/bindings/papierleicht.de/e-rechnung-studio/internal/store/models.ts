@@ -313,6 +313,16 @@ export interface InstallmentPlan {
 }
 
 /**
+ * LegacyFilter narrows the archive list. Empty fields do not filter.
+ */
+export interface LegacyFilter {
+    "year": string;
+    "direction": string;
+    "source": string;
+    "query": string;
+}
+
+/**
  * NumberUse is an invoice that holds a number. Issued and deleted invoices
  * block the number for good; drafts only preview it.
  */

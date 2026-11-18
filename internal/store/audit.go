@@ -449,7 +449,11 @@ func auditObjects(q sqlRunner) ([]auditObject, error) {
 	for _, l := range locks {
 		out = append(out, auditObject{AuditLock, l.ID, lockLabel(l), lockSum(l)})
 	}
-	return out, nil
+	legacy, err := legacyObjects(q)
+	if err != nil {
+		return nil, err
+	}
+	return append(out, legacy...), nil
 }
 
 // issuedObject reads an issued invoice with the files made when it was issued.
@@ -667,6 +671,12 @@ func (s *Store) verifyOnce(check AnchorCheck) (AuditReport, error) {
 		return report, err
 	}
 	report.Problems = append(report.Problems, files.Problems...)
+	legacyFiles, err := verifyLegacyFiles(s.db)
+	report.Files += legacyFiles.Count
+	if err != nil {
+		return report, err
+	}
+	report.Problems = append(report.Problems, legacyFiles.Problems...)
 	anchors, err := readAnchors(s.db)
 	if err != nil {
 		return report, err

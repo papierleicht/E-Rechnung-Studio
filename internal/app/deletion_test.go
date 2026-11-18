@@ -107,7 +107,7 @@ func TestDeleteUnsentInvoiceKeepsLogAndBlocksNumber(t *testing.T) {
 		Version int               `json:"version"`
 		Deleted []json.RawMessage `json:"deletedInvoices"`
 	}
-	if err = json.Unmarshal([]byte(backup), &doc); err != nil || doc.Version != 9 || len(doc.Deleted) != 1 {
+	if err = json.Unmarshal([]byte(backup), &doc); err != nil || doc.Version != 10 || len(doc.Deleted) != 1 {
 		t.Fatalf("backup misses log: version %d, %d entries, %v", doc.Version, len(doc.Deleted), err)
 	}
 	restored := newTestService(t)

@@ -1,0 +1,10 @@
+{
+  "id": "buchhaltungsbutler",
+  "name": "BuchhaltungsButler",
+  "vendor": "",
+  "kind": "cloud",
+  "summary": "Aus BuchhaltungsButler nimmst du die Buchungssätze mit Belegen im DATEV-Format mit.",
+  "ways": ["files"],
+  "checked": "nach der offiziellen Hilfe, Stand 18.11.2026",
+  "sources": []
+}
