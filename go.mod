@@ -6,8 +6,8 @@ require (
 	github.com/BergerAPI/go-fints v0.0.0
 	github.com/beevik/etree v1.8.1
 	github.com/boxesandglue/baseline-pdf v1.1.34
-	github.com/boxesandglue/boxesandglue v0.2.101
-	github.com/boxesandglue/htmlbag v0.0.102
+	github.com/boxesandglue/boxesandglue v0.2.102
+	github.com/boxesandglue/htmlbag v0.0.103
 	github.com/google/uuid v1.6.0
 	github.com/papierleicht/go-e-rechnung-validator v0.1.0
 	github.com/shopspring/decimal v1.6.0
@@ -15,7 +15,7 @@ require (
 	github.com/wailsapp/wails/v3 v3.1.0
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/net v0.62.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.43.0
 	modernc.org/sqlite v1.62.0
 )
@@ -25,7 +25,7 @@ require (
 	github.com/andybalholm/brotli v1.2.8 // indirect
 	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/boxesandglue/gofpdi v1.0.26 // indirect
-	github.com/boxesandglue/svgreader v0.0.8 // indirect
+	github.com/boxesandglue/svgreader v0.0.9 // indirect
 	github.com/boxesandglue/textshape v0.0.19 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
